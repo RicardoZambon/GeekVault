@@ -804,6 +804,184 @@ app.MapDelete("/api/items/{catalogItemId:int}/copies/{id:int}", async (
 .WithName("DeleteOwnedCopy")
 .WithOpenApi();
 
+// Set endpoints
+app.MapGet("/api/collections/{collectionId:int}/sets", async (
+    int collectionId,
+    ClaimsPrincipal principal,
+    ApplicationDbContext db) =>
+{
+    var userId = principal.FindFirstValue(ClaimTypes.NameIdentifier)!;
+    var collection = await db.Collections.FirstOrDefaultAsync(c => c.Id == collectionId && c.UserId == userId);
+    if (collection == null) return Results.NotFound();
+
+    var sets = await db.Sets
+        .Where(s => s.CollectionId == collectionId)
+        .Select(s => new SetResponse(s.Id, s.CollectionId, s.Name, s.ExpectedItemCount, null, null, null))
+        .ToListAsync();
+    return Results.Ok(sets);
+})
+.RequireAuthorization()
+.WithName("ListSets")
+.WithOpenApi();
+
+app.MapGet("/api/collections/{collectionId:int}/sets/{id:int}", async (
+    int collectionId,
+    int id,
+    ClaimsPrincipal principal,
+    ApplicationDbContext db) =>
+{
+    var userId = principal.FindFirstValue(ClaimTypes.NameIdentifier)!;
+    var collection = await db.Collections.FirstOrDefaultAsync(c => c.Id == collectionId && c.UserId == userId);
+    if (collection == null) return Results.NotFound();
+
+    var set = await db.Sets.FirstOrDefaultAsync(s => s.Id == id && s.CollectionId == collectionId);
+    if (set == null) return Results.NotFound();
+
+    var items = await db.SetItems
+        .Where(si => si.SetId == id)
+        .OrderBy(si => si.SortOrder)
+        .Select(si => new SetItemResponse(si.Id, si.SetId, si.CatalogItemId, si.Name, si.SortOrder))
+        .ToListAsync();
+
+    // Calculate completion: a set item is complete if its linked CatalogItem has at least one OwnedCopy
+    var completedCount = 0;
+    foreach (var item in items)
+    {
+        if (item.CatalogItemId != null)
+        {
+            var hasOwnedCopy = await db.OwnedCopies.AnyAsync(oc => oc.CatalogItemId == item.CatalogItemId);
+            if (hasOwnedCopy) completedCount++;
+        }
+    }
+    var completionPercentage = set.ExpectedItemCount > 0
+        ? (double)completedCount / set.ExpectedItemCount * 100
+        : 0;
+
+    return Results.Ok(new SetResponse(set.Id, set.CollectionId, set.Name, set.ExpectedItemCount,
+        items, completedCount, Math.Round(completionPercentage, 2)));
+})
+.RequireAuthorization()
+.WithName("GetSet")
+.WithOpenApi();
+
+app.MapPost("/api/collections/{collectionId:int}/sets", async (
+    int collectionId,
+    CreateSetRequest request,
+    ClaimsPrincipal principal,
+    ApplicationDbContext db) =>
+{
+    var userId = principal.FindFirstValue(ClaimTypes.NameIdentifier)!;
+    var collection = await db.Collections.FirstOrDefaultAsync(c => c.Id == collectionId && c.UserId == userId);
+    if (collection == null) return Results.NotFound();
+
+    var set = new Set
+    {
+        CollectionId = collectionId,
+        Name = request.Name,
+        ExpectedItemCount = request.ExpectedItemCount
+    };
+
+    db.Sets.Add(set);
+    await db.SaveChangesAsync();
+
+    return Results.Created($"/api/collections/{collectionId}/sets/{set.Id}",
+        new SetResponse(set.Id, set.CollectionId, set.Name, set.ExpectedItemCount, null, null, null));
+})
+.RequireAuthorization()
+.WithName("CreateSet")
+.WithOpenApi();
+
+app.MapPut("/api/collections/{collectionId:int}/sets/{id:int}", async (
+    int collectionId,
+    int id,
+    UpdateSetRequest request,
+    ClaimsPrincipal principal,
+    ApplicationDbContext db) =>
+{
+    var userId = principal.FindFirstValue(ClaimTypes.NameIdentifier)!;
+    var collection = await db.Collections.FirstOrDefaultAsync(c => c.Id == collectionId && c.UserId == userId);
+    if (collection == null) return Results.NotFound();
+
+    var set = await db.Sets.FirstOrDefaultAsync(s => s.Id == id && s.CollectionId == collectionId);
+    if (set == null) return Results.NotFound();
+
+    set.Name = request.Name ?? set.Name;
+    if (request.ExpectedItemCount.HasValue)
+        set.ExpectedItemCount = request.ExpectedItemCount.Value;
+
+    await db.SaveChangesAsync();
+
+    return Results.Ok(new SetResponse(set.Id, set.CollectionId, set.Name, set.ExpectedItemCount, null, null, null));
+})
+.RequireAuthorization()
+.WithName("UpdateSet")
+.WithOpenApi();
+
+app.MapDelete("/api/collections/{collectionId:int}/sets/{id:int}", async (
+    int collectionId,
+    int id,
+    ClaimsPrincipal principal,
+    ApplicationDbContext db) =>
+{
+    var userId = principal.FindFirstValue(ClaimTypes.NameIdentifier)!;
+    var collection = await db.Collections.FirstOrDefaultAsync(c => c.Id == collectionId && c.UserId == userId);
+    if (collection == null) return Results.NotFound();
+
+    var set = await db.Sets.FirstOrDefaultAsync(s => s.Id == id && s.CollectionId == collectionId);
+    if (set == null) return Results.NotFound();
+
+    db.Sets.Remove(set);
+    await db.SaveChangesAsync();
+
+    return Results.NoContent();
+})
+.RequireAuthorization()
+.WithName("DeleteSet")
+.WithOpenApi();
+
+app.MapPost("/api/collections/{collectionId:int}/sets/{id:int}/items", async (
+    int collectionId,
+    int id,
+    List<CreateSetItemRequest> request,
+    ClaimsPrincipal principal,
+    ApplicationDbContext db) =>
+{
+    var userId = principal.FindFirstValue(ClaimTypes.NameIdentifier)!;
+    var collection = await db.Collections.FirstOrDefaultAsync(c => c.Id == collectionId && c.UserId == userId);
+    if (collection == null) return Results.NotFound();
+
+    var set = await db.Sets.FirstOrDefaultAsync(s => s.Id == id && s.CollectionId == collectionId);
+    if (set == null) return Results.NotFound();
+
+    var maxSortOrder = await db.SetItems
+        .Where(si => si.SetId == id)
+        .Select(si => (int?)si.SortOrder)
+        .MaxAsync() ?? 0;
+
+    var items = new List<SetItem>();
+    foreach (var itemReq in request)
+    {
+        maxSortOrder++;
+        var setItem = new SetItem
+        {
+            SetId = id,
+            CatalogItemId = itemReq.CatalogItemId,
+            Name = itemReq.Name,
+            SortOrder = itemReq.SortOrder ?? maxSortOrder
+        };
+        items.Add(setItem);
+        db.SetItems.Add(setItem);
+    }
+
+    await db.SaveChangesAsync();
+
+    var response = items.Select(si => new SetItemResponse(si.Id, si.SetId, si.CatalogItemId, si.Name, si.SortOrder)).ToList();
+    return Results.Created($"/api/collections/{collectionId}/sets/{id}/items", response);
+})
+.RequireAuthorization()
+.WithName("AddSetItems")
+.WithOpenApi();
+
 app.Run();
 
 static string GenerateJwtToken(ApplicationUser user, IConfiguration config)
@@ -851,3 +1029,8 @@ record CatalogItemResponse(int Id, int CollectionId, string Identifier, string N
 record CreateOwnedCopyRequest(string Condition, decimal? PurchasePrice, decimal? EstimatedValue, DateTime? AcquisitionDate, string? AcquisitionSource, string? Notes, List<string>? Images);
 record UpdateOwnedCopyRequest(string? Condition, decimal? PurchasePrice, decimal? EstimatedValue, DateTime? AcquisitionDate, string? AcquisitionSource, string? Notes, List<string>? Images);
 record OwnedCopyResponse(int Id, int CatalogItemId, string Condition, decimal? PurchasePrice, decimal? EstimatedValue, DateTime? AcquisitionDate, string? AcquisitionSource, string? Notes, List<string> Images);
+record CreateSetRequest(string Name, int ExpectedItemCount);
+record UpdateSetRequest(string? Name, int? ExpectedItemCount);
+record SetResponse(int Id, int CollectionId, string Name, int ExpectedItemCount, List<SetItemResponse>? Items, int? CompletedCount, double? CompletionPercentage);
+record CreateSetItemRequest(string Name, int? CatalogItemId, int? SortOrder);
+record SetItemResponse(int Id, int SetId, int? CatalogItemId, string Name, int SortOrder);
