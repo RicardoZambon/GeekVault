@@ -228,3 +228,16 @@ Started: Fri Mar 13 12:14:54 PM UTC 2026
   - Test helper creates full chain: register user -> create collection type -> create collection -> create catalog item
   - OwnedCopyResponse includes Images as `List<string>` (URLs), while entity stores as `List<OwnedCopyImage>`
 ---
+
+## 2026-03-13 - US-015
+- Added Set CRUD API endpoints (already implemented in Program.cs from prior iteration, along with completion tracking from US-016 scope)
+- Fixed compilation errors in SetEndpointsTests.cs: anonymous type arrays with mixed nullable/non-nullable int properties need consistent nullable types
+- 9 integration tests covering: list, create, get with items/completion, completion with owned copies, update, delete, bulk add items, auth requirement, wrong collection ownership
+- All 58 tests passing (9 new Set tests + 49 existing)
+- Files changed: `SetEndpointsTests.cs` (fixed nullable type issues)
+- **Learnings for future iterations:**
+  - When creating anonymous type arrays with mixed nullable properties (e.g., `CatalogItemId`), ALL elements must use the same nullable type: `(int?)catalogItemId` not just `catalogItemId`
+  - Set endpoints are nested under collections: `/api/collections/{collectionId}/sets`
+  - Bulk add items endpoint: `POST /api/collections/{collectionId}/sets/{id}/items` accepts `List<CreateSetItemRequest>`
+  - Completion tracking already baked into GET single set — counts owned copies for linked catalog items
+---
