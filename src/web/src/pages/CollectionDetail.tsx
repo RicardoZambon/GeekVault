@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, type FormEvent } from "react"
-import { useParams, useNavigate } from "react-router-dom"
+import { useParams, useNavigate, useSearchParams } from "react-router-dom"
 import { useTranslation } from "react-i18next"
-import { Plus, ArrowLeft, Image, Package, Check, Trash2, Pencil, Search, CheckCircle2, Circle } from "lucide-react"
+import { Plus, ArrowLeft, Image, Package, Check, Trash2, Pencil, Search, CheckCircle2, Circle, ArrowUp, ArrowDown } from "lucide-react"
 import { useAuth } from "@/components/auth-provider"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -98,6 +98,7 @@ export default function CollectionDetail() {
   const { t } = useTranslation()
   const { token } = useAuth()
   const navigate = useNavigate()
+  const [searchParams, setSearchParams] = useSearchParams()
 
   const [collection, setCollection] = useState<Collection | null>(null)
   const [collectionType, setCollectionType] = useState<CollectionTypeDetail | null>(null)
@@ -109,6 +110,31 @@ export default function CollectionDetail() {
 
   // Tab state
   const [activeTab, setActiveTab] = useState<"items" | "sets">("items")
+
+  // Search, filter, sort state from URL params
+  const searchQuery = searchParams.get("search") ?? ""
+  const conditionFilter = searchParams.get("condition") ?? ""
+  const ownedFilter = searchParams.get("ownedStatus") ?? "all"
+  const sortBy = searchParams.get("sortBy") ?? "name"
+  const sortDir = searchParams.get("sortDir") ?? "asc"
+
+  function updateParam(key: string, value: string) {
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev)
+      const shouldDelete =
+        !value ||
+        (key === "ownedStatus" && value === "all") ||
+        (key === "condition" && value === "") ||
+        (key === "sortBy" && value === "name") ||
+        (key === "sortDir" && value === "asc")
+      if (shouldDelete) {
+        next.delete(key)
+      } else {
+        next.set(key, value)
+      }
+      return next
+    })
+  }
 
   // Add item dialog
   const [dialogOpen, setDialogOpen] = useState(false)
@@ -173,7 +199,14 @@ export default function CollectionDetail() {
 
   const fetchItems = useCallback(async () => {
     try {
-      const res = await fetch(`/api/collections/${id}/items?pageSize=100`, { headers })
+      const params = new URLSearchParams({ pageSize: "100" })
+      if (searchQuery) params.set("search", searchQuery)
+      if (conditionFilter) params.set("condition", conditionFilter)
+      if (ownedFilter && ownedFilter !== "all") params.set("ownedStatus", ownedFilter)
+      if (sortBy) params.set("sortBy", sortBy)
+      if (sortDir) params.set("sortDir", sortDir)
+
+      const res = await fetch(`/api/collections/${id}/items?${params}`, { headers })
       if (!res.ok) throw new Error("Failed to fetch items")
       const data: PaginatedResponse = await res.json()
       setItems(data.items)
@@ -194,7 +227,7 @@ export default function CollectionDetail() {
     } catch {
       setError(t("collectionDetail.fetchError"))
     }
-  }, [id, token]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [id, token, searchQuery, conditionFilter, ownedFilter, sortBy, sortDir]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const fetchSets = useCallback(async () => {
     try {
@@ -229,6 +262,13 @@ export default function CollectionDetail() {
     }
     load()
   }, [id]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Refetch items when search/filter/sort params change
+  useEffect(() => {
+    if (collection) {
+      fetchItems()
+    }
+  }, [searchQuery, conditionFilter, ownedFilter, sortBy, sortDir]) // eslint-disable-line react-hooks/exhaustive-deps
 
   function openAddItem() {
     setFormIdentifier("")
@@ -540,6 +580,78 @@ export default function CollectionDetail() {
               <Plus className="h-4 w-4" />
               {t("collectionDetail.addItem")}
             </Button>
+          </div>
+
+          {/* Search, Filter, Sort controls */}
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            {/* Search */}
+            <div className="relative flex-1 min-w-[180px]">
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                className="pl-9 h-9"
+                placeholder={t("collectionDetail.searchPlaceholder")}
+                value={searchQuery}
+                onChange={(e) => updateParam("search", e.target.value)}
+              />
+            </div>
+
+            {/* Condition filter */}
+            <select
+              value={conditionFilter}
+              onChange={(e) => updateParam("condition", e.target.value)}
+              className="h-9 rounded-md border border-input bg-transparent px-3 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            >
+              <option value="">{t("collectionDetail.conditionAll")}</option>
+              <option value="Mint">{t("collectionDetail.conditionMint")}</option>
+              <option value="NearMint">{t("collectionDetail.conditionNearMint")}</option>
+              <option value="Excellent">{t("collectionDetail.conditionExcellent")}</option>
+              <option value="Good">{t("collectionDetail.conditionGood")}</option>
+              <option value="Fair">{t("collectionDetail.conditionFair")}</option>
+              <option value="Poor">{t("collectionDetail.conditionPoor")}</option>
+            </select>
+
+            {/* Owned status toggle */}
+            <div className="flex rounded-md border border-input shadow-sm">
+              {(["all", "owned", "unowned"] as const).map((status) => (
+                <button
+                  key={status}
+                  className={`px-3 py-1.5 text-xs font-medium transition-colors ${
+                    ownedFilter === status
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-transparent text-muted-foreground hover:text-foreground"
+                  } ${status === "all" ? "rounded-l-md" : status === "unowned" ? "rounded-r-md" : ""}`}
+                  onClick={() => updateParam("ownedStatus", status)}
+                >
+                  {t(`collectionDetail.owned${status.charAt(0).toUpperCase() + status.slice(1)}`)}
+                </button>
+              ))}
+            </div>
+
+            {/* Sort */}
+            <select
+              value={sortBy}
+              onChange={(e) => updateParam("sortBy", e.target.value)}
+              className="h-9 rounded-md border border-input bg-transparent px-3 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            >
+              <option value="name">{t("collectionDetail.sortName")}</option>
+              <option value="price">{t("collectionDetail.sortPrice")}</option>
+              <option value="value">{t("collectionDetail.sortValue")}</option>
+              <option value="date">{t("collectionDetail.sortDate")}</option>
+              <option value="rarity">{t("collectionDetail.sortRarity")}</option>
+            </select>
+
+            {/* Sort direction toggle */}
+            <button
+              className="flex h-9 w-9 items-center justify-center rounded-md border border-input shadow-sm hover:bg-muted/50 transition-colors"
+              onClick={() => updateParam("sortDir", sortDir === "asc" ? "desc" : "asc")}
+              title={sortDir === "asc" ? t("collectionDetail.sortAsc") : t("collectionDetail.sortDesc")}
+            >
+              {sortDir === "asc" ? (
+                <ArrowUp className="h-4 w-4" />
+              ) : (
+                <ArrowDown className="h-4 w-4" />
+              )}
+            </button>
           </div>
 
           {/* Gallery grid */}
