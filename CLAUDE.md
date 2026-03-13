@@ -42,6 +42,10 @@ On container creation, `postCreateCommand` runs `.devcontainer/mssql/postCreateC
 
 - **Build API:** `cd src/api/GeekVault.Api && dotnet build`
 - **Run API:** `cd src/api/GeekVault.Api && dotnet run`
+- **Test API:** `cd src/api/GeekVault.Api.Tests && dotnet test`
+- **Build Frontend:** `cd src/web && npm run build`
+- **Dev Frontend:** `cd src/web && npm run dev`
+- **Typecheck Frontend:** `cd src/web && npx tsc -b`
 
 ## API Project Structure
 
@@ -57,3 +61,26 @@ src/api/GeekVault.Api/
 - Uses **minimal API** style (not controllers)
 - EF Core with SQL Server provider
 - Swagger enabled in development
+
+## Frontend Project Structure
+
+```
+src/web/
+├── src/
+│   ├── components/ui/    # shadcn/ui components
+│   ├── lib/utils.ts      # cn() helper for class merging
+│   ├── pages/            # Page components
+│   ├── App.tsx            # React Router routes
+│   ├── main.tsx           # Entry point with BrowserRouter
+│   └── index.css          # Tailwind CSS + shadcn/ui theme variables
+├── components.json        # shadcn/ui config
+├── postcss.config.js      # Tailwind CSS v4 via PostCSS
+├── vite.config.ts         # Vite config with @/ alias and API proxy
+└── package.json
+```
+
+- React 19 + TypeScript + Vite 8
+- Tailwind CSS v4 via `@tailwindcss/postcss` (not vite plugin — incompatible with Vite 8)
+- shadcn/ui set up manually (CLI incompatible with Node 24)
+- Path alias: `@/` maps to `src/`
+- API proxy: `/api` -> `http://localhost:5000`
