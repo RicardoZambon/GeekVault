@@ -290,3 +290,20 @@ Started: Fri Mar 13 12:14:54 PM UTC 2026
   - Use `db.OwnedCopies.Any(oc => oc.CatalogItemId == i.Id)` for owned/unowned filtering via subquery
   - `PaginatedResponse<T>` is a generic record — can be reused for future paginated endpoints
 ---
+
+## 2026-03-13 - US-019
+- Added GET /api/dashboard endpoint returning aggregate analytics for authenticated user
+- Returns: totalCollections, totalItems, totalOwnedCopies, totalEstimatedValue, totalInvested
+- Returns itemsByCondition breakdown (count per condition enum value)
+- Returns collectionSummaries (id, name, itemCount, ownedCount, value per collection)
+- Returns recentAcquisitions (last 10 owned copies ordered by acquisition date desc, then id desc)
+- All data scoped to authenticated user only (other users' data excluded)
+- 7 integration tests: auth required, empty user, correct totals, condition breakdown, collection summaries, recent acquisitions (limit 10), user isolation
+- All 83 tests passing (7 new + 76 existing)
+- Files changed: `Program.cs`, new `DashboardEndpointsTests.cs`
+- **Learnings for future iterations:**
+  - Use `(decimal?)oc.EstimatedValue ?? 0m` pattern for nullable decimal Sum to avoid null issues in EF Core
+  - Dashboard queries use subqueries (`db.CatalogItems.Any(...)`) to scope OwnedCopies to user's collections
+  - Join syntax works in EF Core for combining OwnedCopy with CatalogItem name in recent acquisitions
+  - Response records: DashboardResponse, ConditionCountDto, CollectionSummaryDto, RecentAcquisitionDto
+---
