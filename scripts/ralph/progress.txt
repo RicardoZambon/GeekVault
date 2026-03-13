@@ -58,6 +58,9 @@ Started: Fri Mar 13 12:14:54 PM UTC 2026
 - Auth routes: `RequireAuth` wrapper redirects to `/login` if no token, `GuestOnly` wrapper redirects to `/` if authenticated
 - Form pages use controlled inputs with `useState` + client-side validation before API call
 - shadcn/ui Input component in `src/components/ui/input.tsx`, Label in `src/components/ui/label.tsx`
+- Dialog component in `src/components/ui/dialog.tsx` — built from `@radix-ui/react-dialog` (same package as Sheet)
+- CRUD page pattern: list view + Dialog for create/edit + separate Dialog for delete confirmation
+- When adding new pages: update App.tsx (route), app-layout.tsx (nav item), and BOTH en.json + pt.json (i18n)
 ---
 
 ## 2026-03-13 - US-001
@@ -451,5 +454,26 @@ Started: Fri Mar 13 12:14:54 PM UTC 2026
   - GuestOnly/RequireAuth patterns use React Router `<Outlet />` for nested route protection
   - Auth loading state (isLoading) is critical to avoid flash of login page on refresh when token exists
   - Backend /api/auth/me endpoint used to validate token on app load
+  - No browser testing tools available — manual browser verification needed
+---
+
+## 2026-03-13 - US-026
+- Added collection types management page at `/collection-types`
+- Page lists existing collection types as cards with name, icon, description, and custom field badges
+- Create/Edit dialog with name, description, icon fields
+- Custom field builder: add/remove fields with name, type (text/number/date/enum/boolean/image_url), required checkbox, enum options
+- Delete confirmation dialog
+- All CRUD calls to backend CollectionType API with JWT auth
+- Created reusable Dialog component (`src/components/ui/dialog.tsx`) using Radix UI primitives
+- Added nav item "Collection Types" with Layers icon in sidebar
+- Added route `/collection-types` in App.tsx
+- Added i18n translations for all UI strings in both en.json and pt.json
+- Typecheck passes, build succeeds, all 103 API tests pass
+- Files changed: `src/components/ui/dialog.tsx` (new), `src/pages/CollectionTypes.tsx` (new), `App.tsx`, `src/components/app-layout.tsx`, `src/i18n/locales/en.json`, `src/i18n/locales/pt.json`
+- **Learnings for future iterations:**
+  - Dialog component built from `@radix-ui/react-dialog` (already installed for Sheet) — no new packages needed
+  - Native HTML `<select>` and `<input type="checkbox">` work fine with Tailwind styling — no need for Radix Select/Checkbox
+  - Collection types API returns `customFieldSchema` array — each field has name, type, required, options
+  - Form state pattern: separate useState for each form field + `formFields` array for custom field builder
   - No browser testing tools available — manual browser verification needed
 ---
