@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, type FormEvent } from "react"
 import { useParams, useNavigate } from "react-router-dom"
 import { useTranslation } from "react-i18next"
-import { Plus, ArrowLeft, Image, Package, Check } from "lucide-react"
+import { Plus, ArrowLeft, Image, Package, Check, Trash2, Pencil, Search, CheckCircle2, Circle } from "lucide-react"
 import { useAuth } from "@/components/auth-provider"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -66,6 +66,33 @@ interface PaginatedResponse {
   pageSize: number
 }
 
+interface SetSummary {
+  id: number
+  collectionId: number
+  name: string
+  expectedItemCount: number
+  completedCount: number | null
+  completionPercentage: number | null
+}
+
+interface SetItem {
+  id: number
+  setId: number
+  catalogItemId: number | null
+  name: string
+  sortOrder: number
+}
+
+interface SetDetail {
+  id: number
+  collectionId: number
+  name: string
+  expectedItemCount: number
+  completedCount: number | null
+  completionPercentage: number | null
+  items: SetItem[]
+}
+
 export default function CollectionDetail() {
   const { id } = useParams()
   const { t } = useTranslation()
@@ -80,6 +107,9 @@ export default function CollectionDetail() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
 
+  // Tab state
+  const [activeTab, setActiveTab] = useState<"items" | "sets">("items")
+
   // Add item dialog
   const [dialogOpen, setDialogOpen] = useState(false)
   const [formIdentifier, setFormIdentifier] = useState("")
@@ -93,6 +123,24 @@ export default function CollectionDetail() {
   const [formCustomFields, setFormCustomFields] = useState<Record<string, string>>({})
   const [formError, setFormError] = useState("")
   const [submitting, setSubmitting] = useState(false)
+
+  // Sets state
+  const [sets, setSets] = useState<SetSummary[]>([])
+  const [selectedSet, setSelectedSet] = useState<SetDetail | null>(null)
+  const [setsDialogOpen, setSetsDialogOpen] = useState(false)
+  const [editingSet, setEditingSet] = useState<SetSummary | null>(null)
+  const [setsFormName, setSetsFormName] = useState("")
+  const [setsFormError, setSetsFormError] = useState("")
+  const [setsSubmitting, setSetsSubmitting] = useState(false)
+  const [deleteSetDialogOpen, setDeleteSetDialogOpen] = useState(false)
+  const [deletingSetId, setDeletingSetId] = useState<number | null>(null)
+  const [setsDeleting, setSetsDeleting] = useState(false)
+
+  // Add items to set
+  const [addItemsDialogOpen, setAddItemsDialogOpen] = useState(false)
+  const [itemSearchQuery, setItemSearchQuery] = useState("")
+  const [newItemName, setNewItemName] = useState("")
+  const [addItemSubmitting, setAddItemSubmitting] = useState(false)
 
   const headers: Record<string, string> = {
     Authorization: `Bearer ${token}`,
@@ -148,12 +196,34 @@ export default function CollectionDetail() {
     }
   }, [id, token]) // eslint-disable-line react-hooks/exhaustive-deps
 
+  const fetchSets = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/collections/${id}/sets`, { headers })
+      if (!res.ok) return
+      const data: SetSummary[] = await res.json()
+      setSets(data)
+    } catch {
+      // non-critical
+    }
+  }, [id, token]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const fetchSetDetail = useCallback(async (setId: number) => {
+    try {
+      const res = await fetch(`/api/collections/${id}/sets/${setId}`, { headers })
+      if (!res.ok) return
+      const data: SetDetail = await res.json()
+      setSelectedSet(data)
+    } catch {
+      // non-critical
+    }
+  }, [id, token]) // eslint-disable-line react-hooks/exhaustive-deps
+
   useEffect(() => {
     async function load() {
       setLoading(true)
       const col = await fetchCollection()
       if (col) {
-        await Promise.all([fetchCollectionType(col.collectionTypeId), fetchItems()])
+        await Promise.all([fetchCollectionType(col.collectionTypeId), fetchItems(), fetchSets()])
       }
       setLoading(false)
     }
@@ -228,13 +298,140 @@ export default function CollectionDetail() {
 
       setDialogOpen(false)
       await fetchItems()
-      // Refresh collection to update item count
       await fetchCollection()
     } catch (err) {
       setFormError(err instanceof Error ? err.message : t("collectionDetail.saveFailed"))
     } finally {
       setSubmitting(false)
     }
+  }
+
+  // --- Set CRUD ---
+  function openCreateSet() {
+    setEditingSet(null)
+    setSetsFormName("")
+    setSetsFormError("")
+    setSetsDialogOpen(true)
+  }
+
+  function openEditSet(s: SetSummary) {
+    setEditingSet(s)
+    setSetsFormName(s.name)
+    setSetsFormError("")
+    setSetsDialogOpen(true)
+  }
+
+  async function handleSetSubmit(e: FormEvent) {
+    e.preventDefault()
+    setSetsFormError("")
+
+    if (!setsFormName.trim()) {
+      setSetsFormError(t("sets.nameRequired"))
+      return
+    }
+
+    setSetsSubmitting(true)
+    try {
+      const url = editingSet
+        ? `/api/collections/${id}/sets/${editingSet.id}`
+        : `/api/collections/${id}/sets`
+      const method = editingSet ? "PUT" : "POST"
+
+      const body = { name: setsFormName.trim() }
+      const res = await fetch(url, { method, headers, body: JSON.stringify(body) })
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => null)
+        throw new Error(data?.message ?? t("sets.saveFailed"))
+      }
+
+      setSetsDialogOpen(false)
+      await fetchSets()
+      if (editingSet && selectedSet?.id === editingSet.id) {
+        await fetchSetDetail(editingSet.id)
+      }
+    } catch (err) {
+      setSetsFormError(err instanceof Error ? err.message : t("sets.saveFailed"))
+    } finally {
+      setSetsSubmitting(false)
+    }
+  }
+
+  function confirmDeleteSet(setId: number) {
+    setDeletingSetId(setId)
+    setDeleteSetDialogOpen(true)
+  }
+
+  async function handleDeleteSet() {
+    if (!deletingSetId) return
+    setSetsDeleting(true)
+    try {
+      const res = await fetch(`/api/collections/${id}/sets/${deletingSetId}`, {
+        method: "DELETE",
+        headers,
+      })
+      if (!res.ok) throw new Error(t("sets.deleteFailed"))
+      setDeleteSetDialogOpen(false)
+      if (selectedSet?.id === deletingSetId) setSelectedSet(null)
+      await fetchSets()
+    } catch {
+      // show error inline if needed
+    } finally {
+      setSetsDeleting(false)
+      setDeletingSetId(null)
+    }
+  }
+
+  async function handleAddCatalogItemToSet(catalogItemId: number, itemName: string) {
+    if (!selectedSet) return
+    setAddItemSubmitting(true)
+    try {
+      const res = await fetch(`/api/collections/${id}/sets/${selectedSet.id}/items`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify([{ catalogItemId, name: itemName, sortOrder: (selectedSet.items?.length ?? 0) + 1 }]),
+      })
+      if (!res.ok) throw new Error("Failed to add item")
+      await fetchSetDetail(selectedSet.id)
+      await fetchSets()
+    } catch {
+      // non-critical
+    } finally {
+      setAddItemSubmitting(false)
+    }
+  }
+
+  async function handleAddNamedItemToSet() {
+    if (!selectedSet || !newItemName.trim()) return
+    setAddItemSubmitting(true)
+    try {
+      const res = await fetch(`/api/collections/${id}/sets/${selectedSet.id}/items`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify([{ name: newItemName.trim(), sortOrder: (selectedSet.items?.length ?? 0) + 1 }]),
+      })
+      if (!res.ok) throw new Error("Failed to add item")
+      setNewItemName("")
+      await fetchSetDetail(selectedSet.id)
+      await fetchSets()
+    } catch {
+      // non-critical
+    } finally {
+      setAddItemSubmitting(false)
+    }
+  }
+
+  // Filter catalog items for the search in add-items dialog
+  const filteredCatalogItems = items.filter((item) => {
+    if (!itemSearchQuery.trim()) return true
+    const q = itemSearchQuery.toLowerCase()
+    return item.name.toLowerCase().includes(q) || item.identifier.toLowerCase().includes(q)
+  })
+
+  // Determine which set items are "owned" (linked catalog item has owned copies)
+  function isSetItemOwned(setItem: SetItem): boolean {
+    if (!setItem.catalogItemId) return false
+    return ownedItemIds.has(setItem.catalogItemId)
   }
 
   if (loading) {
@@ -309,70 +506,249 @@ export default function CollectionDetail() {
         </div>
       )}
 
-      {/* Toolbar */}
-      <div className="mt-6 flex items-center justify-between">
-        <h2 className="text-lg font-semibold">{t("collectionDetail.catalogItems")}</h2>
-        <Button onClick={openAddItem}>
-          <Plus className="h-4 w-4" />
-          {t("collectionDetail.addItem")}
-        </Button>
+      {/* Tab switcher */}
+      <div className="mt-6 flex border-b">
+        <button
+          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+            activeTab === "items"
+              ? "border-primary text-primary"
+              : "border-transparent text-muted-foreground hover:text-foreground"
+          }`}
+          onClick={() => setActiveTab("items")}
+        >
+          {t("collectionDetail.catalogItems")}
+        </button>
+        <button
+          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+            activeTab === "sets"
+              ? "border-primary text-primary"
+              : "border-transparent text-muted-foreground hover:text-foreground"
+          }`}
+          onClick={() => setActiveTab("sets")}
+        >
+          {t("sets.title")} ({sets.length})
+        </button>
       </div>
 
-      {/* Gallery grid */}
-      {items.length === 0 ? (
-        <div className="mt-12 text-center text-muted-foreground">
-          <Package className="mx-auto h-12 w-12 text-muted-foreground/40" />
-          <p className="mt-3">{t("collectionDetail.emptyItems")}</p>
-        </div>
-      ) : (
-        <div className="mt-4 grid gap-4 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
-          {items.map((item) => {
-            const isOwned = ownedItemIds.has(item.id)
-            return (
-              <div
-                key={item.id}
-                className={`group relative cursor-pointer overflow-hidden rounded-lg border bg-card shadow-sm transition-shadow hover:shadow-md ${
-                  isOwned ? "ring-2 ring-green-500/50" : "opacity-75"
-                }`}
-                onClick={() => navigate(`/collections/${id}/items/${item.id}`)}
-              >
-                {/* Item image */}
-                <div className="relative aspect-square bg-muted">
-                  {item.image ? (
-                    <img
-                      src={item.image}
-                      alt={item.name}
-                      loading="lazy"
-                      className="h-full w-full object-cover"
-                    />
-                  ) : (
-                    <div className="flex h-full items-center justify-center">
-                      <Image className="h-8 w-8 text-muted-foreground/40" />
-                    </div>
-                  )}
-                  {/* Owned badge */}
-                  {isOwned && (
-                    <div className="absolute top-2 right-2 rounded-full bg-green-500 p-1 text-white shadow-sm">
-                      <Check className="h-3 w-3" />
-                    </div>
-                  )}
-                </div>
+      {/* Items Tab */}
+      {activeTab === "items" && (
+        <>
+          {/* Toolbar */}
+          <div className="mt-4 flex items-center justify-between">
+            <h2 className="text-lg font-semibold">{t("collectionDetail.catalogItems")}</h2>
+            <Button onClick={openAddItem}>
+              <Plus className="h-4 w-4" />
+              {t("collectionDetail.addItem")}
+            </Button>
+          </div>
 
-                {/* Item info */}
-                <div className="p-2">
-                  <h3 className="truncate text-sm font-medium">{item.name}</h3>
-                  {item.rarity && (
-                    <p className="mt-0.5 truncate text-xs text-muted-foreground">
-                      {item.rarity}
-                    </p>
-                  )}
-                  <p className="mt-0.5 text-xs text-muted-foreground/70">
-                    {item.identifier}
-                  </p>
-                </div>
+          {/* Gallery grid */}
+          {items.length === 0 ? (
+            <div className="mt-12 text-center text-muted-foreground">
+              <Package className="mx-auto h-12 w-12 text-muted-foreground/40" />
+              <p className="mt-3">{t("collectionDetail.emptyItems")}</p>
+            </div>
+          ) : (
+            <div className="mt-4 grid gap-4 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+              {items.map((item) => {
+                const isOwned = ownedItemIds.has(item.id)
+                return (
+                  <div
+                    key={item.id}
+                    className={`group relative cursor-pointer overflow-hidden rounded-lg border bg-card shadow-sm transition-shadow hover:shadow-md ${
+                      isOwned ? "ring-2 ring-green-500/50" : "opacity-75"
+                    }`}
+                    onClick={() => navigate(`/collections/${id}/items/${item.id}`)}
+                  >
+                    {/* Item image */}
+                    <div className="relative aspect-square bg-muted">
+                      {item.image ? (
+                        <img
+                          src={item.image}
+                          alt={item.name}
+                          loading="lazy"
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        <div className="flex h-full items-center justify-center">
+                          <Image className="h-8 w-8 text-muted-foreground/40" />
+                        </div>
+                      )}
+                      {/* Owned badge */}
+                      {isOwned && (
+                        <div className="absolute top-2 right-2 rounded-full bg-green-500 p-1 text-white shadow-sm">
+                          <Check className="h-3 w-3" />
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Item info */}
+                    <div className="p-2">
+                      <h3 className="truncate text-sm font-medium">{item.name}</h3>
+                      {item.rarity && (
+                        <p className="mt-0.5 truncate text-xs text-muted-foreground">
+                          {item.rarity}
+                        </p>
+                      )}
+                      <p className="mt-0.5 text-xs text-muted-foreground/70">
+                        {item.identifier}
+                      </p>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </>
+      )}
+
+      {/* Sets Tab */}
+      {activeTab === "sets" && (
+        <div className="mt-4">
+          {/* Sets toolbar */}
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-semibold">{t("sets.title")}</h2>
+            <Button onClick={openCreateSet}>
+              <Plus className="h-4 w-4" />
+              {t("sets.create")}
+            </Button>
+          </div>
+
+          {sets.length === 0 && !selectedSet ? (
+            <div className="mt-12 text-center text-muted-foreground">
+              <Package className="mx-auto h-12 w-12 text-muted-foreground/40" />
+              <p className="mt-3">{t("sets.empty")}</p>
+            </div>
+          ) : (
+            <div className="mt-4 grid gap-4 md:grid-cols-3">
+              {/* Sets list */}
+              <div className="space-y-2 md:col-span-1">
+                {sets.map((s) => {
+                  const pct = s.completionPercentage ?? 0
+                  const isSelected = selectedSet?.id === s.id
+                  return (
+                    <div
+                      key={s.id}
+                      className={`cursor-pointer rounded-lg border p-3 transition-colors ${
+                        isSelected ? "border-primary bg-primary/5" : "bg-card hover:bg-muted/50"
+                      }`}
+                      onClick={() => fetchSetDetail(s.id)}
+                    >
+                      <div className="flex items-start justify-between">
+                        <h3 className="text-sm font-medium">{s.name}</h3>
+                        <div className="flex gap-1">
+                          <button
+                            className="rounded p-1 text-muted-foreground hover:text-foreground"
+                            onClick={(e) => { e.stopPropagation(); openEditSet(s) }}
+                          >
+                            <Pencil className="h-3.5 w-3.5" />
+                          </button>
+                          <button
+                            className="rounded p-1 text-muted-foreground hover:text-destructive"
+                            onClick={(e) => { e.stopPropagation(); confirmDeleteSet(s.id) }}
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        {s.completedCount ?? 0} / {s.expectedItemCount} {t("sets.completed")}
+                      </p>
+                      {/* Progress bar */}
+                      <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-muted">
+                        <div
+                          className={`h-full rounded-full transition-all ${
+                            pct >= 100 ? "bg-green-500" : pct > 0 ? "bg-primary" : "bg-muted-foreground/20"
+                          }`}
+                          style={{ width: `${Math.min(pct, 100)}%` }}
+                        />
+                      </div>
+                      <p className="mt-1 text-right text-xs text-muted-foreground">
+                        {pct.toFixed(0)}%
+                      </p>
+                    </div>
+                  )
+                })}
               </div>
-            )
-          })}
+
+              {/* Set detail panel */}
+              <div className="md:col-span-2">
+                {selectedSet ? (
+                  <div className="rounded-lg border bg-card p-4">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-lg font-semibold">{selectedSet.name}</h3>
+                      <Button size="sm" onClick={() => setAddItemsDialogOpen(true)}>
+                        <Plus className="h-4 w-4" />
+                        {t("sets.addItems")}
+                      </Button>
+                    </div>
+
+                    {/* Progress */}
+                    <div className="mt-3">
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-muted-foreground">
+                          {selectedSet.completedCount ?? 0} / {selectedSet.expectedItemCount} {t("sets.completed")}
+                        </span>
+                        <span className="font-medium">
+                          {(selectedSet.completionPercentage ?? 0).toFixed(1)}%
+                        </span>
+                      </div>
+                      <div className="mt-1 h-3 w-full overflow-hidden rounded-full bg-muted">
+                        <div
+                          className={`h-full rounded-full transition-all ${
+                            (selectedSet.completionPercentage ?? 0) >= 100 ? "bg-green-500" : "bg-primary"
+                          }`}
+                          style={{ width: `${Math.min(selectedSet.completionPercentage ?? 0, 100)}%` }}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Set items list */}
+                    {selectedSet.items && selectedSet.items.length > 0 ? (
+                      <ul className="mt-4 space-y-1">
+                        {selectedSet.items
+                          .sort((a, b) => a.sortOrder - b.sortOrder)
+                          .map((si) => {
+                            const owned = isSetItemOwned(si)
+                            return (
+                              <li
+                                key={si.id}
+                                className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-muted/50"
+                              >
+                                {owned ? (
+                                  <CheckCircle2 className="h-4 w-4 shrink-0 text-green-500" />
+                                ) : (
+                                  <Circle className="h-4 w-4 shrink-0 text-muted-foreground/40" />
+                                )}
+                                <span className={owned ? "text-foreground" : "text-muted-foreground"}>
+                                  {si.name}
+                                </span>
+                                {si.catalogItemId && (
+                                  <button
+                                    className="ml-auto text-xs text-primary hover:underline"
+                                    onClick={() => navigate(`/collections/${id}/items/${si.catalogItemId}`)}
+                                  >
+                                    {t("sets.viewItem")}
+                                  </button>
+                                )}
+                              </li>
+                            )
+                          })}
+                      </ul>
+                    ) : (
+                      <p className="mt-4 text-center text-sm text-muted-foreground">
+                        {t("sets.emptyItems")}
+                      </p>
+                    )}
+                  </div>
+                ) : (
+                  <div className="flex h-full items-center justify-center rounded-lg border bg-card p-8">
+                    <p className="text-sm text-muted-foreground">{t("sets.selectSet")}</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -562,6 +938,146 @@ export default function CollectionDetail() {
               </Button>
             </div>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Create/Edit Set Dialog */}
+      <Dialog open={setsDialogOpen} onOpenChange={setSetsDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>{editingSet ? t("sets.editTitle") : t("sets.createTitle")}</DialogTitle>
+            <DialogDescription>
+              {editingSet ? t("sets.editDescription") : t("sets.createDescription")}
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleSetSubmit} className="space-y-4">
+            {setsFormError && (
+              <div className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive-foreground">
+                {setsFormError}
+              </div>
+            )}
+            <div className="space-y-2">
+              <Label htmlFor="set-name">{t("sets.nameLabel")}</Label>
+              <Input
+                id="set-name"
+                value={setsFormName}
+                onChange={(e) => setSetsFormName(e.target.value)}
+                placeholder={t("sets.namePlaceholder")}
+                disabled={setsSubmitting}
+              />
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button type="button" variant="outline" onClick={() => setSetsDialogOpen(false)} disabled={setsSubmitting}>
+                {t("sets.cancel")}
+              </Button>
+              <Button type="submit" disabled={setsSubmitting}>
+                {setsSubmitting ? t("sets.saving") : t("sets.save")}
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Set Confirmation Dialog */}
+      <Dialog open={deleteSetDialogOpen} onOpenChange={setDeleteSetDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>{t("sets.deleteTitle")}</DialogTitle>
+            <DialogDescription>{t("sets.deleteConfirm")}</DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => setDeleteSetDialogOpen(false)} disabled={setsDeleting}>
+              {t("sets.cancel")}
+            </Button>
+            <Button variant="destructive" onClick={handleDeleteSet} disabled={setsDeleting}>
+              {setsDeleting ? t("sets.deleting") : t("sets.delete")}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add Items to Set Dialog */}
+      <Dialog open={addItemsDialogOpen} onOpenChange={setAddItemsDialogOpen}>
+        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>{t("sets.addItemsTitle")}</DialogTitle>
+            <DialogDescription>{t("sets.addItemsDescription")}</DialogDescription>
+          </DialogHeader>
+
+          {/* Search existing catalog items */}
+          <div className="space-y-3">
+            <Label className="text-sm font-medium">{t("sets.searchCatalogItems")}</Label>
+            <div className="relative">
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                className="pl-9"
+                placeholder={t("sets.searchPlaceholder")}
+                value={itemSearchQuery}
+                onChange={(e) => setItemSearchQuery(e.target.value)}
+              />
+            </div>
+            <div className="max-h-48 space-y-1 overflow-y-auto">
+              {filteredCatalogItems.map((item) => {
+                const alreadyInSet = selectedSet?.items?.some((si) => si.catalogItemId === item.id)
+                return (
+                  <div
+                    key={item.id}
+                    className="flex items-center justify-between rounded-md px-2 py-1.5 text-sm hover:bg-muted/50"
+                  >
+                    <span className="truncate">
+                      {item.name}
+                      <span className="ml-2 text-xs text-muted-foreground">{item.identifier}</span>
+                    </span>
+                    {alreadyInSet ? (
+                      <span className="text-xs text-muted-foreground">{t("sets.alreadyAdded")}</span>
+                    ) : (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-7 text-xs"
+                        disabled={addItemSubmitting}
+                        onClick={() => handleAddCatalogItemToSet(item.id, item.name)}
+                      >
+                        <Plus className="mr-1 h-3 w-3" />
+                        {t("sets.add")}
+                      </Button>
+                    )}
+                  </div>
+                )
+              })}
+              {filteredCatalogItems.length === 0 && (
+                <p className="py-2 text-center text-sm text-muted-foreground">
+                  {t("sets.noItemsFound")}
+                </p>
+              )}
+            </div>
+          </div>
+
+          {/* Add by name */}
+          <div className="space-y-2 border-t pt-3">
+            <Label className="text-sm font-medium">{t("sets.addByName")}</Label>
+            <div className="flex gap-2">
+              <Input
+                value={newItemName}
+                onChange={(e) => setNewItemName(e.target.value)}
+                placeholder={t("sets.addByNamePlaceholder")}
+                disabled={addItemSubmitting}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault()
+                    handleAddNamedItemToSet()
+                  }
+                }}
+              />
+              <Button
+                size="sm"
+                disabled={addItemSubmitting || !newItemName.trim()}
+                onClick={handleAddNamedItemToSet}
+              >
+                {t("sets.add")}
+              </Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </div>
