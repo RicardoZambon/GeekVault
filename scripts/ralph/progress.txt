@@ -241,3 +241,16 @@ Started: Fri Mar 13 12:14:54 PM UTC 2026
   - Bulk add items endpoint: `POST /api/collections/{collectionId}/sets/{id}/items` accepts `List<CreateSetItemRequest>`
   - Completion tracking already baked into GET single set — counts owned copies for linked catalog items
 ---
+
+## 2026-03-13 - US-016
+- Verified set completion tracking logic already implemented in US-015 iteration
+- GET /api/collections/{collectionId}/sets/{id} returns completedCount and completionPercentage
+- Completion calculated on-the-fly: checks if each SetItem's linked CatalogItem has at least one OwnedCopy
+- completionPercentage = completedCount / expectedItemCount * 100, rounded to 2 decimal places
+- Existing tests cover: 0% completion (no owned copies), 50% completion (1 of 2 items owned)
+- All 58 tests passing, build succeeds
+- Files changed: none (logic already in Program.cs from US-015)
+- **Learnings for future iterations:**
+  - Completion is computed on every GET request (not cached/stored) — recalculates automatically when owned copies change
+  - SetResponse record includes nullable CompletedCount and CompletionPercentage (only populated for single-set GET, not list)
+---
