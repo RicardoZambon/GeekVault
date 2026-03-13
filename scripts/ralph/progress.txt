@@ -586,3 +586,23 @@ Started: Fri Mar 13 12:14:54 PM UTC 2026
   - Tab UI pattern: use `border-b-2` with conditional `border-primary` for active tab indicator
   - No browser testing tools available — manual browser verification needed
 ---
+
+## 2026-03-13 - US-032
+- Added wishlist page accessible from sidebar at `/wishlist`
+- Fetches all user collections, then fetches wishlist items per collection
+- Items displayed grouped by collection, sorted by priority (ascending)
+- Each item shows priority badge, name, linked indicator, target price, notes
+- Add wishlist item dialog: collection selector, name, priority, target price, notes, optional catalog item link
+- Catalog item search with debounced query against collection items API
+- Edit and delete wishlist items with inline buttons
+- Delete confirmation dialog
+- All UI strings translated in both en.json and pt.json under "wishlist" key
+- Typecheck passes, build succeeds, all 103 API tests pass
+- Files changed: `src/web/src/pages/Wishlist.tsx`, `src/web/src/i18n/locales/en.json`, `src/web/src/i18n/locales/pt.json`
+- **Learnings for future iterations:**
+  - Wishlist API is nested under collections — need to fetch all collections first, then fetch wishlist per collection
+  - Grouping pattern: fetch all collections, map over them fetching child resources, filter out empty groups
+  - Catalog item search uses paginated API: response has `items` array (not top-level array)
+  - Debounced search with `setTimeout`/`clearTimeout` in useEffect works well for catalog item linking
+  - No browser testing tools available — manual browser verification needed
+---
