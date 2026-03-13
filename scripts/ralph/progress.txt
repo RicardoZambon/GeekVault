@@ -307,3 +307,23 @@ Started: Fri Mar 13 12:14:54 PM UTC 2026
   - Join syntax works in EF Core for combining OwnedCopy with CatalogItem name in recent acquisitions
   - Response records: DashboardResponse, ConditionCountDto, CollectionSummaryDto, RecentAcquisitionDto
 ---
+
+## 2026-03-13 - US-020
+- Added GET /api/collections/{id}/export?format=csv|json endpoint for exporting collection data
+- CSV export: header row + one row per catalog item/owned copy combination; items without copies get a row with empty copy fields
+- JSON export: array of catalog items with nested customFields and ownedCopies arrays
+- Both formats include all catalog item fields, custom field values, and owned copy details
+- Defaults to JSON when no format specified; returns 400 for unsupported formats
+- Requires authentication and ownership check (returns 404 for other users' collections)
+- Uses Results.File() to return file downloads with appropriate content type and filename
+- Added CsvEscape static helper for proper CSV quoting (handles commas, quotes, newlines)
+- 9 integration tests covering: auth required, not found, ownership, invalid format, empty collection, JSON with data, CSV with data, CSV without copies, default format
+- All 92 tests passing (9 new + 83 existing)
+- Files changed: `Program.cs`, new `ExportEndpointsTests.cs`
+- **Learnings for future iterations:**
+  - Use `Results.File(bytes, contentType, fileName)` for file download endpoints
+  - `System.Text.Json.JsonSerializer.SerializeToUtf8Bytes` with `JsonNamingPolicy.CamelCase` for JSON export
+  - CSV escaping: wrap in quotes if value contains comma, quote, or newline; double-up internal quotes
+  - InMemory DB `.Contains()` works for filtering owned copies by a list of catalog item IDs
+  - Export endpoint loads all items and copies in two queries, then joins in-memory for efficiency
+---
