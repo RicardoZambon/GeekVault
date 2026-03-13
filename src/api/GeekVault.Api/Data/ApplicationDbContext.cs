@@ -17,6 +17,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<OwnedCopy> OwnedCopies => Set<OwnedCopy>();
     public DbSet<Set> Sets => Set<Set>();
     public DbSet<SetItem> SetItems => Set<SetItem>();
+    public DbSet<WishlistItem> WishlistItems => Set<WishlistItem>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -110,6 +111,22 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             entity.HasOne(e => e.Set)
                 .WithMany()
                 .HasForeignKey(e => e.SetId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(e => e.CatalogItem)
+                .WithMany()
+                .HasForeignKey(e => e.CatalogItemId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<WishlistItem>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Name).IsRequired().HasMaxLength(200);
+            entity.Property(e => e.TargetPrice).HasColumnType("decimal(18,2)");
+            entity.Property(e => e.Notes).HasMaxLength(2000);
+            entity.HasOne(e => e.Collection)
+                .WithMany()
+                .HasForeignKey(e => e.CollectionId)
                 .OnDelete(DeleteBehavior.Cascade);
             entity.HasOne(e => e.CatalogItem)
                 .WithMany()
