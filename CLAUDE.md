@@ -68,6 +68,9 @@ src/api/GeekVault.Api/
 src/web/
 ├── src/
 │   ├── components/ui/    # shadcn/ui components
+│   ├── i18n/             # i18n config and translation files
+│   │   ├── index.ts      # i18next initialization
+│   │   └── locales/      # en.json, pt.json translation files
 │   ├── lib/utils.ts      # cn() helper for class merging
 │   ├── pages/            # Page components
 │   ├── App.tsx            # React Router routes
@@ -84,3 +87,4 @@ src/web/
 - shadcn/ui set up manually (CLI incompatible with Node 24)
 - Path alias: `@/` maps to `src/`
 - API proxy: `/api` -> `http://localhost:5000`
+- i18n: `react-i18next` — translations in `src/i18n/locales/{en,pt}.json`, add keys to both files when adding UI strings

@@ -50,6 +50,9 @@ Started: Fri Mar 13 12:14:54 PM UTC 2026
 - Radix UI primitives installed: `@radix-ui/react-dialog` (Sheet), `@radix-ui/react-slot` (Button asChild)
 - Mobile sidebar uses Sheet component (Radix Dialog) sliding from left
 - NavLink from react-router-dom for active state styling in sidebar
+- i18n: `react-i18next` + `i18next` — translations in `src/i18n/locales/{en,pt}.json`, init in `src/i18n/index.ts`, imported in `main.tsx`
+- i18n: language stored in localStorage under `geekvault-language`, use `useTranslation()` hook + `t("key")` for translations
+- i18n: when adding new UI strings, add keys to BOTH `en.json` and `pt.json` translation files
 ---
 
 ## 2026-03-13 - US-001
@@ -402,5 +405,24 @@ Started: Fri Mar 13 12:14:54 PM UTC 2026
   - AppLayout uses `<Outlet />` for nested route rendering — all page routes are children of the layout route
   - NavLink `end` prop needed for root `/` path to avoid matching all routes
   - Sheet component needs tailwindcss-animate classes (animate-in/out) — these work with Tailwind v4 out of the box
+  - No browser testing tools available — manual browser verification needed
+---
+
+## 2026-03-13 - US-024
+- Added i18n support with react-i18next and i18next
+- Created English (`en.json`) and Portuguese (`pt.json`) translation files in `src/i18n/locales/`
+- Created i18n initialization in `src/i18n/index.ts`, imported in `main.tsx`
+- Language selector (Languages icon button) added to app header, toggles between EN/PT
+- Language preference persists in localStorage under `geekvault-language` key
+- All UI strings translated: sidebar nav labels, page titles, page descriptions, aria-labels
+- Updated pages (Dashboard, Collections, Wishlist, Profile) to use `useTranslation()` hook
+- Updated AppLayout to use translated nav labels and add LanguageToggle component
+- Files changed: `src/i18n/index.ts`, `src/i18n/locales/en.json`, `src/i18n/locales/pt.json`, `src/components/app-layout.tsx`, `src/pages/Dashboard.tsx`, `src/pages/Collections.tsx`, `src/pages/Wishlist.tsx`, `src/pages/Profile.tsx`, `main.tsx`, `package.json`
+- **Learnings for future iterations:**
+  - react-i18next works fine with React 19 + Vite 8 — no compatibility issues
+  - Use `i18n.on("languageChanged")` callback for persisting language preference (fires on every change)
+  - Translation files are simple JSON — nested keys like `nav.dashboard` accessed via `t("nav.dashboard")`
+  - When adding new pages/UI strings, add keys to BOTH `en.json` and `pt.json`
+  - LanguageToggle uses `i18n.language` to determine current language and toggle to the other
   - No browser testing tools available — manual browser verification needed
 ---
