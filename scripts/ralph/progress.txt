@@ -27,6 +27,8 @@ Started: Fri Mar 13 12:14:54 PM UTC 2026
 - Avatar uploads go to `wwwroot/uploads/` — gitignored; use `IWebHostEnvironment` to resolve paths
 - Use `.DisableAntiforgery()` on file upload endpoints to avoid CSRF issues in API context
 - CRUD endpoints pattern: filter by UserId for ownership, validate input in handler, return DTO records
+- Nested resource endpoints: verify parent ownership first, then operate on child resource
+- Use `.Include()` on parent entity when needing to access navigation properties for validation
 - Each test method uses a unique user email to avoid parallel test conflicts
 ---
 
@@ -194,4 +196,19 @@ Started: Fri Mar 13 12:14:54 PM UTC 2026
   - Cover upload reuses the avatar upload pattern (DisableAntiforgery, multipart form, wwwroot/uploads)
   - Test helper `CreateAuthenticatedClientWithTypeAsync` creates both auth client AND a collection type (needed for FK)
   - Ownership test: create with user1, try to GET with user2 — should return 404 (not 403)
+---
+
+## 2026-03-13 - US-013
+- Added CatalogItem CRUD API endpoints nested under collections: GET list, GET by id (with owned copies), POST create, PUT update, DELETE
+- Custom field values validated against collection type schema (unknown fields rejected, required fields enforced)
+- All endpoints verify collection ownership before operating on items
+- GET single item includes owned copies list
+- 10 integration tests covering CRUD, custom field validation, auth, and ownership
+- Files changed: `Program.cs`, new `CatalogItemEndpointsTests.cs`
+- **Learnings for future iterations:**
+  - Nested resource endpoints: verify parent ownership first (`collection.UserId == userId`), then operate on child
+  - Use `.Include(c => c.CollectionType)` when needing to validate custom fields against schema
+  - Custom field validation: check for unknown fields AND check required fields are present
+  - Test helper creates full chain: register user -> create collection type -> create collection
+  - OwnedCopyDto reused for GET single item response (returns owned copies alongside item details)
 ---
