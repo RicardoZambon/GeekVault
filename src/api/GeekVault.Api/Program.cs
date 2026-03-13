@@ -486,6 +486,196 @@ app.MapPost("/api/collections/{id:int}/cover", async (
 .WithOpenApi()
 .DisableAntiforgery();
 
+// CatalogItem endpoints
+app.MapGet("/api/collections/{collectionId:int}/items", async (
+    int collectionId,
+    ClaimsPrincipal principal,
+    ApplicationDbContext db) =>
+{
+    var userId = principal.FindFirstValue(ClaimTypes.NameIdentifier)!;
+    var collection = await db.Collections.FirstOrDefaultAsync(c => c.Id == collectionId && c.UserId == userId);
+    if (collection == null) return Results.NotFound();
+
+    var items = await db.CatalogItems
+        .Where(i => i.CollectionId == collectionId)
+        .Select(i => new CatalogItemResponse(i.Id, i.CollectionId, i.Identifier, i.Name, i.Description,
+            i.ReleaseDate, i.Manufacturer, i.ReferenceCode, i.Image, i.Rarity,
+            i.CustomFieldValues.Select(f => new CustomFieldValueDto(f.Name, f.Value)).ToList(),
+            null))
+        .ToListAsync();
+    return Results.Ok(items);
+})
+.RequireAuthorization()
+.WithName("ListCatalogItems")
+.WithOpenApi();
+
+app.MapGet("/api/collections/{collectionId:int}/items/{id:int}", async (
+    int collectionId,
+    int id,
+    ClaimsPrincipal principal,
+    ApplicationDbContext db) =>
+{
+    var userId = principal.FindFirstValue(ClaimTypes.NameIdentifier)!;
+    var collection = await db.Collections.FirstOrDefaultAsync(c => c.Id == collectionId && c.UserId == userId);
+    if (collection == null) return Results.NotFound();
+
+    var item = await db.CatalogItems.FirstOrDefaultAsync(i => i.Id == id && i.CollectionId == collectionId);
+    if (item == null) return Results.NotFound();
+
+    var ownedCopies = await db.OwnedCopies
+        .Where(oc => oc.CatalogItemId == id)
+        .Select(oc => new OwnedCopyDto(oc.Id, oc.Condition.ToString(), oc.PurchasePrice, oc.EstimatedValue,
+            oc.AcquisitionDate, oc.AcquisitionSource, oc.Notes))
+        .ToListAsync();
+
+    return Results.Ok(new CatalogItemResponse(item.Id, item.CollectionId, item.Identifier, item.Name,
+        item.Description, item.ReleaseDate, item.Manufacturer, item.ReferenceCode, item.Image, item.Rarity,
+        item.CustomFieldValues.Select(f => new CustomFieldValueDto(f.Name, f.Value)).ToList(),
+        ownedCopies));
+})
+.RequireAuthorization()
+.WithName("GetCatalogItem")
+.WithOpenApi();
+
+app.MapPost("/api/collections/{collectionId:int}/items", async (
+    int collectionId,
+    CreateCatalogItemRequest request,
+    ClaimsPrincipal principal,
+    ApplicationDbContext db) =>
+{
+    var userId = principal.FindFirstValue(ClaimTypes.NameIdentifier)!;
+    var collection = await db.Collections
+        .Include(c => c.CollectionType)
+        .FirstOrDefaultAsync(c => c.Id == collectionId && c.UserId == userId);
+    if (collection == null) return Results.NotFound();
+
+    // Validate custom field values against schema
+    if (request.CustomFieldValues != null && request.CustomFieldValues.Count > 0)
+    {
+        var schema = collection.CollectionType.CustomFieldSchema;
+        foreach (var fv in request.CustomFieldValues)
+        {
+            var fieldDef = schema.FirstOrDefault(f => f.Name == fv.Name);
+            if (fieldDef == null)
+                return Results.BadRequest(new { error = $"Unknown custom field: {fv.Name}" });
+        }
+        // Check required fields
+        foreach (var field in schema.Where(f => f.Required))
+        {
+            if (!request.CustomFieldValues.Any(fv => fv.Name == field.Name && !string.IsNullOrEmpty(fv.Value)))
+                return Results.BadRequest(new { error = $"Required custom field missing: {field.Name}" });
+        }
+    }
+
+    var item = new CatalogItem
+    {
+        CollectionId = collectionId,
+        Identifier = request.Identifier,
+        Name = request.Name,
+        Description = request.Description,
+        ReleaseDate = request.ReleaseDate,
+        Manufacturer = request.Manufacturer,
+        ReferenceCode = request.ReferenceCode,
+        Image = request.Image,
+        Rarity = request.Rarity,
+        CustomFieldValues = request.CustomFieldValues?.Select(f => new CustomFieldValue
+        {
+            Name = f.Name,
+            Value = f.Value
+        }).ToList() ?? new()
+    };
+
+    db.CatalogItems.Add(item);
+    await db.SaveChangesAsync();
+
+    return Results.Created($"/api/collections/{collectionId}/items/{item.Id}",
+        new CatalogItemResponse(item.Id, item.CollectionId, item.Identifier, item.Name, item.Description,
+            item.ReleaseDate, item.Manufacturer, item.ReferenceCode, item.Image, item.Rarity,
+            item.CustomFieldValues.Select(f => new CustomFieldValueDto(f.Name, f.Value)).ToList(),
+            null));
+})
+.RequireAuthorization()
+.WithName("CreateCatalogItem")
+.WithOpenApi();
+
+app.MapPut("/api/collections/{collectionId:int}/items/{id:int}", async (
+    int collectionId,
+    int id,
+    UpdateCatalogItemRequest request,
+    ClaimsPrincipal principal,
+    ApplicationDbContext db) =>
+{
+    var userId = principal.FindFirstValue(ClaimTypes.NameIdentifier)!;
+    var collection = await db.Collections
+        .Include(c => c.CollectionType)
+        .FirstOrDefaultAsync(c => c.Id == collectionId && c.UserId == userId);
+    if (collection == null) return Results.NotFound();
+
+    var item = await db.CatalogItems.FirstOrDefaultAsync(i => i.Id == id && i.CollectionId == collectionId);
+    if (item == null) return Results.NotFound();
+
+    // Validate custom field values against schema
+    if (request.CustomFieldValues != null && request.CustomFieldValues.Count > 0)
+    {
+        var schema = collection.CollectionType.CustomFieldSchema;
+        foreach (var fv in request.CustomFieldValues)
+        {
+            var fieldDef = schema.FirstOrDefault(f => f.Name == fv.Name);
+            if (fieldDef == null)
+                return Results.BadRequest(new { error = $"Unknown custom field: {fv.Name}" });
+        }
+    }
+
+    item.Name = request.Name ?? item.Name;
+    item.Identifier = request.Identifier ?? item.Identifier;
+    item.Description = request.Description;
+    item.ReleaseDate = request.ReleaseDate;
+    item.Manufacturer = request.Manufacturer;
+    item.ReferenceCode = request.ReferenceCode;
+    item.Image = request.Image;
+    item.Rarity = request.Rarity;
+    if (request.CustomFieldValues != null)
+    {
+        item.CustomFieldValues = request.CustomFieldValues.Select(f => new CustomFieldValue
+        {
+            Name = f.Name,
+            Value = f.Value
+        }).ToList();
+    }
+
+    await db.SaveChangesAsync();
+
+    return Results.Ok(new CatalogItemResponse(item.Id, item.CollectionId, item.Identifier, item.Name,
+        item.Description, item.ReleaseDate, item.Manufacturer, item.ReferenceCode, item.Image, item.Rarity,
+        item.CustomFieldValues.Select(f => new CustomFieldValueDto(f.Name, f.Value)).ToList(),
+        null));
+})
+.RequireAuthorization()
+.WithName("UpdateCatalogItem")
+.WithOpenApi();
+
+app.MapDelete("/api/collections/{collectionId:int}/items/{id:int}", async (
+    int collectionId,
+    int id,
+    ClaimsPrincipal principal,
+    ApplicationDbContext db) =>
+{
+    var userId = principal.FindFirstValue(ClaimTypes.NameIdentifier)!;
+    var collection = await db.Collections.FirstOrDefaultAsync(c => c.Id == collectionId && c.UserId == userId);
+    if (collection == null) return Results.NotFound();
+
+    var item = await db.CatalogItems.FirstOrDefaultAsync(i => i.Id == id && i.CollectionId == collectionId);
+    if (item == null) return Results.NotFound();
+
+    db.CatalogItems.Remove(item);
+    await db.SaveChangesAsync();
+
+    return Results.NoContent();
+})
+.RequireAuthorization()
+.WithName("DeleteCatalogItem")
+.WithOpenApi();
+
 app.Run();
 
 static string GenerateJwtToken(ApplicationUser user, IConfiguration config)
@@ -525,3 +715,8 @@ record CollectionTypeResponse(int Id, string Name, string? Description, string? 
 record CreateCollectionRequest(string Name, string? Description, int CollectionTypeId, string? Visibility);
 record UpdateCollectionRequest(string? Name, string? Description, string? Visibility);
 record CollectionResponse(int Id, string Name, string? Description, string? CoverImage, string Visibility, int CollectionTypeId, int ItemCount);
+record CustomFieldValueDto(string Name, string Value);
+record CreateCatalogItemRequest(string Identifier, string Name, string? Description, DateTime? ReleaseDate, string? Manufacturer, string? ReferenceCode, string? Image, string? Rarity, List<CustomFieldValueDto>? CustomFieldValues);
+record UpdateCatalogItemRequest(string? Identifier, string? Name, string? Description, DateTime? ReleaseDate, string? Manufacturer, string? ReferenceCode, string? Image, string? Rarity, List<CustomFieldValueDto>? CustomFieldValues);
+record OwnedCopyDto(int Id, string Condition, decimal? PurchasePrice, decimal? EstimatedValue, DateTime? AcquisitionDate, string? AcquisitionSource, string? Notes);
+record CatalogItemResponse(int Id, int CollectionId, string Identifier, string Name, string? Description, DateTime? ReleaseDate, string? Manufacturer, string? ReferenceCode, string? Image, string? Rarity, List<CustomFieldValueDto> CustomFieldValues, List<OwnedCopyDto>? OwnedCopies);
