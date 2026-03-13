@@ -676,6 +676,134 @@ app.MapDelete("/api/collections/{collectionId:int}/items/{id:int}", async (
 .WithName("DeleteCatalogItem")
 .WithOpenApi();
 
+// OwnedCopy endpoints
+app.MapGet("/api/items/{catalogItemId:int}/copies", async (
+    int catalogItemId,
+    ClaimsPrincipal principal,
+    ApplicationDbContext db) =>
+{
+    var userId = principal.FindFirstValue(ClaimTypes.NameIdentifier)!;
+    var item = await db.CatalogItems
+        .Include(i => i.Collection)
+        .FirstOrDefaultAsync(i => i.Id == catalogItemId && i.Collection.UserId == userId);
+    if (item == null) return Results.NotFound();
+
+    var copies = await db.OwnedCopies
+        .Where(oc => oc.CatalogItemId == catalogItemId)
+        .Select(oc => new OwnedCopyResponse(oc.Id, oc.CatalogItemId, oc.Condition.ToString(),
+            oc.PurchasePrice, oc.EstimatedValue, oc.AcquisitionDate, oc.AcquisitionSource, oc.Notes,
+            oc.Images.Select(img => img.Url).ToList()))
+        .ToListAsync();
+    return Results.Ok(copies);
+})
+.RequireAuthorization()
+.WithName("ListOwnedCopies")
+.WithOpenApi();
+
+app.MapPost("/api/items/{catalogItemId:int}/copies", async (
+    int catalogItemId,
+    CreateOwnedCopyRequest request,
+    ClaimsPrincipal principal,
+    ApplicationDbContext db) =>
+{
+    var userId = principal.FindFirstValue(ClaimTypes.NameIdentifier)!;
+    var item = await db.CatalogItems
+        .Include(i => i.Collection)
+        .FirstOrDefaultAsync(i => i.Id == catalogItemId && i.Collection.UserId == userId);
+    if (item == null) return Results.NotFound();
+
+    if (!Enum.TryParse<Condition>(request.Condition, true, out var condition))
+        return Results.BadRequest(new { error = $"Invalid condition. Valid values: {string.Join(", ", Enum.GetNames<Condition>())}" });
+
+    var copy = new OwnedCopy
+    {
+        CatalogItemId = catalogItemId,
+        Condition = condition,
+        PurchasePrice = request.PurchasePrice,
+        EstimatedValue = request.EstimatedValue,
+        AcquisitionDate = request.AcquisitionDate,
+        AcquisitionSource = request.AcquisitionSource,
+        Notes = request.Notes,
+        Images = request.Images?.Select(url => new OwnedCopyImage { Url = url }).ToList() ?? new()
+    };
+
+    db.OwnedCopies.Add(copy);
+    await db.SaveChangesAsync();
+
+    return Results.Created($"/api/items/{catalogItemId}/copies/{copy.Id}",
+        new OwnedCopyResponse(copy.Id, copy.CatalogItemId, copy.Condition.ToString(),
+            copy.PurchasePrice, copy.EstimatedValue, copy.AcquisitionDate, copy.AcquisitionSource, copy.Notes,
+            copy.Images.Select(img => img.Url).ToList()));
+})
+.RequireAuthorization()
+.WithName("CreateOwnedCopy")
+.WithOpenApi();
+
+app.MapPut("/api/items/{catalogItemId:int}/copies/{id:int}", async (
+    int catalogItemId,
+    int id,
+    UpdateOwnedCopyRequest request,
+    ClaimsPrincipal principal,
+    ApplicationDbContext db) =>
+{
+    var userId = principal.FindFirstValue(ClaimTypes.NameIdentifier)!;
+    var item = await db.CatalogItems
+        .Include(i => i.Collection)
+        .FirstOrDefaultAsync(i => i.Id == catalogItemId && i.Collection.UserId == userId);
+    if (item == null) return Results.NotFound();
+
+    var copy = await db.OwnedCopies.FirstOrDefaultAsync(oc => oc.Id == id && oc.CatalogItemId == catalogItemId);
+    if (copy == null) return Results.NotFound();
+
+    if (request.Condition != null)
+    {
+        if (!Enum.TryParse<Condition>(request.Condition, true, out var condition))
+            return Results.BadRequest(new { error = $"Invalid condition. Valid values: {string.Join(", ", Enum.GetNames<Condition>())}" });
+        copy.Condition = condition;
+    }
+
+    copy.PurchasePrice = request.PurchasePrice;
+    copy.EstimatedValue = request.EstimatedValue;
+    copy.AcquisitionDate = request.AcquisitionDate;
+    copy.AcquisitionSource = request.AcquisitionSource;
+    copy.Notes = request.Notes;
+    if (request.Images != null)
+        copy.Images = request.Images.Select(url => new OwnedCopyImage { Url = url }).ToList();
+
+    await db.SaveChangesAsync();
+
+    return Results.Ok(new OwnedCopyResponse(copy.Id, copy.CatalogItemId, copy.Condition.ToString(),
+        copy.PurchasePrice, copy.EstimatedValue, copy.AcquisitionDate, copy.AcquisitionSource, copy.Notes,
+        copy.Images.Select(img => img.Url).ToList()));
+})
+.RequireAuthorization()
+.WithName("UpdateOwnedCopy")
+.WithOpenApi();
+
+app.MapDelete("/api/items/{catalogItemId:int}/copies/{id:int}", async (
+    int catalogItemId,
+    int id,
+    ClaimsPrincipal principal,
+    ApplicationDbContext db) =>
+{
+    var userId = principal.FindFirstValue(ClaimTypes.NameIdentifier)!;
+    var item = await db.CatalogItems
+        .Include(i => i.Collection)
+        .FirstOrDefaultAsync(i => i.Id == catalogItemId && i.Collection.UserId == userId);
+    if (item == null) return Results.NotFound();
+
+    var copy = await db.OwnedCopies.FirstOrDefaultAsync(oc => oc.Id == id && oc.CatalogItemId == catalogItemId);
+    if (copy == null) return Results.NotFound();
+
+    db.OwnedCopies.Remove(copy);
+    await db.SaveChangesAsync();
+
+    return Results.NoContent();
+})
+.RequireAuthorization()
+.WithName("DeleteOwnedCopy")
+.WithOpenApi();
+
 app.Run();
 
 static string GenerateJwtToken(ApplicationUser user, IConfiguration config)
@@ -720,3 +848,6 @@ record CreateCatalogItemRequest(string Identifier, string Name, string? Descript
 record UpdateCatalogItemRequest(string? Identifier, string? Name, string? Description, DateTime? ReleaseDate, string? Manufacturer, string? ReferenceCode, string? Image, string? Rarity, List<CustomFieldValueDto>? CustomFieldValues);
 record OwnedCopyDto(int Id, string Condition, decimal? PurchasePrice, decimal? EstimatedValue, DateTime? AcquisitionDate, string? AcquisitionSource, string? Notes);
 record CatalogItemResponse(int Id, int CollectionId, string Identifier, string Name, string? Description, DateTime? ReleaseDate, string? Manufacturer, string? ReferenceCode, string? Image, string? Rarity, List<CustomFieldValueDto> CustomFieldValues, List<OwnedCopyDto>? OwnedCopies);
+record CreateOwnedCopyRequest(string Condition, decimal? PurchasePrice, decimal? EstimatedValue, DateTime? AcquisitionDate, string? AcquisitionSource, string? Notes, List<string>? Images);
+record UpdateOwnedCopyRequest(string? Condition, decimal? PurchasePrice, decimal? EstimatedValue, DateTime? AcquisitionDate, string? AcquisitionSource, string? Notes, List<string>? Images);
+record OwnedCopyResponse(int Id, int CatalogItemId, string Condition, decimal? PurchasePrice, decimal? EstimatedValue, DateTime? AcquisitionDate, string? AcquisitionSource, string? Notes, List<string> Images);
