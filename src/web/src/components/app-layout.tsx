@@ -1,5 +1,6 @@
 import { useState } from "react"
 import { NavLink, Outlet } from "react-router-dom"
+import { useTranslation } from "react-i18next"
 import {
   LayoutDashboard,
   Library,
@@ -8,6 +9,7 @@ import {
   Menu,
   Moon,
   Sun,
+  Languages,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
@@ -15,13 +17,14 @@ import { useTheme } from "@/components/theme-provider"
 import { cn } from "@/lib/utils"
 
 const navItems = [
-  { to: "/", label: "Dashboard", icon: LayoutDashboard },
-  { to: "/collections", label: "Collections", icon: Library },
-  { to: "/wishlist", label: "Wishlist", icon: Heart },
-  { to: "/profile", label: "Profile", icon: User },
-]
+  { to: "/", labelKey: "nav.dashboard", icon: LayoutDashboard },
+  { to: "/collections", labelKey: "nav.collections", icon: Library },
+  { to: "/wishlist", labelKey: "nav.wishlist", icon: Heart },
+  { to: "/profile", labelKey: "nav.profile", icon: User },
+] as const
 
 function NavLinks({ onClick }: { onClick?: () => void }) {
+  const { t } = useTranslation()
   return (
     <nav className="flex flex-col gap-1">
       {navItems.map((item) => (
@@ -40,7 +43,7 @@ function NavLinks({ onClick }: { onClick?: () => void }) {
           }
         >
           <item.icon className="h-4 w-4" />
-          {item.label}
+          {t(item.labelKey)}
         </NavLink>
       ))}
     </nav>
@@ -49,16 +52,37 @@ function NavLinks({ onClick }: { onClick?: () => void }) {
 
 function ThemeToggle() {
   const { theme, setTheme } = useTheme()
+  const { t } = useTranslation()
 
   return (
     <Button
       variant="ghost"
       size="icon"
       onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-      aria-label="Toggle theme"
+      aria-label={t("nav.toggleTheme")}
     >
       <Sun className="h-4 w-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
       <Moon className="absolute h-4 w-4 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+    </Button>
+  )
+}
+
+function LanguageToggle() {
+  const { i18n } = useTranslation()
+
+  const toggleLanguage = () => {
+    i18n.changeLanguage(i18n.language === "pt" ? "en" : "pt")
+  }
+
+  return (
+    <Button
+      variant="ghost"
+      size="icon"
+      onClick={toggleLanguage}
+      aria-label={i18n.language === "pt" ? "English" : "Português"}
+      title={i18n.language === "pt" ? "English" : "Português"}
+    >
+      <Languages className="h-4 w-4" />
     </Button>
   )
 }
@@ -108,6 +132,7 @@ export default function AppLayout() {
           <span className="text-lg font-bold md:hidden">GeekVault</span>
 
           <div className="ml-auto flex items-center gap-2">
+            <LanguageToggle />
             <ThemeToggle />
           </div>
         </header>

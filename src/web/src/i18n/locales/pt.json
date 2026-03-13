@@ -1,0 +1,34 @@
+{
+  "app": {
+    "name": "GeekVault"
+  },
+  "nav": {
+    "dashboard": "Painel",
+    "collections": "Coleções",
+    "wishlist": "Lista de Desejos",
+    "profile": "Perfil",
+    "toggleMenu": "Alternar menu",
+    "toggleTheme": "Alternar tema"
+  },
+  "dashboard": {
+    "title": "Painel",
+    "description": "Visão geral das suas coleções e estatísticas."
+  },
+  "collections": {
+    "title": "Coleções",
+    "description": "Gerencie suas coleções de colecionáveis."
+  },
+  "wishlist": {
+    "title": "Lista de Desejos",
+    "description": "Itens que você deseja adicionar às suas coleções."
+  },
+  "profile": {
+    "title": "Perfil",
+    "description": "Configurações e preferências da sua conta."
+  },
+  "language": {
+    "label": "Idioma",
+    "en": "Inglês",
+    "pt": "Português"
+  }
+}

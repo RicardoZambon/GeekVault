@@ -1,9 +1,12 @@
+import { useTranslation } from "react-i18next"
+
 export default function Wishlist() {
+  const { t } = useTranslation()
   return (
     <div>
-      <h1 className="text-2xl font-bold tracking-tight">Wishlist</h1>
+      <h1 className="text-2xl font-bold tracking-tight">{t("wishlist.title")}</h1>
       <p className="mt-2 text-muted-foreground">
-        Items you want to add to your collections.
+        {t("wishlist.description")}
       </p>
     </div>
   )
