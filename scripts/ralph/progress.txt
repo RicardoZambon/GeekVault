@@ -641,3 +641,20 @@ Started: Fri Mar 13 12:14:54 PM UTC 2026
   - Default values (name/asc) are omitted from URL params for cleaner URLs
   - The fetchItems useCallback dependency array must include filter params to trigger refetches
 ---
+
+## 2026-03-13 - US-035
+- Implemented import and export UI in the collection detail page
+- Export: dialog with CSV/JSON format selection, triggers file download via blob URL
+- Import: 3-step flow (upload CSV → preview with validation table → confirm import)
+- Added i18n keys for both English and Portuguese
+- Files changed:
+  - `src/web/src/pages/CollectionDetail.tsx` — added export/import buttons, dialogs, and handler functions
+  - `src/web/src/i18n/locales/en.json` — added collectionDetail.export* and import* keys
+  - `src/web/src/i18n/locales/pt.json` — added collectionDetail.export* and import* keys
+- **Learnings for future iterations:**
+  - Export uses blob download pattern: fetch → res.blob() → URL.createObjectURL → anchor click → cleanup
+  - Import uses FormData for CSV file upload (no Content-Type header, same pattern as cover image upload)
+  - Import preview API returns { rows: [{ rowNumber, data, errors }], validCount, errorCount }
+  - Multi-step dialogs use a `step` state variable to switch between upload/preview/done views
+  - Manual browser verification needed (no browser testing tools configured)
+---
