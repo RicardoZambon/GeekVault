@@ -95,3 +95,15 @@ Started: Fri Mar 13 12:14:54 PM UTC 2026
   - Decimal monetary fields should use `decimal(18,2)` column type
   - OwnedCopy cascades from CatalogItem (ownership chain: User -> Collection -> CatalogItem -> OwnedCopy)
 ---
+
+## 2026-03-13 - US-007
+- Created `Set` entity with Id, CollectionId, Name, ExpectedItemCount
+- Created `SetItem` entity with Id, SetId, CatalogItemId (nullable), Name, SortOrder
+- Added foreign keys: Set -> Collection (cascade), SetItem -> Set (cascade), SetItem -> CatalogItem (restrict, nullable)
+- Generated migration `AddSetAndSetItem`
+- Files changed: `Models/Set.cs`, `Models/SetItem.cs`, `Data/ApplicationDbContext.cs`, `Migrations/`
+- **Learnings for future iterations:**
+  - SetItem.CatalogItemId is nullable — items can exist in a set without being linked to a catalog item
+  - SetItem -> CatalogItem uses `DeleteBehavior.Restrict` since CatalogItem is a reference (not ownership)
+  - Set cascades from Collection (same pattern as CatalogItem)
+---
