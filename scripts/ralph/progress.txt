@@ -499,3 +499,26 @@ Started: Fri Mar 13 12:14:54 PM UTC 2026
   - Collection type cannot be changed after creation (FK constraint) — disable select in edit mode
   - No browser testing tools available — manual browser verification needed
 ---
+
+## 2026-03-13 - US-028
+- Added collection detail page with gallery grid at `/collections/:id`
+- Collection header shows cover image with gradient overlay, name, description, type, item count
+- Catalog items displayed in responsive gallery grid (2-5 columns depending on viewport)
+- Item cards show image (with lazy loading via `loading="lazy"`), name, rarity, identifier
+- Owned items visually distinguished: green ring border + checkmark badge; unowned items at reduced opacity
+- Add catalog item button opens dialog with full form: identifier, name, description, manufacturer, release date, reference code, rarity, image URL
+- Form includes dynamic custom fields based on collection type schema (text, number, date, enum select, boolean checkbox)
+- Custom field validation: required fields enforced before submission
+- Owned status determined by fetching `/api/items/{id}/copies` for each item
+- Back to Collections button for navigation
+- All UI strings translated in both en.json and pt.json
+- Typecheck passes, build succeeds, all 103 API tests pass
+- Files changed: `src/web/src/pages/CollectionDetail.tsx` (rewritten), `src/web/src/i18n/locales/en.json`, `src/web/src/i18n/locales/pt.json`
+- **Learnings for future iterations:**
+  - Collection GET endpoint returns `CollectionResponse` with `collectionTypeId` but not type name — need separate fetch to `/api/collection-types/{id}` for schema
+  - Catalog items list endpoint returns `PaginatedResponse<CatalogItemResponse>` with `items`, `totalCount`, `page`, `pageSize`
+  - OwnedCopies not included in list endpoint (null) — must fetch per-item via `/api/items/{id}/copies` to determine ownership
+  - Use `loading="lazy"` on `<img>` for native lazy loading of gallery images
+  - Custom fields from collection type have shape: `{ name, type, required, options }` — render different inputs per type
+  - No browser testing tools available — manual browser verification needed
+---
