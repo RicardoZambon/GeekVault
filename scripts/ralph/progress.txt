@@ -624,3 +624,20 @@ Started: Fri Mar 13 12:14:54 PM UTC 2026
   - Dashboard API response uses camelCase field names matching the C# record DTOs
   - Manual browser verification needed (no browser testing tools configured)
 ---
+
+## 2026-03-13 - US-034
+- Implemented search, filter, and sort UI for catalog items in collection detail page
+- Search input filters items by name/description via backend API
+- Condition filter dropdown (All, Mint, NearMint, Excellent, Good, Fair, Poor)
+- Owned status toggle (All/Owned/Unowned) as segmented button group
+- Sort dropdown (Name, Price, Value, Date, Rarity) with asc/desc direction toggle
+- All filters/sort persist in URL query params via useSearchParams
+- fetchItems sends search/filter/sort params to backend GET /api/collections/{id}/items
+- Added i18n keys to both en.json and pt.json
+- Files changed: CollectionDetail.tsx, en.json, pt.json
+- **Learnings for future iterations:**
+  - useSearchParams from react-router-dom is the idiomatic way to sync filter state with URL
+  - The backend already supports search, condition, ownedStatus, sortBy, sortDir query params (from US-018)
+  - Default values (name/asc) are omitted from URL params for cleaner URLs
+  - The fetchItems useCallback dependency array must include filter params to trigger refetches
+---
