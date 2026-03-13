@@ -61,6 +61,7 @@ Started: Fri Mar 13 12:14:54 PM UTC 2026
 - Dialog component in `src/components/ui/dialog.tsx` — built from `@radix-ui/react-dialog` (same package as Sheet)
 - CRUD page pattern: list view + Dialog for create/edit + separate Dialog for delete confirmation
 - When adding new pages: update App.tsx (route), app-layout.tsx (nav item), and BOTH en.json + pt.json (i18n)
+- Avoid `set` prefix for state variable names — clashes with React useState setters (use `sets` or other prefix instead)
 ---
 
 ## 2026-03-13 - US-001
@@ -559,5 +560,29 @@ Started: Fri Mar 13 12:14:54 PM UTC 2026
   - CONDITIONS array defined as `const` for the condition dropdown — reuse PascalCase values matching backend enum
   - Owned copy form reuses same dialog pattern as catalog item edit — Label + Input + select for condition
   - `formatCondition()` already existed in the file for display — reused for dropdown option labels
+  - No browser testing tools available — manual browser verification needed
+---
+
+## 2026-03-13 - US-031
+- Added Sets tab/section within collection detail page at `/collections/:id`
+- Tab switcher toggles between "Catalog Items" and "Sets" views
+- Sets list panel (left) shows each set with name, completion count, progress bar, and percentage
+- Edit/delete buttons on each set card (pencil/trash icons)
+- Set detail panel (right) shows selected set with progress bar and item list
+- Each set item shows owned/unowned visual indicator (CheckCircle2 green / Circle gray)
+- Set items linked to catalog items have "View" link to navigate to item detail
+- Create set dialog with name field
+- Add items to set dialog: search existing catalog items by name/identifier, or add by name (unlinked)
+- Bulk add items via POST /api/collections/{id}/sets/{setId}/items
+- Delete set with confirmation dialog
+- All UI strings translated in both en.json and pt.json under "sets" key
+- Typecheck passes, build succeeds, all 103 API tests pass
+- Files changed: `src/web/src/pages/CollectionDetail.tsx`, `src/web/src/i18n/locales/en.json`, `src/web/src/i18n/locales/pt.json`
+- **Learnings for future iterations:**
+  - Naming state variables with `set` prefix causes collisions with React useState setters (e.g., `setDialogOpen` clashes) — use prefixes like `sets` instead of `set`
+  - Sets API: GET list returns `completionPercentage` and `completedCount` (nullable); GET detail includes `items` array
+  - Bulk add items endpoint accepts array of `{ catalogItemId?, name, sortOrder }`
+  - Set completion is determined by checking if set item's linked catalogItemId exists in `ownedItemIds` set (already computed for gallery)
+  - Tab UI pattern: use `border-b-2` with conditional `border-primary` for active tab indicator
   - No browser testing tools available — manual browser verification needed
 ---
