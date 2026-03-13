@@ -17,6 +17,12 @@ Started: Fri Mar 13 12:14:54 PM UTC 2026
 - Foreign keys: use `OnDelete(DeleteBehavior.Restrict)` for reference data (CollectionType), `Cascade` for ownership (User)
 - Decimal monetary fields: use `HasColumnType("decimal(18,2)")` for price/value columns
 - Enums stored as strings: use `.HasConversion<string>().HasMaxLength(20)`
+- JWT config in `appsettings.json` under `Jwt` section (Key, Issuer, Audience, ExpiresInMinutes)
+- Auth endpoints use minimal API style (not controllers) with `MapPost`/`MapGet` in Program.cs
+- Test project at `src/api/GeekVault.Api.Tests/` uses xUnit + WebApplicationFactory + InMemory DB
+- Use custom `WebApplicationFactory` subclass (not `IClassFixture<WebApplicationFactory<Program>>` with `WithWebHostBuilder`) to share DB across tests
+- `Program` class exposed to tests via `Properties/ProgramPartial.cs` (`public partial class Program { }`)
+- Protected endpoints use `.RequireAuthorization()` — returns 401 without valid JWT Bearer token
 ---
 
 ## 2026-03-13 - US-001
@@ -118,4 +124,22 @@ Started: Fri Mar 13 12:14:54 PM UTC 2026
   - WishlistItem follows same nullable CatalogItemId pattern as SetItem — items can exist on wishlist without being linked to a catalog item
   - WishlistItem -> CatalogItem uses `DeleteBehavior.Restrict` (reference, not ownership)
   - WishlistItem cascades from Collection (same ownership chain pattern)
+---
+
+## 2026-03-13 - US-009
+- Added JWT authentication with register, login, logout endpoints
+- POST /api/auth/register - creates user, returns JWT token with userId/email claims
+- POST /api/auth/login - authenticates user, returns JWT token
+- POST /api/auth/logout - requires auth, returns success (stateless JWT, client discards token)
+- GET /api/auth/me - protected endpoint returning current user info
+- Configured JWT Bearer authentication middleware in Program.cs
+- Added `Microsoft.AspNetCore.Authentication.JwtBearer` package
+- Created test project `GeekVault.Api.Tests` with 8 integration tests (all passing)
+- Files changed: `Program.cs`, `appsettings.json`, `GeekVault.Api.csproj`, `Properties/ProgramPartial.cs`, new test project
+- **Learnings for future iterations:**
+  - Use custom `WebApplicationFactory` subclass instead of `WithWebHostBuilder` in test constructor — the latter creates a new factory per test instance causing InMemory DB isolation issues
+  - `Properties/ProgramPartial.cs` exposes `Program` class to test project for `WebApplicationFactory<Program>`
+  - JWT token includes `ClaimTypes.NameIdentifier` (userId) and `ClaimTypes.Email` claims
+  - InMemory DB works fine with ASP.NET Identity for testing; use unique DB name per factory
+  - Request/response DTOs defined as records at bottom of Program.cs (minimal API style)
 ---
