@@ -15,6 +15,8 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<Collection> Collections => Set<Collection>();
     public DbSet<CatalogItem> CatalogItems => Set<CatalogItem>();
     public DbSet<OwnedCopy> OwnedCopies => Set<OwnedCopy>();
+    public DbSet<Set> Sets => Set<Set>();
+    public DbSet<SetItem> SetItems => Set<SetItem>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -89,6 +91,30 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             {
                 b.ToJson();
             });
+        });
+
+        modelBuilder.Entity<Set>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Name).IsRequired().HasMaxLength(200);
+            entity.HasOne(e => e.Collection)
+                .WithMany()
+                .HasForeignKey(e => e.CollectionId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<SetItem>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Name).IsRequired().HasMaxLength(200);
+            entity.HasOne(e => e.Set)
+                .WithMany()
+                .HasForeignKey(e => e.SetId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(e => e.CatalogItem)
+                .WithMany()
+                .HasForeignKey(e => e.CatalogItemId)
+                .OnDelete(DeleteBehavior.Restrict);
         });
     }
 }
