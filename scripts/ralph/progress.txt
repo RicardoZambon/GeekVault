@@ -606,3 +606,21 @@ Started: Fri Mar 13 12:14:54 PM UTC 2026
   - Debounced search with `setTimeout`/`clearTimeout` in useEffect works well for catalog item linking
   - No browser testing tools available — manual browser verification needed
 ---
+
+## 2026-03-13 - US-033
+- Implemented dashboard page with analytics charts using recharts library
+- Stat cards: total collections, total items, total owned copies, estimated value, total invested
+- Pie chart and bar chart for items by condition breakdown
+- Collection summary cards (clickable, navigate to collection detail)
+- Recent acquisitions table with purchase price, estimated value, date, source
+- Added all i18n translations (en + pt) for dashboard keys
+- Files changed:
+  - `src/web/src/pages/Dashboard.tsx` - full dashboard implementation
+  - `src/web/src/i18n/locales/en.json` - English dashboard translations
+  - `src/web/src/i18n/locales/pt.json` - Portuguese dashboard translations
+  - `src/web/package.json` - added recharts dependency
+- **Learnings for future iterations:**
+  - recharts `Pie` label prop uses `name` and `value` (from dataKey/nameKey), not the raw data field names — using raw field names causes TS errors with `PieLabelRenderProps`
+  - Dashboard API response uses camelCase field names matching the C# record DTOs
+  - Manual browser verification needed (no browser testing tools configured)
+---
