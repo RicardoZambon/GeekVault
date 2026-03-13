@@ -337,6 +337,155 @@ app.MapDelete("/api/collection-types/{id:int}", async (
 .WithName("DeleteCollectionType")
 .WithOpenApi();
 
+// Collection endpoints
+app.MapGet("/api/collections", async (
+    ClaimsPrincipal principal,
+    ApplicationDbContext db) =>
+{
+    var userId = principal.FindFirstValue(ClaimTypes.NameIdentifier)!;
+    var collections = await db.Collections
+        .Where(c => c.UserId == userId)
+        .Select(c => new CollectionResponse(c.Id, c.Name, c.Description, c.CoverImage,
+            c.Visibility.ToString(), c.CollectionTypeId,
+            db.CatalogItems.Count(ci => ci.CollectionId == c.Id)))
+        .ToListAsync();
+    return Results.Ok(collections);
+})
+.RequireAuthorization()
+.WithName("ListCollections")
+.WithOpenApi();
+
+app.MapGet("/api/collections/{id:int}", async (
+    int id,
+    ClaimsPrincipal principal,
+    ApplicationDbContext db) =>
+{
+    var userId = principal.FindFirstValue(ClaimTypes.NameIdentifier)!;
+    var c = await db.Collections.FirstOrDefaultAsync(c => c.Id == id && c.UserId == userId);
+    if (c == null) return Results.NotFound();
+
+    var itemCount = await db.CatalogItems.CountAsync(ci => ci.CollectionId == c.Id);
+    return Results.Ok(new CollectionResponse(c.Id, c.Name, c.Description, c.CoverImage,
+        c.Visibility.ToString(), c.CollectionTypeId, itemCount));
+})
+.RequireAuthorization()
+.WithName("GetCollection")
+.WithOpenApi();
+
+app.MapPost("/api/collections", async (
+    CreateCollectionRequest request,
+    ClaimsPrincipal principal,
+    ApplicationDbContext db) =>
+{
+    var userId = principal.FindFirstValue(ClaimTypes.NameIdentifier)!;
+
+    if (!Enum.TryParse<Visibility>(request.Visibility, true, out var visibility))
+        visibility = Visibility.Private;
+
+    var collection = new Collection
+    {
+        UserId = userId,
+        CollectionTypeId = request.CollectionTypeId,
+        Name = request.Name,
+        Description = request.Description,
+        Visibility = visibility
+    };
+
+    db.Collections.Add(collection);
+    await db.SaveChangesAsync();
+
+    return Results.Created($"/api/collections/{collection.Id}",
+        new CollectionResponse(collection.Id, collection.Name, collection.Description, collection.CoverImage,
+            collection.Visibility.ToString(), collection.CollectionTypeId, 0));
+})
+.RequireAuthorization()
+.WithName("CreateCollection")
+.WithOpenApi();
+
+app.MapPut("/api/collections/{id:int}", async (
+    int id,
+    UpdateCollectionRequest request,
+    ClaimsPrincipal principal,
+    ApplicationDbContext db) =>
+{
+    var userId = principal.FindFirstValue(ClaimTypes.NameIdentifier)!;
+    var collection = await db.Collections.FirstOrDefaultAsync(c => c.Id == id && c.UserId == userId);
+    if (collection == null) return Results.NotFound();
+
+    collection.Name = request.Name ?? collection.Name;
+    collection.Description = request.Description;
+    if (request.Visibility != null && Enum.TryParse<Visibility>(request.Visibility, true, out var vis))
+        collection.Visibility = vis;
+
+    await db.SaveChangesAsync();
+
+    var itemCount = await db.CatalogItems.CountAsync(ci => ci.CollectionId == collection.Id);
+    return Results.Ok(new CollectionResponse(collection.Id, collection.Name, collection.Description,
+        collection.CoverImage, collection.Visibility.ToString(), collection.CollectionTypeId, itemCount));
+})
+.RequireAuthorization()
+.WithName("UpdateCollection")
+.WithOpenApi();
+
+app.MapDelete("/api/collections/{id:int}", async (
+    int id,
+    ClaimsPrincipal principal,
+    ApplicationDbContext db) =>
+{
+    var userId = principal.FindFirstValue(ClaimTypes.NameIdentifier)!;
+    var collection = await db.Collections.FirstOrDefaultAsync(c => c.Id == id && c.UserId == userId);
+    if (collection == null) return Results.NotFound();
+
+    db.Collections.Remove(collection);
+    await db.SaveChangesAsync();
+
+    return Results.NoContent();
+})
+.RequireAuthorization()
+.WithName("DeleteCollection")
+.WithOpenApi();
+
+app.MapPost("/api/collections/{id:int}/cover", async (
+    int id,
+    HttpRequest httpRequest,
+    ClaimsPrincipal principal,
+    ApplicationDbContext db,
+    IWebHostEnvironment env) =>
+{
+    var userId = principal.FindFirstValue(ClaimTypes.NameIdentifier)!;
+    var collection = await db.Collections.FirstOrDefaultAsync(c => c.Id == id && c.UserId == userId);
+    if (collection == null) return Results.NotFound();
+
+    if (!httpRequest.HasFormContentType)
+        return Results.BadRequest(new { error = "Expected multipart form data" });
+
+    var form = await httpRequest.ReadFormAsync();
+    var file = form.Files.GetFile("cover");
+    if (file == null || file.Length == 0)
+        return Results.BadRequest(new { error = "No cover file provided" });
+
+    var uploadsDir = Path.Combine(env.WebRootPath ?? Path.Combine(env.ContentRootPath, "wwwroot"), "uploads");
+    Directory.CreateDirectory(uploadsDir);
+
+    var extension = Path.GetExtension(file.FileName);
+    var fileName = $"collection-{id}{extension}";
+    var filePath = Path.Combine(uploadsDir, fileName);
+
+    using (var stream = new FileStream(filePath, FileMode.Create))
+    {
+        await file.CopyToAsync(stream);
+    }
+
+    collection.CoverImage = $"/uploads/{fileName}";
+    await db.SaveChangesAsync();
+
+    return Results.Ok(new { coverUrl = collection.CoverImage });
+})
+.RequireAuthorization()
+.WithName("UploadCollectionCover")
+.WithOpenApi()
+.DisableAntiforgery();
+
 app.Run();
 
 static string GenerateJwtToken(ApplicationUser user, IConfiguration config)
@@ -373,3 +522,6 @@ record CustomFieldDto(string Name, string Type, bool Required, List<string>? Opt
 record CreateCollectionTypeRequest(string Name, string? Description, string? Icon, List<CustomFieldDto>? CustomFields);
 record UpdateCollectionTypeRequest(string? Name, string? Description, string? Icon, List<CustomFieldDto>? CustomFields);
 record CollectionTypeResponse(int Id, string Name, string? Description, string? Icon, List<CustomFieldDto> CustomFields);
+record CreateCollectionRequest(string Name, string? Description, int CollectionTypeId, string? Visibility);
+record UpdateCollectionRequest(string? Name, string? Description, string? Visibility);
+record CollectionResponse(int Id, string Name, string? Description, string? CoverImage, string Visibility, int CollectionTypeId, int ItemCount);
