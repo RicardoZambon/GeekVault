@@ -154,6 +154,21 @@
     "acquisitionSource": "Origem",
     "notes": "Notas"
   },
+  "ownedCopy": {
+    "add": "Adicionar Cópia",
+    "addTitle": "Adicionar Cópia Possuída",
+    "addDescription": "Registre uma cópia deste item que você possui.",
+    "editTitle": "Editar Cópia Possuída",
+    "editDescription": "Atualize os detalhes desta cópia possuída.",
+    "condition": "Condição",
+    "sourcePlaceholder": "ex.: eBay, loja local",
+    "notesPlaceholder": "Notas adicionais",
+    "saveFailed": "Falha ao salvar cópia possuída",
+    "deleteTitle": "Excluir Cópia Possuída",
+    "deleteConfirm": "Tem certeza de que deseja excluir esta cópia possuída?",
+    "deleting": "Excluindo...",
+    "deleteFailed": "Falha ao excluir cópia possuída"
+  },
   "wishlist": {
     "title": "Lista de Desejos",
     "description": "Itens que você deseja adicionar às suas coleções."

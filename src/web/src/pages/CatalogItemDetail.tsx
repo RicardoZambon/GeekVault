@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, type FormEvent } from "react"
 import { useParams, useNavigate } from "react-router-dom"
 import { useTranslation } from "react-i18next"
-import { ArrowLeft, Image, Pencil, Trash2, Package } from "lucide-react"
+import { ArrowLeft, Image, Pencil, Trash2, Package, Plus } from "lucide-react"
 import { useAuth } from "@/components/auth-provider"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -13,6 +13,8 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog"
+
+const CONDITIONS = ["Mint", "NearMint", "Excellent", "Good", "Fair", "Poor"] as const
 
 interface CustomFieldDefinition {
   name: string
@@ -96,6 +98,23 @@ export default function CatalogItemDetail() {
   // Delete dialog
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [deleting, setDeleting] = useState(false)
+
+  // Owned copy dialog
+  const [copyDialogOpen, setCopyDialogOpen] = useState(false)
+  const [editingCopy, setEditingCopy] = useState<OwnedCopy | null>(null)
+  const [copyCondition, setCopyCondition] = useState("Mint")
+  const [copyPurchasePrice, setCopyPurchasePrice] = useState("")
+  const [copyEstimatedValue, setCopyEstimatedValue] = useState("")
+  const [copyAcquisitionDate, setCopyAcquisitionDate] = useState("")
+  const [copyAcquisitionSource, setCopyAcquisitionSource] = useState("")
+  const [copyNotes, setCopyNotes] = useState("")
+  const [copyError, setCopyError] = useState("")
+  const [copySubmitting, setCopySubmitting] = useState(false)
+
+  // Delete copy dialog
+  const [deleteCopyOpen, setDeleteCopyOpen] = useState(false)
+  const [deletingCopy, setDeletingCopy] = useState(false)
+  const [copyToDelete, setCopyToDelete] = useState<OwnedCopy | null>(null)
 
   const headers: Record<string, string> = {
     Authorization: `Bearer ${token}`,
@@ -254,6 +273,84 @@ export default function CatalogItemDetail() {
     }
   }
 
+  function openAddCopy() {
+    setEditingCopy(null)
+    setCopyCondition("Mint")
+    setCopyPurchasePrice("")
+    setCopyEstimatedValue("")
+    setCopyAcquisitionDate("")
+    setCopyAcquisitionSource("")
+    setCopyNotes("")
+    setCopyError("")
+    setCopyDialogOpen(true)
+  }
+
+  function openEditCopy(copy: OwnedCopy) {
+    setEditingCopy(copy)
+    setCopyCondition(copy.condition)
+    setCopyPurchasePrice(copy.purchasePrice != null ? String(copy.purchasePrice) : "")
+    setCopyEstimatedValue(copy.estimatedValue != null ? String(copy.estimatedValue) : "")
+    setCopyAcquisitionDate(copy.acquisitionDate ?? "")
+    setCopyAcquisitionSource(copy.acquisitionSource ?? "")
+    setCopyNotes(copy.notes ?? "")
+    setCopyError("")
+    setCopyDialogOpen(true)
+  }
+
+  async function handleCopySubmit(e: FormEvent) {
+    e.preventDefault()
+    setCopyError("")
+    setCopySubmitting(true)
+
+    try {
+      const body = {
+        condition: copyCondition,
+        purchasePrice: copyPurchasePrice ? parseFloat(copyPurchasePrice) : null,
+        estimatedValue: copyEstimatedValue ? parseFloat(copyEstimatedValue) : null,
+        acquisitionDate: copyAcquisitionDate || null,
+        acquisitionSource: copyAcquisitionSource.trim() || null,
+        notes: copyNotes.trim() || null,
+      }
+
+      const url = editingCopy
+        ? `/api/items/${itemId}/copies/${editingCopy.id}`
+        : `/api/items/${itemId}/copies`
+      const method = editingCopy ? "PUT" : "POST"
+
+      const res = await fetch(url, { method, headers, body: JSON.stringify(body) })
+      if (!res.ok) {
+        const data = await res.json().catch(() => null)
+        throw new Error(data?.message ?? t("ownedCopy.saveFailed"))
+      }
+
+      setCopyDialogOpen(false)
+      await fetchCopies()
+    } catch (err) {
+      setCopyError(err instanceof Error ? err.message : t("ownedCopy.saveFailed"))
+    } finally {
+      setCopySubmitting(false)
+    }
+  }
+
+  async function handleDeleteCopy() {
+    if (!copyToDelete) return
+    setDeletingCopy(true)
+    try {
+      const res = await fetch(`/api/items/${itemId}/copies/${copyToDelete.id}`, {
+        method: "DELETE",
+        headers,
+      })
+      if (!res.ok) throw new Error("Failed")
+      setDeleteCopyOpen(false)
+      setCopyToDelete(null)
+      await fetchCopies()
+    } catch {
+      setCopyError(t("ownedCopy.deleteFailed"))
+      setDeletingCopy(false)
+      setDeleteCopyOpen(false)
+    }
+  }
+
   function formatCondition(condition: string): string {
     // Convert NearMint -> Near Mint, etc.
     return condition.replace(/([a-z])([A-Z])/g, "$1 $2")
@@ -391,7 +488,13 @@ export default function CatalogItemDetail() {
 
           {/* Owned copies */}
           <div>
-            <h3 className="text-lg font-semibold mb-3">{t("itemDetail.ownedCopies")}</h3>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-lg font-semibold">{t("itemDetail.ownedCopies")}</h3>
+              <Button size="sm" onClick={openAddCopy}>
+                <Plus className="h-4 w-4" />
+                {t("ownedCopy.add")}
+              </Button>
+            </div>
             {copies.length === 0 ? (
               <div className="rounded-lg border bg-card p-6 text-center">
                 <Package className="mx-auto h-10 w-10 text-muted-foreground/40" />
@@ -406,6 +509,19 @@ export default function CatalogItemDetail() {
                         <span className="inline-block rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-medium text-primary">
                           {formatCondition(copy.condition)}
                         </span>
+                      </div>
+                      <div className="flex gap-1">
+                        <Button variant="ghost" size="sm" onClick={() => openEditCopy(copy)}>
+                          <Pencil className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => { setCopyToDelete(copy); setDeleteCopyOpen(true) }}
+                          className="text-destructive hover:text-destructive"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
                       </div>
                     </div>
                     <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -638,6 +754,133 @@ export default function CatalogItemDetail() {
             </Button>
             <Button variant="destructive" onClick={handleDelete} disabled={deleting}>
               {deleting ? t("itemDetail.deleting") : t("itemDetail.delete")}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Owned Copy Dialog */}
+      <Dialog open={copyDialogOpen} onOpenChange={setCopyDialogOpen}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>
+              {editingCopy ? t("ownedCopy.editTitle") : t("ownedCopy.addTitle")}
+            </DialogTitle>
+            <DialogDescription>
+              {editingCopy ? t("ownedCopy.editDescription") : t("ownedCopy.addDescription")}
+            </DialogDescription>
+          </DialogHeader>
+
+          <form onSubmit={handleCopySubmit} className="space-y-4">
+            {copyError && (
+              <div className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive-foreground">
+                {copyError}
+              </div>
+            )}
+
+            <div className="space-y-2">
+              <Label htmlFor="copy-condition">{t("ownedCopy.condition")}</Label>
+              <select
+                id="copy-condition"
+                value={copyCondition}
+                onChange={(e) => setCopyCondition(e.target.value)}
+                disabled={copySubmitting}
+                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+              >
+                {CONDITIONS.map((c) => (
+                  <option key={c} value={c}>{formatCondition(c)}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="copy-purchase-price">{t("itemDetail.purchasePrice")}</Label>
+                <Input
+                  id="copy-purchase-price"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={copyPurchasePrice}
+                  onChange={(e) => setCopyPurchasePrice(e.target.value)}
+                  disabled={copySubmitting}
+                  placeholder="0.00"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="copy-estimated-value">{t("itemDetail.estimatedValue")}</Label>
+                <Input
+                  id="copy-estimated-value"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={copyEstimatedValue}
+                  onChange={(e) => setCopyEstimatedValue(e.target.value)}
+                  disabled={copySubmitting}
+                  placeholder="0.00"
+                />
+              </div>
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="copy-acquisition-date">{t("itemDetail.acquisitionDate")}</Label>
+                <Input
+                  id="copy-acquisition-date"
+                  type="date"
+                  value={copyAcquisitionDate}
+                  onChange={(e) => setCopyAcquisitionDate(e.target.value)}
+                  disabled={copySubmitting}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="copy-acquisition-source">{t("itemDetail.acquisitionSource")}</Label>
+                <Input
+                  id="copy-acquisition-source"
+                  value={copyAcquisitionSource}
+                  onChange={(e) => setCopyAcquisitionSource(e.target.value)}
+                  disabled={copySubmitting}
+                  placeholder={t("ownedCopy.sourcePlaceholder")}
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="copy-notes">{t("itemDetail.notes")}</Label>
+              <Input
+                id="copy-notes"
+                value={copyNotes}
+                onChange={(e) => setCopyNotes(e.target.value)}
+                disabled={copySubmitting}
+                placeholder={t("ownedCopy.notesPlaceholder")}
+              />
+            </div>
+
+            <div className="flex justify-end gap-2 pt-2">
+              <Button type="button" variant="outline" onClick={() => setCopyDialogOpen(false)} disabled={copySubmitting}>
+                {t("collectionDetail.cancel")}
+              </Button>
+              <Button type="submit" disabled={copySubmitting}>
+                {copySubmitting ? t("collectionDetail.saving") : t("collectionDetail.save")}
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Copy Confirmation Dialog */}
+      <Dialog open={deleteCopyOpen} onOpenChange={setDeleteCopyOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t("ownedCopy.deleteTitle")}</DialogTitle>
+            <DialogDescription>{t("ownedCopy.deleteConfirm")}</DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-end gap-2 pt-4">
+            <Button variant="outline" onClick={() => setDeleteCopyOpen(false)} disabled={deletingCopy}>
+              {t("collectionDetail.cancel")}
+            </Button>
+            <Button variant="destructive" onClick={handleDeleteCopy} disabled={deletingCopy}>
+              {deletingCopy ? t("ownedCopy.deleting") : t("itemDetail.delete")}
             </Button>
           </div>
         </DialogContent>

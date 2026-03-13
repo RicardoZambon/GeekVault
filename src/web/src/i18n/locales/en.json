@@ -154,6 +154,21 @@
     "acquisitionSource": "Source",
     "notes": "Notes"
   },
+  "ownedCopy": {
+    "add": "Add Copy",
+    "addTitle": "Add Owned Copy",
+    "addDescription": "Register a copy of this item that you own.",
+    "editTitle": "Edit Owned Copy",
+    "editDescription": "Update the details of this owned copy.",
+    "condition": "Condition",
+    "sourcePlaceholder": "e.g., eBay, local store",
+    "notesPlaceholder": "Any additional notes",
+    "saveFailed": "Failed to save owned copy",
+    "deleteTitle": "Delete Owned Copy",
+    "deleteConfirm": "Are you sure you want to delete this owned copy?",
+    "deleting": "Deleting...",
+    "deleteFailed": "Failed to delete owned copy"
+  },
   "wishlist": {
     "title": "Wishlist",
     "description": "Items you want to add to your collections."
