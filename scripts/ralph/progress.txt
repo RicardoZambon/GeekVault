@@ -212,3 +212,19 @@ Started: Fri Mar 13 12:14:54 PM UTC 2026
   - Test helper creates full chain: register user -> create collection type -> create collection
   - OwnedCopyDto reused for GET single item response (returns owned copies alongside item details)
 ---
+
+## 2026-03-13 - US-014
+- Added OwnedCopy CRUD API endpoints: GET list, POST create, PUT update, DELETE
+- Endpoints: /api/items/{catalogItemId}/copies with full CRUD
+- Ownership check via CatalogItem -> Collection -> UserId chain
+- Condition validated against enum (Mint, NearMint, Excellent, Good, Fair, Poor)
+- Multiple copies per catalog item supported (duplicates allowed)
+- OwnedCopyResponse includes Images list
+- 8 integration tests covering CRUD, validation, auth, ownership, and duplicates
+- Files changed: `Program.cs`, new `OwnedCopyEndpointsTests.cs`
+- **Learnings for future iterations:**
+  - OwnedCopy ownership check requires `.Include(i => i.Collection)` on CatalogItem to access `Collection.UserId`
+  - OwnedCopy endpoints use flat `/api/items/{id}/copies` path (not nested under collections)
+  - Test helper creates full chain: register user -> create collection type -> create collection -> create catalog item
+  - OwnedCopyResponse includes Images as `List<string>` (URLs), while entity stores as `List<OwnedCopyImage>`
+---
