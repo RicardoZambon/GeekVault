@@ -14,6 +14,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<CollectionType> CollectionTypes => Set<CollectionType>();
     public DbSet<Collection> Collections => Set<Collection>();
     public DbSet<CatalogItem> CatalogItems => Set<CatalogItem>();
+    public DbSet<OwnedCopy> OwnedCopies => Set<OwnedCopy>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -65,6 +66,26 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
                 .HasForeignKey(e => e.CollectionId)
                 .OnDelete(DeleteBehavior.Cascade);
             entity.OwnsMany(e => e.CustomFieldValues, b =>
+            {
+                b.ToJson();
+            });
+        });
+
+        modelBuilder.Entity<OwnedCopy>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Condition)
+                .HasConversion<string>()
+                .HasMaxLength(20);
+            entity.Property(e => e.PurchasePrice).HasColumnType("decimal(18,2)");
+            entity.Property(e => e.EstimatedValue).HasColumnType("decimal(18,2)");
+            entity.Property(e => e.AcquisitionSource).HasMaxLength(500);
+            entity.Property(e => e.Notes).HasMaxLength(2000);
+            entity.HasOne(e => e.CatalogItem)
+                .WithMany()
+                .HasForeignKey(e => e.CatalogItemId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.OwnsMany(e => e.Images, b =>
             {
                 b.ToJson();
             });
