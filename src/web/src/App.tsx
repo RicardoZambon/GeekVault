@@ -8,6 +8,7 @@ import Wishlist from './pages/Wishlist'
 import Profile from './pages/Profile'
 import Login from './pages/Login'
 import Register from './pages/Register'
+import CollectionDetail from './pages/CollectionDetail'
 
 function RequireAuth() {
   const { token, isLoading } = useAuth()
@@ -56,6 +57,7 @@ function App() {
         <Route element={<AppLayout />}>
           <Route path="/" element={<Dashboard />} />
           <Route path="/collections" element={<Collections />} />
+          <Route path="/collections/:id" element={<CollectionDetail />} />
           <Route path="/collection-types" element={<CollectionTypes />} />
           <Route path="/wishlist" element={<Wishlist />} />
           <Route path="/profile" element={<Profile />} />
