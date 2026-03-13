@@ -30,6 +30,7 @@ Started: Fri Mar 13 12:14:54 PM UTC 2026
 - Nested resource endpoints: verify parent ownership first, then operate on child resource
 - Use `.Include()` on parent entity when needing to access navigation properties for validation
 - Each test method uses a unique user email to avoid parallel test conflicts
+- List endpoints return `PaginatedResponse<T>` (Items, TotalCount, Page, PageSize) — tests use `PaginatedResult<T>` to deserialize
 ---
 
 ## 2026-03-13 - US-001
@@ -270,4 +271,22 @@ Started: Fri Mar 13 12:14:54 PM UTC 2026
   - OrderBy(w => w.Priority) gives ascending order (lower priority number = higher priority)
   - WishlistItem uses same nullable CatalogItemId pattern as SetItem
   - No new codebase patterns discovered — all patterns from prior iterations applied cleanly
+---
+
+## 2026-03-13 - US-018
+- Enhanced GET /api/collections/{collectionId}/items with search, filter, sort, and pagination
+- Search: `search` param searches name and description (case-insensitive)
+- Filter: `condition` param filters by owned copy condition, `ownedStatus` (owned/unowned/all) filters by ownership
+- Sort: `sortBy` (name/date/rarity) + `sortDir` (asc/desc)
+- Pagination: `page` + `pageSize` (default 20, max 100), returns `totalCount`
+- Response changed from `List<CatalogItemResponse>` to `PaginatedResponse<CatalogItemResponse>` with Items, TotalCount, Page, PageSize
+- Updated existing CatalogItemEndpointsTests to use new paginated response format
+- Added 10 new integration tests in CatalogItemSearchTests (search by name, search by description, owned/unowned filter, condition filter, sort asc/desc, pagination, defaults, auth)
+- All 76 tests passing
+- Files changed: `Program.cs`, `CatalogItemEndpointsTests.cs`, new `CatalogItemSearchTests.cs`
+- **Learnings for future iterations:**
+  - Changing list endpoint response format to paginated breaks existing tests — update `ReadFromJsonAsync<List<T>>` to `ReadFromJsonAsync<PaginatedResult<T>>`
+  - InMemory DB sorts alphabetically: Alpha, Beta, Delta, Epsilon, Gamma (not intuitive order)
+  - Use `db.OwnedCopies.Any(oc => oc.CatalogItemId == i.Id)` for owned/unowned filtering via subquery
+  - `PaginatedResponse<T>` is a generic record — can be reused for future paginated endpoints
 ---
