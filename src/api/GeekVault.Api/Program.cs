@@ -1,6 +1,8 @@
+using System.Globalization;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
+using System.Text.Json;
 using GeekVault.Api.Data;
 using GeekVault.Api.Models;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -1197,7 +1199,108 @@ app.MapGet("/api/dashboard", async (ClaimsPrincipal principal, ApplicationDbCont
 .WithName("GetDashboard")
 .WithOpenApi();
 
+// Export endpoints
+app.MapGet("/api/collections/{id:int}/export", async (
+    int id,
+    string? format,
+    ClaimsPrincipal principal,
+    ApplicationDbContext db) =>
+{
+    var userId = principal.FindFirstValue(ClaimTypes.NameIdentifier)!;
+    var collection = await db.Collections
+        .Include(c => c.CollectionType)
+        .FirstOrDefaultAsync(c => c.Id == id && c.UserId == userId);
+    if (collection == null) return Results.NotFound();
+
+    var items = await db.CatalogItems
+        .Where(ci => ci.CollectionId == id)
+        .Include(ci => ci.CustomFieldValues)
+        .ToListAsync();
+
+    var ownedCopies = await db.OwnedCopies
+        .Where(oc => items.Select(i => i.Id).Contains(oc.CatalogItemId))
+        .Include(oc => oc.Images)
+        .ToListAsync();
+
+    var exportFormat = (format ?? "json").ToLowerInvariant();
+
+    if (exportFormat == "csv")
+    {
+        var sb = new StringBuilder();
+        // Header
+        sb.AppendLine("Id,Identifier,Name,Description,ReleaseDate,Manufacturer,ReferenceCode,Image,Rarity,CustomFields,CopyId,Condition,PurchasePrice,EstimatedValue,AcquisitionDate,AcquisitionSource,Notes");
+
+        foreach (var item in items)
+        {
+            var copies = ownedCopies.Where(oc => oc.CatalogItemId == item.Id).ToList();
+            var customFields = item.CustomFieldValues?.Any() == true
+                ? string.Join("; ", item.CustomFieldValues.Select(cf => $"{cf.Name}={cf.Value}"))
+                : "";
+
+            if (copies.Count == 0)
+            {
+                sb.AppendLine($"{item.Id},{CsvEscape(item.Identifier)},{CsvEscape(item.Name)},{CsvEscape(item.Description)},{item.ReleaseDate?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)},{CsvEscape(item.Manufacturer)},{CsvEscape(item.ReferenceCode)},{CsvEscape(item.Image)},{CsvEscape(item.Rarity)},{CsvEscape(customFields)},,,,,,");
+            }
+            else
+            {
+                foreach (var copy in copies)
+                {
+                    sb.AppendLine($"{item.Id},{CsvEscape(item.Identifier)},{CsvEscape(item.Name)},{CsvEscape(item.Description)},{item.ReleaseDate?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)},{CsvEscape(item.Manufacturer)},{CsvEscape(item.ReferenceCode)},{CsvEscape(item.Image)},{CsvEscape(item.Rarity)},{CsvEscape(customFields)},{copy.Id},{copy.Condition},{copy.PurchasePrice?.ToString(CultureInfo.InvariantCulture)},{copy.EstimatedValue?.ToString(CultureInfo.InvariantCulture)},{copy.AcquisitionDate?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)},{CsvEscape(copy.AcquisitionSource)},{CsvEscape(copy.Notes)}");
+                }
+            }
+        }
+
+        var csvBytes = Encoding.UTF8.GetBytes(sb.ToString());
+        return Results.File(csvBytes, "text/csv", $"{collection.Name}_export.csv");
+    }
+    else if (exportFormat == "json")
+    {
+        var exportData = items.Select(item => new
+        {
+            item.Id,
+            item.Identifier,
+            item.Name,
+            item.Description,
+            ReleaseDate = item.ReleaseDate?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
+            item.Manufacturer,
+            item.ReferenceCode,
+            item.Image,
+            item.Rarity,
+            CustomFields = item.CustomFieldValues?.Select(cf => new { cf.Name, cf.Value }).ToList(),
+            OwnedCopies = ownedCopies.Where(oc => oc.CatalogItemId == item.Id).Select(oc => new
+            {
+                oc.Id,
+                Condition = oc.Condition.ToString(),
+                oc.PurchasePrice,
+                oc.EstimatedValue,
+                AcquisitionDate = oc.AcquisitionDate?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
+                oc.AcquisitionSource,
+                oc.Notes,
+                Images = oc.Images?.Select(img => img.Url).ToList()
+            }).ToList()
+        }).ToList();
+
+        var jsonBytes = JsonSerializer.SerializeToUtf8Bytes(exportData, new JsonSerializerOptions { WriteIndented = true, PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
+        return Results.File(jsonBytes, "application/json", $"{collection.Name}_export.json");
+    }
+    else
+    {
+        return Results.BadRequest(new { error = "Unsupported format. Use 'csv' or 'json'." });
+    }
+})
+.RequireAuthorization()
+.WithName("ExportCollection")
+.WithOpenApi();
+
 app.Run();
+
+static string CsvEscape(string? value)
+{
+    if (string.IsNullOrEmpty(value)) return "";
+    if (value.Contains(',') || value.Contains('"') || value.Contains('\n'))
+        return $"\"{value.Replace("\"", "\"\"")}\"";
+    return value;
+}
 
 static string GenerateJwtToken(ApplicationUser user, IConfiguration config)
 {
