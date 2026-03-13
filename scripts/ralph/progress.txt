@@ -522,3 +522,24 @@ Started: Fri Mar 13 12:14:54 PM UTC 2026
   - Custom fields from collection type have shape: `{ name, type, required, options }` — render different inputs per type
   - No browser testing tools available — manual browser verification needed
 ---
+
+## 2026-03-13 - US-029
+- Added catalog item detail page at `/collections/:id/items/:itemId`
+- Detail view shows all catalog item fields: identifier, name, description, manufacturer, release date, reference code, rarity, image
+- Displays custom field values in a separate card section
+- Lists owned copies with condition badge, purchase price, estimated value, acquisition date, source, notes
+- Edit button opens dialog pre-filled with current item data (reuses same form pattern as add item)
+- Delete button with confirmation dialog — navigates back to collection after deletion
+- Left panel shows item image (or placeholder), right panel shows details + owned copies
+- Responsive layout: single column on mobile, 3-column grid on desktop
+- Added route `/collections/:id/items/:itemId` in App.tsx
+- Added i18n translations for all UI strings in both en.json and pt.json
+- Typecheck passes, build succeeds, all 103 API tests pass
+- Files changed: `src/web/src/pages/CatalogItemDetail.tsx` (new), `src/web/src/App.tsx`, `src/web/src/i18n/locales/en.json`, `src/web/src/i18n/locales/pt.json`
+- **Learnings for future iterations:**
+  - GET `/api/collections/{collectionId}/items/{itemId}` returns `ownedCopies` as null for the single-item endpoint — must fetch separately via `/api/items/{id}/copies`
+  - OwnedCopy condition values are PascalCase (e.g., "NearMint") — use regex replace for display: `condition.replace(/([a-z])([A-Z])/g, "$1 $2")`
+  - Item detail page needs collection fetch to get `collectionTypeId` for loading custom field schema
+  - Edit form reuses the exact same custom field rendering pattern from CollectionDetail add item dialog
+  - No browser testing tools available — manual browser verification needed
+---
