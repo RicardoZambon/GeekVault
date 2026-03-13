@@ -53,6 +53,11 @@ Started: Fri Mar 13 12:14:54 PM UTC 2026
 - i18n: `react-i18next` + `i18next` — translations in `src/i18n/locales/{en,pt}.json`, init in `src/i18n/index.ts`, imported in `main.tsx`
 - i18n: language stored in localStorage under `geekvault-language`, use `useTranslation()` hook + `t("key")` for translations
 - i18n: when adding new UI strings, add keys to BOTH `en.json` and `pt.json` translation files
+- AuthProvider in `src/components/auth-provider.tsx` — wraps app in `main.tsx`, manages JWT token in localStorage under `geekvault-token`
+- `useAuth()` hook provides: user, token, isLoading, login, register, logout
+- Auth routes: `RequireAuth` wrapper redirects to `/login` if no token, `GuestOnly` wrapper redirects to `/` if authenticated
+- Form pages use controlled inputs with `useState` + client-side validation before API call
+- shadcn/ui Input component in `src/components/ui/input.tsx`, Label in `src/components/ui/label.tsx`
 ---
 
 ## 2026-03-13 - US-001
@@ -424,5 +429,27 @@ Started: Fri Mar 13 12:14:54 PM UTC 2026
   - Translation files are simple JSON — nested keys like `nav.dashboard` accessed via `t("nav.dashboard")`
   - When adding new pages/UI strings, add keys to BOTH `en.json` and `pt.json`
   - LanguageToggle uses `i18n.language` to determine current language and toggle to the other
+  - No browser testing tools available — manual browser verification needed
+---
+
+## 2026-03-13 - US-025
+- Added login and register pages with form validation and i18n
+- Created AuthProvider context managing JWT tokens (localStorage `geekvault-token`)
+- Login page: email + password fields, calls POST /api/auth/login, stores token, redirects to dashboard
+- Register page: display name + email + password fields, calls POST /api/auth/register
+- Client-side validation: required fields, min password length (6 chars)
+- Server error messages displayed in form
+- RequireAuth route wrapper: redirects unauthenticated users to /login
+- GuestOnly route wrapper: redirects authenticated users away from login/register
+- Added logout button to sidebar (both desktop and mobile)
+- Created shadcn/ui Input and Label components
+- Added auth translation keys to both en.json and pt.json
+- Files changed: `src/components/auth-provider.tsx`, `src/components/ui/input.tsx`, `src/components/ui/label.tsx`, `src/pages/Login.tsx`, `src/pages/Register.tsx`, `App.tsx`, `main.tsx`, `src/components/app-layout.tsx`, `src/i18n/locales/en.json`, `src/i18n/locales/pt.json`
+- **Learnings for future iterations:**
+  - AuthProvider wraps inside BrowserRouter and ThemeProvider in main.tsx (needs access to navigation via react-router)
+  - Use `useCallback` for context functions to prevent unnecessary re-renders
+  - GuestOnly/RequireAuth patterns use React Router `<Outlet />` for nested route protection
+  - Auth loading state (isLoading) is critical to avoid flash of login page on refresh when token exists
+  - Backend /api/auth/me endpoint used to validate token on app load
   - No browser testing tools available — manual browser verification needed
 ---
