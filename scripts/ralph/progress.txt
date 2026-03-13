@@ -254,3 +254,20 @@ Started: Fri Mar 13 12:14:54 PM UTC 2026
   - Completion is computed on every GET request (not cached/stored) — recalculates automatically when owned copies change
   - SetResponse record includes nullable CompletedCount and CompletionPercentage (only populated for single-set GET, not list)
 ---
+
+## 2026-03-13 - US-017
+- Added Wishlist CRUD API endpoints nested under collections: GET list (ordered by priority), POST create, PUT update, DELETE
+- All endpoints require JWT authentication and verify collection ownership
+- GET /api/collections/{collectionId}/wishlist returns items ordered by priority (ascending)
+- POST /api/collections/{collectionId}/wishlist creates wishlist item with name, priority, target price, notes, optional catalog item link
+- PUT /api/collections/{collectionId}/wishlist/{id} updates wishlist item
+- DELETE /api/collections/{collectionId}/wishlist/{id} deletes wishlist item
+- 8 integration tests covering: empty list, create, priority ordering, update, delete, auth requirement, wrong collection, ownership check
+- All 66 tests passing (8 new + 58 existing)
+- Files changed: `Program.cs`, new `WishlistEndpointsTests.cs`
+- **Learnings for future iterations:**
+  - Wishlist endpoints follow the exact same nested-under-collections pattern as Set endpoints
+  - OrderBy(w => w.Priority) gives ascending order (lower priority number = higher priority)
+  - WishlistItem uses same nullable CatalogItemId pattern as SetItem
+  - No new codebase patterns discovered — all patterns from prior iterations applied cleanly
+---
