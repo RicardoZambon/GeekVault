@@ -15,6 +15,8 @@ Started: Fri Mar 13 12:14:54 PM UTC 2026
 - Entity models live in `Models/` directory under namespace `GeekVault.Api.Models`
 - Visibility enum stored as string conversion in EF Core: `.HasConversion<string>()`
 - Foreign keys: use `OnDelete(DeleteBehavior.Restrict)` for reference data (CollectionType), `Cascade` for ownership (User)
+- Decimal monetary fields: use `HasColumnType("decimal(18,2)")` for price/value columns
+- Enums stored as strings: use `.HasConversion<string>().HasMaxLength(20)`
 ---
 
 ## 2026-03-13 - US-001
@@ -77,4 +79,19 @@ Started: Fri Mar 13 12:14:54 PM UTC 2026
   - CustomFieldValues stores values as simple Name/Value string pairs — validation against CollectionType schema will be at API level
   - CatalogItem uses cascade delete from Collection (if collection is deleted, items are deleted too)
   - Reused same `OwnsMany` + `ToJson()` pattern as CollectionType's CustomFieldSchema
+---
+
+## 2026-03-13 - US-006
+- Created `OwnedCopy` entity with Id, CatalogItemId, Condition, PurchasePrice, EstimatedValue, AcquisitionDate, AcquisitionSource, Notes, Images (JSON array)
+- Created `Condition` enum (Mint, NearMint, Excellent, Good, Fair, Poor)
+- Created `OwnedCopyImage` model (Url) for JSON storage via `OwnsMany` + `ToJson()`
+- Added foreign key to CatalogItem with cascade delete
+- Condition enum stored as string conversion (same pattern as Visibility)
+- Decimal columns use `HasColumnType("decimal(18,2)")` for price/value fields
+- Generated migration `AddOwnedCopy`
+- Files changed: `Models/OwnedCopy.cs`, `Models/Condition.cs`, `Models/OwnedCopyImage.cs`, `Data/ApplicationDbContext.cs`, `Migrations/`
+- **Learnings for future iterations:**
+  - Condition enum follows same string conversion pattern as Visibility enum
+  - Decimal monetary fields should use `decimal(18,2)` column type
+  - OwnedCopy cascades from CatalogItem (ownership chain: User -> Collection -> CatalogItem -> OwnedCopy)
 ---
