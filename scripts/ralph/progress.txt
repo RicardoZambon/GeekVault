@@ -31,6 +31,8 @@ Started: Fri Mar 13 12:14:54 PM UTC 2026
 - Use `.Include()` on parent entity when needing to access navigation properties for validation
 - Each test method uses a unique user email to avoid parallel test conflicts
 - List endpoints return `PaginatedResponse<T>` (Items, TotalCount, Page, PageSize) — tests use `PaginatedResult<T>` to deserialize
+- File upload endpoints need both `.RequireAuthorization()` and `.DisableAntiforgery()`, and wrap `ReadFormAsync()` in try-catch for empty form handling
+- Use `.ThenInclude()` for nested eager loading: `.Include(c => c.CollectionType).ThenInclude(ct => ct.CustomFieldSchema)`
 ---
 
 ## 2026-03-13 - US-001
@@ -326,4 +328,24 @@ Started: Fri Mar 13 12:14:54 PM UTC 2026
   - CSV escaping: wrap in quotes if value contains comma, quote, or newline; double-up internal quotes
   - InMemory DB `.Contains()` works for filtering owned copies by a list of catalog item IDs
   - Export endpoint loads all items and copies in two queries, then joins in-memory for efficiency
+---
+
+## 2026-03-13 - US-021
+- Added CSV import API endpoints: POST /api/collections/{id}/import, POST /import/preview, POST /import/confirm
+- Direct import (POST /import): parses CSV, validates, saves valid rows, returns importedCount + errors
+- Preview (POST /import/preview): parses CSV, validates, returns parsed rows with per-row errors (does not save)
+- Confirm (POST /import/confirm): saves previously previewed data using previewId, returns importedCount + skippedCount
+- CSV format: header row with standard fields (Identifier, Name, Description, etc.) + custom field columns matching schema
+- Validates required fields (Identifier, Name), custom field types (number, date, boolean, enum), and required custom fields
+- Custom CSV parser handles quoted fields with commas and escaped quotes
+- In-memory dictionary stores preview data keyed by GUID for preview/confirm flow
+- 11 integration tests: auth, not found, ownership, no file, valid import, missing required fields, preview, preview+confirm, invalid preview ID, custom field validation, quoted CSV parsing
+- All 103 tests passing (11 new + 92 existing)
+- Files changed: `Program.cs`, new `ImportEndpointsTests.cs`
+- **Learnings for future iterations:**
+  - Use try-catch around `ReadFormAsync()` for file upload endpoints — empty MultipartFormDataContent can throw
+  - In-memory `Dictionary<string, T>` works for simple preview/confirm flows; for production, use distributed cache
+  - CSV parsing requires a custom parser to handle quoted fields (commas inside quotes, escaped double-quotes)
+  - File upload endpoints need both `.RequireAuthorization()` and `.DisableAntiforgery()`
+  - `ThenInclude` needed for nested navigation: `.Include(c => c.CollectionType).ThenInclude(ct => ct.CustomFieldSchema)`
 ---
