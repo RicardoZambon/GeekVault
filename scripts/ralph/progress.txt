@@ -66,3 +66,15 @@ Started: Fri Mar 13 12:14:54 PM UTC 2026
   - Use `DeleteBehavior.Restrict` for FK to reference/lookup data (CollectionType) to prevent accidental cascade deletes
   - Navigation properties use `= null!` pattern for required references
 ---
+
+## 2026-03-13 - US-005
+- Created `CatalogItem` entity with Id, CollectionId, Identifier, Name, Description, ReleaseDate, Manufacturer, ReferenceCode, Image, Rarity, CustomFieldValues (JSON column)
+- Created `CustomFieldValue` model (Name + Value) for JSON storage via `OwnsMany` + `ToJson()`
+- Added foreign key to Collection with cascade delete
+- Generated migration `AddCatalogItem`
+- Files changed: `Models/CatalogItem.cs`, `Models/CustomFieldValue.cs`, `Data/ApplicationDbContext.cs`, `Migrations/`
+- **Learnings for future iterations:**
+  - CustomFieldValues stores values as simple Name/Value string pairs — validation against CollectionType schema will be at API level
+  - CatalogItem uses cascade delete from Collection (if collection is deleted, items are deleted too)
+  - Reused same `OwnsMany` + `ToJson()` pattern as CollectionType's CustomFieldSchema
+---
