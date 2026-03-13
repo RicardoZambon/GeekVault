@@ -312,7 +312,23 @@
   },
   "profile": {
     "title": "Profile",
-    "description": "Your account settings and preferences."
+    "description": "Your account settings and preferences.",
+    "loading": "Loading profile...",
+    "fetchError": "Failed to load profile",
+    "emailLabel": "Email",
+    "displayNameLabel": "Display Name",
+    "displayNamePlaceholder": "Your display name",
+    "bioLabel": "Bio",
+    "bioPlaceholder": "Tell us about yourself",
+    "languageLabel": "Preferred Language",
+    "currencyLabel": "Preferred Currency",
+    "avatarLabel": "Avatar",
+    "uploadAvatar": "Upload Avatar",
+    "avatarFailed": "Failed to upload avatar",
+    "save": "Save Changes",
+    "saving": "Saving...",
+    "saveSuccess": "Profile updated successfully.",
+    "saveFailed": "Failed to save profile"
   },
   "language": {
     "label": "Language",

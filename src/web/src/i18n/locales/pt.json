@@ -312,7 +312,23 @@
   },
   "profile": {
     "title": "Perfil",
-    "description": "Configurações e preferências da sua conta."
+    "description": "Configurações e preferências da sua conta.",
+    "loading": "Carregando perfil...",
+    "fetchError": "Falha ao carregar perfil",
+    "emailLabel": "Email",
+    "displayNameLabel": "Nome de Exibição",
+    "displayNamePlaceholder": "Seu nome de exibição",
+    "bioLabel": "Bio",
+    "bioPlaceholder": "Conte-nos sobre você",
+    "languageLabel": "Idioma Preferido",
+    "currencyLabel": "Moeda Preferida",
+    "avatarLabel": "Avatar",
+    "uploadAvatar": "Enviar Avatar",
+    "avatarFailed": "Falha ao enviar avatar",
+    "save": "Salvar Alterações",
+    "saving": "Salvando...",
+    "saveSuccess": "Perfil atualizado com sucesso.",
+    "saveFailed": "Falha ao salvar perfil"
   },
   "language": {
     "label": "Idioma",
