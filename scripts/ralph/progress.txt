@@ -13,6 +13,8 @@ Started: Fri Mar 13 12:14:54 PM UTC 2026
 - Migrations generated with `dotnet ef migrations add <Name>` from the project directory
 - Use `OwnsMany` + `ToJson()` for JSON columns storing lists of owned types in EF Core 8
 - Entity models live in `Models/` directory under namespace `GeekVault.Api.Models`
+- Visibility enum stored as string conversion in EF Core: `.HasConversion<string>()`
+- Foreign keys: use `OnDelete(DeleteBehavior.Restrict)` for reference data (CollectionType), `Cascade` for ownership (User)
 ---
 
 ## 2026-03-13 - US-001
@@ -50,4 +52,17 @@ Started: Fri Mar 13 12:14:54 PM UTC 2026
   - Use `OwnsMany` with `ToJson()` for storing lists of owned types as JSON columns in EF Core 8
   - JSON columns in EF Core 8 use owned entity types, not raw string serialization
   - Max 10 custom fields validation will be enforced at API level (US-011), not at entity level
+---
+
+## 2026-03-13 - US-004
+- Created `Collection` entity with Id, UserId, CollectionTypeId, Name, Description, CoverImage, Visibility
+- Created `Visibility` enum (Private, Public, Shared)
+- Added foreign keys to ApplicationUser (cascade) and CollectionType (restrict)
+- Configured EF Core entity with string conversion for Visibility enum
+- Generated migration `AddCollection`
+- Files changed: `Models/Collection.cs`, `Models/Visibility.cs`, `Data/ApplicationDbContext.cs`, `Migrations/`
+- **Learnings for future iterations:**
+  - Enum stored as string in DB via `.HasConversion<string>()` for readability
+  - Use `DeleteBehavior.Restrict` for FK to reference/lookup data (CollectionType) to prevent accidental cascade deletes
+  - Navigation properties use `= null!` pattern for required references
 ---
