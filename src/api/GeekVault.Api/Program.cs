@@ -1292,7 +1292,296 @@ app.MapGet("/api/collections/{id:int}/export", async (
 .WithName("ExportCollection")
 .WithOpenApi();
 
+// Import endpoints
+var importPreviews = new Dictionary<string, List<ImportRowDto>>();
+
+app.MapPost("/api/collections/{id:int}/import/preview", async (
+    int id,
+    HttpRequest request,
+    ClaimsPrincipal principal,
+    ApplicationDbContext db) =>
+{
+    var userId = principal.FindFirstValue(ClaimTypes.NameIdentifier)!;
+    var collection = await db.Collections
+        .Include(c => c.CollectionType)
+            .ThenInclude(ct => ct.CustomFieldSchema)
+        .FirstOrDefaultAsync(c => c.Id == id && c.UserId == userId);
+    if (collection == null) return Results.NotFound();
+
+    var form = await request.ReadFormAsync();
+    var file = form.Files.FirstOrDefault();
+    if (file == null || file.Length == 0)
+        return Results.BadRequest(new { error = "No CSV file provided." });
+
+    var schema = collection.CollectionType.CustomFieldSchema;
+    var rows = await ParseCsvFile(file, schema);
+
+    var previewId = Guid.NewGuid().ToString();
+    importPreviews[previewId] = rows;
+
+    var hasErrors = rows.Any(r => r.Errors.Count > 0);
+    return Results.Ok(new ImportPreviewResponse(previewId, rows.Count, rows.Count(r => r.Errors.Count == 0), rows.Count(r => r.Errors.Count > 0), hasErrors, rows));
+})
+.RequireAuthorization()
+.DisableAntiforgery()
+.WithName("ImportPreview")
+.WithOpenApi();
+
+app.MapPost("/api/collections/{id:int}/import/confirm", async (
+    int id,
+    ImportConfirmRequest confirmRequest,
+    ClaimsPrincipal principal,
+    ApplicationDbContext db) =>
+{
+    var userId = principal.FindFirstValue(ClaimTypes.NameIdentifier)!;
+    var collection = await db.Collections
+        .FirstOrDefaultAsync(c => c.Id == id && c.UserId == userId);
+    if (collection == null) return Results.NotFound();
+
+    if (!importPreviews.TryGetValue(confirmRequest.PreviewId, out var rows))
+        return Results.BadRequest(new { error = "Preview not found or expired." });
+
+    importPreviews.Remove(confirmRequest.PreviewId);
+
+    var validRows = rows.Where(r => r.Errors.Count == 0).ToList();
+    var imported = 0;
+
+    foreach (var row in validRows)
+    {
+        var item = new CatalogItem
+        {
+            CollectionId = id,
+            Identifier = row.Identifier ?? "",
+            Name = row.Name ?? "",
+            Description = row.Description,
+            Manufacturer = row.Manufacturer,
+            ReferenceCode = row.ReferenceCode,
+            Image = row.Image,
+            Rarity = row.Rarity,
+            CustomFieldValues = row.CustomFields?.Select(cf => new CustomFieldValue { Name = cf.Name, Value = cf.Value }).ToList() ?? new()
+        };
+        if (DateTime.TryParse(row.ReleaseDate, CultureInfo.InvariantCulture, DateTimeStyles.None, out var releaseDate))
+            item.ReleaseDate = releaseDate;
+
+        db.CatalogItems.Add(item);
+        imported++;
+    }
+
+    await db.SaveChangesAsync();
+
+    return Results.Ok(new ImportConfirmResponse(imported, rows.Count - imported));
+})
+.RequireAuthorization()
+.WithName("ImportConfirm")
+.WithOpenApi();
+
+app.MapPost("/api/collections/{id:int}/import", async (
+    int id,
+    HttpRequest request,
+    ClaimsPrincipal principal,
+    ApplicationDbContext db) =>
+{
+    var userId = principal.FindFirstValue(ClaimTypes.NameIdentifier)!;
+    var collection = await db.Collections
+        .Include(c => c.CollectionType)
+            .ThenInclude(ct => ct.CustomFieldSchema)
+        .FirstOrDefaultAsync(c => c.Id == id && c.UserId == userId);
+    if (collection == null) return Results.NotFound();
+
+    IFormFile? file = null;
+    try
+    {
+        var form = await request.ReadFormAsync();
+        file = form.Files.FirstOrDefault();
+    }
+    catch { }
+    if (file == null || file.Length == 0)
+        return Results.BadRequest(new { error = "No CSV file provided." });
+
+    var schema = collection.CollectionType.CustomFieldSchema;
+    var rows = await ParseCsvFile(file, schema);
+
+    var validRows = rows.Where(r => r.Errors.Count == 0).ToList();
+    var imported = 0;
+    var rowErrors = rows.Where(r => r.Errors.Count > 0).ToList();
+
+    foreach (var row in validRows)
+    {
+        var item = new CatalogItem
+        {
+            CollectionId = id,
+            Identifier = row.Identifier ?? "",
+            Name = row.Name ?? "",
+            Description = row.Description,
+            Manufacturer = row.Manufacturer,
+            ReferenceCode = row.ReferenceCode,
+            Image = row.Image,
+            Rarity = row.Rarity,
+            CustomFieldValues = row.CustomFields?.Select(cf => new CustomFieldValue { Name = cf.Name, Value = cf.Value }).ToList() ?? new()
+        };
+        if (DateTime.TryParse(row.ReleaseDate, CultureInfo.InvariantCulture, DateTimeStyles.None, out var releaseDate))
+            item.ReleaseDate = releaseDate;
+
+        db.CatalogItems.Add(item);
+        imported++;
+    }
+
+    await db.SaveChangesAsync();
+
+    return Results.Ok(new ImportResponse(imported, rowErrors.Count, rowErrors));
+})
+.RequireAuthorization()
+.DisableAntiforgery()
+.WithName("ImportCollection")
+.WithOpenApi();
+
 app.Run();
+
+static async Task<List<ImportRowDto>> ParseCsvFile(IFormFile file, List<CustomFieldDefinition> schema)
+{
+    var rows = new List<ImportRowDto>();
+    using var reader = new StreamReader(file.OpenReadStream());
+    var headerLine = await reader.ReadLineAsync();
+    if (string.IsNullOrWhiteSpace(headerLine)) return rows;
+
+    var headers = ParseCsvLine(headerLine);
+    var standardFields = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        { "Identifier", "Name", "Description", "ReleaseDate", "Manufacturer", "ReferenceCode", "Image", "Rarity" };
+
+    var rowNumber = 1;
+    string? line;
+    while ((line = await reader.ReadLineAsync()) != null)
+    {
+        rowNumber++;
+        if (string.IsNullOrWhiteSpace(line)) continue;
+
+        var values = ParseCsvLine(line);
+        var errors = new List<string>();
+        var fieldMap = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
+        for (var i = 0; i < headers.Count && i < values.Count; i++)
+        {
+            fieldMap[headers[i]] = values[i];
+        }
+
+        // Extract standard fields
+        fieldMap.TryGetValue("Identifier", out var identifier);
+        fieldMap.TryGetValue("Name", out var name);
+        fieldMap.TryGetValue("Description", out var description);
+        fieldMap.TryGetValue("ReleaseDate", out var releaseDate);
+        fieldMap.TryGetValue("Manufacturer", out var manufacturer);
+        fieldMap.TryGetValue("ReferenceCode", out var referenceCode);
+        fieldMap.TryGetValue("Image", out var image);
+        fieldMap.TryGetValue("Rarity", out var rarity);
+
+        // Validate required fields
+        if (string.IsNullOrWhiteSpace(identifier)) errors.Add("Identifier is required");
+        if (string.IsNullOrWhiteSpace(name)) errors.Add("Name is required");
+
+        // Validate ReleaseDate format if provided
+        if (!string.IsNullOrWhiteSpace(releaseDate) &&
+            !DateTime.TryParse(releaseDate, CultureInfo.InvariantCulture, DateTimeStyles.None, out _))
+            errors.Add("ReleaseDate is not a valid date");
+
+        // Extract and validate custom fields
+        var customFields = new List<CustomFieldValueDto>();
+        foreach (var fieldDef in schema)
+        {
+            fieldMap.TryGetValue(fieldDef.Name, out var fieldValue);
+
+            if (fieldDef.Required && string.IsNullOrWhiteSpace(fieldValue))
+            {
+                errors.Add($"Custom field '{fieldDef.Name}' is required");
+                continue;
+            }
+
+            if (!string.IsNullOrWhiteSpace(fieldValue))
+            {
+                // Validate by type
+                switch (fieldDef.Type.ToLowerInvariant())
+                {
+                    case "number":
+                        if (!decimal.TryParse(fieldValue, CultureInfo.InvariantCulture, out _))
+                            errors.Add($"Custom field '{fieldDef.Name}' must be a number");
+                        break;
+                    case "date":
+                        if (!DateTime.TryParse(fieldValue, CultureInfo.InvariantCulture, DateTimeStyles.None, out _))
+                            errors.Add($"Custom field '{fieldDef.Name}' must be a valid date");
+                        break;
+                    case "boolean":
+                        if (!bool.TryParse(fieldValue, out _))
+                            errors.Add($"Custom field '{fieldDef.Name}' must be true or false");
+                        break;
+                    case "enum":
+                        if (fieldDef.Options != null && !fieldDef.Options.Contains(fieldValue, StringComparer.OrdinalIgnoreCase))
+                            errors.Add($"Custom field '{fieldDef.Name}' must be one of: {string.Join(", ", fieldDef.Options)}");
+                        break;
+                }
+
+                customFields.Add(new CustomFieldValueDto(fieldDef.Name, fieldValue));
+            }
+        }
+
+        rows.Add(new ImportRowDto(rowNumber, identifier, name, description, releaseDate, manufacturer, referenceCode, image, rarity, customFields, errors));
+    }
+
+    return rows;
+}
+
+static List<string> ParseCsvLine(string line)
+{
+    var fields = new List<string>();
+    var current = new StringBuilder();
+    var inQuotes = false;
+    var i = 0;
+
+    while (i < line.Length)
+    {
+        if (inQuotes)
+        {
+            if (line[i] == '"')
+            {
+                if (i + 1 < line.Length && line[i + 1] == '"')
+                {
+                    current.Append('"');
+                    i += 2;
+                }
+                else
+                {
+                    inQuotes = false;
+                    i++;
+                }
+            }
+            else
+            {
+                current.Append(line[i]);
+                i++;
+            }
+        }
+        else
+        {
+            if (line[i] == '"')
+            {
+                inQuotes = true;
+                i++;
+            }
+            else if (line[i] == ',')
+            {
+                fields.Add(current.ToString());
+                current.Clear();
+                i++;
+            }
+            else
+            {
+                current.Append(line[i]);
+                i++;
+            }
+        }
+    }
+
+    fields.Add(current.ToString());
+    return fields;
+}
 
 static string CsvEscape(string? value)
 {
@@ -1360,3 +1649,8 @@ record ConditionCountDto(string Condition, int Count);
 record CollectionSummaryDto(int Id, string Name, int ItemCount, int OwnedCount, decimal Value);
 record RecentAcquisitionDto(int Id, string ItemName, string Condition, decimal? PurchasePrice, decimal? EstimatedValue, DateTime? AcquisitionDate, string? AcquisitionSource);
 record DashboardResponse(int TotalCollections, int TotalItems, int TotalOwnedCopies, decimal TotalEstimatedValue, decimal TotalInvested, List<ConditionCountDto> ItemsByCondition, List<CollectionSummaryDto> CollectionSummaries, List<RecentAcquisitionDto> RecentAcquisitions);
+record ImportRowDto(int RowNumber, string? Identifier, string? Name, string? Description, string? ReleaseDate, string? Manufacturer, string? ReferenceCode, string? Image, string? Rarity, List<CustomFieldValueDto> CustomFields, List<string> Errors);
+record ImportPreviewResponse(string PreviewId, int TotalRows, int ValidRows, int ErrorRows, bool HasErrors, List<ImportRowDto> Rows);
+record ImportConfirmRequest(string PreviewId);
+record ImportConfirmResponse(int ImportedCount, int SkippedCount);
+record ImportResponse(int ImportedCount, int ErrorCount, List<ImportRowDto> Errors);
