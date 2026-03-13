@@ -982,6 +982,108 @@ app.MapPost("/api/collections/{collectionId:int}/sets/{id:int}/items", async (
 .WithName("AddSetItems")
 .WithOpenApi();
 
+// Wishlist endpoints
+app.MapGet("/api/collections/{collectionId:int}/wishlist", async (
+    int collectionId,
+    ClaimsPrincipal principal,
+    ApplicationDbContext db) =>
+{
+    var userId = principal.FindFirstValue(ClaimTypes.NameIdentifier)!;
+    var collection = await db.Collections.FirstOrDefaultAsync(c => c.Id == collectionId && c.UserId == userId);
+    if (collection == null) return Results.NotFound();
+
+    var items = await db.WishlistItems
+        .Where(w => w.CollectionId == collectionId)
+        .OrderBy(w => w.Priority)
+        .Select(w => new WishlistItemResponse(w.Id, w.CollectionId, w.CatalogItemId, w.Name, w.Priority, w.TargetPrice, w.Notes))
+        .ToListAsync();
+    return Results.Ok(items);
+})
+.RequireAuthorization()
+.WithName("ListWishlistItems")
+.WithOpenApi();
+
+app.MapPost("/api/collections/{collectionId:int}/wishlist", async (
+    int collectionId,
+    CreateWishlistItemRequest request,
+    ClaimsPrincipal principal,
+    ApplicationDbContext db) =>
+{
+    var userId = principal.FindFirstValue(ClaimTypes.NameIdentifier)!;
+    var collection = await db.Collections.FirstOrDefaultAsync(c => c.Id == collectionId && c.UserId == userId);
+    if (collection == null) return Results.NotFound();
+
+    var item = new WishlistItem
+    {
+        CollectionId = collectionId,
+        CatalogItemId = request.CatalogItemId,
+        Name = request.Name,
+        Priority = request.Priority,
+        TargetPrice = request.TargetPrice,
+        Notes = request.Notes
+    };
+
+    db.WishlistItems.Add(item);
+    await db.SaveChangesAsync();
+
+    return Results.Created($"/api/collections/{collectionId}/wishlist/{item.Id}",
+        new WishlistItemResponse(item.Id, item.CollectionId, item.CatalogItemId, item.Name, item.Priority, item.TargetPrice, item.Notes));
+})
+.RequireAuthorization()
+.WithName("CreateWishlistItem")
+.WithOpenApi();
+
+app.MapPut("/api/collections/{collectionId:int}/wishlist/{id:int}", async (
+    int collectionId,
+    int id,
+    UpdateWishlistItemRequest request,
+    ClaimsPrincipal principal,
+    ApplicationDbContext db) =>
+{
+    var userId = principal.FindFirstValue(ClaimTypes.NameIdentifier)!;
+    var collection = await db.Collections.FirstOrDefaultAsync(c => c.Id == collectionId && c.UserId == userId);
+    if (collection == null) return Results.NotFound();
+
+    var item = await db.WishlistItems.FirstOrDefaultAsync(w => w.Id == id && w.CollectionId == collectionId);
+    if (item == null) return Results.NotFound();
+
+    item.Name = request.Name ?? item.Name;
+    item.CatalogItemId = request.CatalogItemId;
+    if (request.Priority.HasValue)
+        item.Priority = request.Priority.Value;
+    item.TargetPrice = request.TargetPrice;
+    item.Notes = request.Notes;
+
+    await db.SaveChangesAsync();
+
+    return Results.Ok(new WishlistItemResponse(item.Id, item.CollectionId, item.CatalogItemId, item.Name, item.Priority, item.TargetPrice, item.Notes));
+})
+.RequireAuthorization()
+.WithName("UpdateWishlistItem")
+.WithOpenApi();
+
+app.MapDelete("/api/collections/{collectionId:int}/wishlist/{id:int}", async (
+    int collectionId,
+    int id,
+    ClaimsPrincipal principal,
+    ApplicationDbContext db) =>
+{
+    var userId = principal.FindFirstValue(ClaimTypes.NameIdentifier)!;
+    var collection = await db.Collections.FirstOrDefaultAsync(c => c.Id == collectionId && c.UserId == userId);
+    if (collection == null) return Results.NotFound();
+
+    var item = await db.WishlistItems.FirstOrDefaultAsync(w => w.Id == id && w.CollectionId == collectionId);
+    if (item == null) return Results.NotFound();
+
+    db.WishlistItems.Remove(item);
+    await db.SaveChangesAsync();
+
+    return Results.NoContent();
+})
+.RequireAuthorization()
+.WithName("DeleteWishlistItem")
+.WithOpenApi();
+
 app.Run();
 
 static string GenerateJwtToken(ApplicationUser user, IConfiguration config)
@@ -1034,3 +1136,6 @@ record UpdateSetRequest(string? Name, int? ExpectedItemCount);
 record SetResponse(int Id, int CollectionId, string Name, int ExpectedItemCount, List<SetItemResponse>? Items, int? CompletedCount, double? CompletionPercentage);
 record CreateSetItemRequest(string Name, int? CatalogItemId, int? SortOrder);
 record SetItemResponse(int Id, int SetId, int? CatalogItemId, string Name, int SortOrder);
+record CreateWishlistItemRequest(string Name, int? CatalogItemId, int Priority, decimal? TargetPrice, string? Notes);
+record UpdateWishlistItemRequest(string? Name, int? CatalogItemId, int? Priority, decimal? TargetPrice, string? Notes);
+record WishlistItemResponse(int Id, int CollectionId, int? CatalogItemId, string Name, int Priority, decimal? TargetPrice, string? Notes);
