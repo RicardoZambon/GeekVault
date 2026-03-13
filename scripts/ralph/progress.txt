@@ -107,3 +107,15 @@ Started: Fri Mar 13 12:14:54 PM UTC 2026
   - SetItem -> CatalogItem uses `DeleteBehavior.Restrict` since CatalogItem is a reference (not ownership)
   - Set cascades from Collection (same pattern as CatalogItem)
 ---
+
+## 2026-03-13 - US-008
+- Created `WishlistItem` entity with Id, CollectionId, CatalogItemId (nullable), Name, Priority, TargetPrice, Notes
+- Added foreign keys: WishlistItem -> Collection (cascade), WishlistItem -> CatalogItem (restrict, nullable)
+- TargetPrice uses `decimal(18,2)` column type (same pattern as OwnedCopy price fields)
+- Generated migration `AddWishlistItem`
+- Files changed: `Models/WishlistItem.cs`, `Data/ApplicationDbContext.cs`, `Migrations/`
+- **Learnings for future iterations:**
+  - WishlistItem follows same nullable CatalogItemId pattern as SetItem — items can exist on wishlist without being linked to a catalog item
+  - WishlistItem -> CatalogItem uses `DeleteBehavior.Restrict` (reference, not ownership)
+  - WishlistItem cascades from Collection (same ownership chain pattern)
+---
