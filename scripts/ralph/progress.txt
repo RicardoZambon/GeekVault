@@ -180,3 +180,18 @@ Started: Fri Mar 13 12:14:54 PM UTC 2026
   - Use `Results.NoContent()` for DELETE endpoints
   - Each test method registers a unique user email to avoid conflicts in parallel test execution
 ---
+
+## 2026-03-13 - US-012
+- Added Collection CRUD API endpoints: GET list, GET by id, POST create, PUT update, DELETE, POST cover upload
+- GET endpoints include ItemCount (catalog items count) for each collection
+- All endpoints require JWT authentication and filter by UserId (ownership check)
+- Cover image upload follows same pattern as avatar upload (wwwroot/uploads/)
+- 8 integration tests covering all CRUD operations, ownership check, cover upload, and auth requirements
+- Files changed: `Program.cs`, new `CollectionEndpointsTests.cs`
+- **Learnings for future iterations:**
+  - Collection CRUD follows same pattern as CollectionType CRUD — filter by userId, return DTOs
+  - Use `db.CatalogItems.Count(ci => ci.CollectionId == c.Id)` in Select projection for item counts
+  - Cover upload reuses the avatar upload pattern (DisableAntiforgery, multipart form, wwwroot/uploads)
+  - Test helper `CreateAuthenticatedClientWithTypeAsync` creates both auth client AND a collection type (needed for FK)
+  - Ownership test: create with user1, try to GET with user2 — should return 404 (not 403)
+---
