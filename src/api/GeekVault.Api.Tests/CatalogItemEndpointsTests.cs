@@ -63,9 +63,9 @@ public class CatalogItemEndpointsTests : IClassFixture<TestFactory<CatalogItemEn
         var response = await client.GetAsync($"/api/collections/{colId}/items");
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        var items = await response.Content.ReadFromJsonAsync<List<CatalogItemResult>>();
-        Assert.NotNull(items);
-        Assert.Empty(items);
+        var result = await response.Content.ReadFromJsonAsync<PaginatedResult<CatalogItemResult>>();
+        Assert.NotNull(result);
+        Assert.Empty(result.Items);
     }
 
     [Fact]
@@ -231,4 +231,5 @@ public class CatalogItemEndpointsTests : IClassFixture<TestFactory<CatalogItemEn
     private record CustomFieldValueResult(string Name, string Value);
     private record OwnedCopyResult(int Id, string Condition, decimal? PurchasePrice, decimal? EstimatedValue, DateTime? AcquisitionDate, string? AcquisitionSource, string? Notes);
     private record CatalogItemResult(int Id, int CollectionId, string Identifier, string Name, string? Description, DateTime? ReleaseDate, string? Manufacturer, string? ReferenceCode, string? Image, string? Rarity, List<CustomFieldValueResult> CustomFieldValues, List<OwnedCopyResult>? OwnedCopies);
+    private record PaginatedResult<T>(List<T> Items, int TotalCount, int Page, int PageSize);
 }

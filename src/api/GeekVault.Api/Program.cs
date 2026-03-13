@@ -490,20 +490,73 @@ app.MapPost("/api/collections/{id:int}/cover", async (
 app.MapGet("/api/collections/{collectionId:int}/items", async (
     int collectionId,
     ClaimsPrincipal principal,
-    ApplicationDbContext db) =>
+    ApplicationDbContext db,
+    string? search,
+    string? condition,
+    string? ownedStatus,
+    string? sortBy,
+    string? sortDir,
+    int? page,
+    int? pageSize) =>
 {
     var userId = principal.FindFirstValue(ClaimTypes.NameIdentifier)!;
     var collection = await db.Collections.FirstOrDefaultAsync(c => c.Id == collectionId && c.UserId == userId);
     if (collection == null) return Results.NotFound();
 
-    var items = await db.CatalogItems
-        .Where(i => i.CollectionId == collectionId)
+    var query = db.CatalogItems.Where(i => i.CollectionId == collectionId).AsQueryable();
+
+    // Search by name or description
+    if (!string.IsNullOrWhiteSpace(search))
+    {
+        var searchLower = search.ToLower();
+        query = query.Where(i => i.Name.ToLower().Contains(searchLower) ||
+            (i.Description != null && i.Description.ToLower().Contains(searchLower)));
+    }
+
+    // Filter by condition (items that have at least one owned copy with that condition)
+    if (!string.IsNullOrWhiteSpace(condition) && Enum.TryParse<Condition>(condition, true, out var conditionEnum))
+    {
+        query = query.Where(i => db.OwnedCopies.Any(oc => oc.CatalogItemId == i.Id && oc.Condition == conditionEnum));
+    }
+
+    // Filter by owned status
+    if (!string.IsNullOrWhiteSpace(ownedStatus))
+    {
+        if (ownedStatus.Equals("owned", StringComparison.OrdinalIgnoreCase))
+            query = query.Where(i => db.OwnedCopies.Any(oc => oc.CatalogItemId == i.Id));
+        else if (ownedStatus.Equals("unowned", StringComparison.OrdinalIgnoreCase))
+            query = query.Where(i => !db.OwnedCopies.Any(oc => oc.CatalogItemId == i.Id));
+    }
+
+    var totalCount = await query.CountAsync();
+
+    // Sort
+    var isDesc = sortDir?.Equals("desc", StringComparison.OrdinalIgnoreCase) == true;
+    query = (sortBy?.ToLower()) switch
+    {
+        "name" => isDesc ? query.OrderByDescending(i => i.Name) : query.OrderBy(i => i.Name),
+        "date" => isDesc ? query.OrderByDescending(i => i.ReleaseDate) : query.OrderBy(i => i.ReleaseDate),
+        "rarity" => isDesc ? query.OrderByDescending(i => i.Rarity) : query.OrderBy(i => i.Rarity),
+        _ => query.OrderBy(i => i.Id)
+    };
+
+    // Pagination
+    var currentPage = page ?? 1;
+    var currentPageSize = pageSize ?? 20;
+    if (currentPage < 1) currentPage = 1;
+    if (currentPageSize < 1) currentPageSize = 1;
+    if (currentPageSize > 100) currentPageSize = 100;
+
+    query = query.Skip((currentPage - 1) * currentPageSize).Take(currentPageSize);
+
+    var items = await query
         .Select(i => new CatalogItemResponse(i.Id, i.CollectionId, i.Identifier, i.Name, i.Description,
             i.ReleaseDate, i.Manufacturer, i.ReferenceCode, i.Image, i.Rarity,
             i.CustomFieldValues.Select(f => new CustomFieldValueDto(f.Name, f.Value)).ToList(),
             null))
         .ToListAsync();
-    return Results.Ok(items);
+
+    return Results.Ok(new PaginatedResponse<CatalogItemResponse>(items, totalCount, currentPage, currentPageSize));
 })
 .RequireAuthorization()
 .WithName("ListCatalogItems")
@@ -1139,3 +1192,4 @@ record SetItemResponse(int Id, int SetId, int? CatalogItemId, string Name, int S
 record CreateWishlistItemRequest(string Name, int? CatalogItemId, int Priority, decimal? TargetPrice, string? Notes);
 record UpdateWishlistItemRequest(string? Name, int? CatalogItemId, int? Priority, decimal? TargetPrice, string? Notes);
 record WishlistItemResponse(int Id, int CollectionId, int? CatalogItemId, string Name, int Priority, decimal? TargetPrice, string? Notes);
+record PaginatedResponse<T>(List<T> Items, int TotalCount, int Page, int PageSize);
