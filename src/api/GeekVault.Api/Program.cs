@@ -1137,6 +1137,66 @@ app.MapDelete("/api/collections/{collectionId:int}/wishlist/{id:int}", async (
 .WithName("DeleteWishlistItem")
 .WithOpenApi();
 
+// Dashboard analytics
+app.MapGet("/api/dashboard", async (ClaimsPrincipal principal, ApplicationDbContext db) =>
+{
+    var userId = principal.FindFirstValue(ClaimTypes.NameIdentifier)!;
+
+    var userCollections = await db.Collections
+        .Where(c => c.UserId == userId)
+        .Select(c => new
+        {
+            c.Id,
+            c.Name,
+            ItemCount = db.CatalogItems.Count(ci => ci.CollectionId == c.Id),
+            OwnedCount = db.OwnedCopies.Count(oc => db.CatalogItems.Any(ci => ci.Id == oc.CatalogItemId && ci.CollectionId == c.Id)),
+            Value = db.OwnedCopies
+                .Where(oc => db.CatalogItems.Any(ci => ci.Id == oc.CatalogItemId && ci.CollectionId == c.Id))
+                .Sum(oc => (decimal?)oc.EstimatedValue ?? 0m),
+            Invested = db.OwnedCopies
+                .Where(oc => db.CatalogItems.Any(ci => ci.Id == oc.CatalogItemId && ci.CollectionId == c.Id))
+                .Sum(oc => (decimal?)oc.PurchasePrice ?? 0m)
+        })
+        .ToListAsync();
+
+    var totalCollections = userCollections.Count;
+    var totalItems = userCollections.Sum(c => c.ItemCount);
+    var totalOwnedCopies = userCollections.Sum(c => c.OwnedCount);
+    var totalEstimatedValue = userCollections.Sum(c => c.Value);
+    var totalInvested = userCollections.Sum(c => c.Invested);
+
+    var collectionSummaries = userCollections.Select(c =>
+        new CollectionSummaryDto(c.Id, c.Name, c.ItemCount, c.OwnedCount, c.Value)).ToList();
+
+    // Items by condition
+    var userCatalogItemIds = db.CatalogItems
+        .Where(ci => db.Collections.Any(c => c.Id == ci.CollectionId && c.UserId == userId))
+        .Select(ci => ci.Id);
+
+    var itemsByCondition = await db.OwnedCopies
+        .Where(oc => userCatalogItemIds.Contains(oc.CatalogItemId))
+        .GroupBy(oc => oc.Condition)
+        .Select(g => new ConditionCountDto(g.Key.ToString(), g.Count()))
+        .ToListAsync();
+
+    // Recent acquisitions (last 10)
+    var recentAcquisitions = await db.OwnedCopies
+        .Where(oc => userCatalogItemIds.Contains(oc.CatalogItemId))
+        .OrderByDescending(oc => oc.AcquisitionDate)
+        .ThenByDescending(oc => oc.Id)
+        .Take(10)
+        .Join(db.CatalogItems, oc => oc.CatalogItemId, ci => ci.Id, (oc, ci) => new RecentAcquisitionDto(
+            oc.Id, ci.Name, oc.Condition.ToString(), oc.PurchasePrice, oc.EstimatedValue, oc.AcquisitionDate, oc.AcquisitionSource))
+        .ToListAsync();
+
+    return Results.Ok(new DashboardResponse(
+        totalCollections, totalItems, totalOwnedCopies, totalEstimatedValue, totalInvested,
+        itemsByCondition, collectionSummaries, recentAcquisitions));
+})
+.RequireAuthorization()
+.WithName("GetDashboard")
+.WithOpenApi();
+
 app.Run();
 
 static string GenerateJwtToken(ApplicationUser user, IConfiguration config)
@@ -1193,3 +1253,7 @@ record CreateWishlistItemRequest(string Name, int? CatalogItemId, int Priority, 
 record UpdateWishlistItemRequest(string? Name, int? CatalogItemId, int? Priority, decimal? TargetPrice, string? Notes);
 record WishlistItemResponse(int Id, int CollectionId, int? CatalogItemId, string Name, int Priority, decimal? TargetPrice, string? Notes);
 record PaginatedResponse<T>(List<T> Items, int TotalCount, int Page, int PageSize);
+record ConditionCountDto(string Condition, int Count);
+record CollectionSummaryDto(int Id, string Name, int ItemCount, int OwnedCount, decimal Value);
+record RecentAcquisitionDto(int Id, string ItemName, string Condition, decimal? PurchasePrice, decimal? EstimatedValue, DateTime? AcquisitionDate, string? AcquisitionSource);
+record DashboardResponse(int TotalCollections, int TotalItems, int TotalOwnedCopies, decimal TotalEstimatedValue, decimal TotalInvested, List<ConditionCountDto> ItemsByCondition, List<CollectionSummaryDto> CollectionSummaries, List<RecentAcquisitionDto> RecentAcquisitions);
