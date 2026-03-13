@@ -8,7 +8,8 @@
     "wishlist": "Wishlist",
     "profile": "Profile",
     "toggleMenu": "Toggle menu",
-    "toggleTheme": "Toggle theme"
+    "toggleTheme": "Toggle theme",
+    "logout": "Logout"
   },
   "dashboard": {
     "title": "Dashboard",
@@ -30,5 +31,29 @@
     "label": "Language",
     "en": "English",
     "pt": "Portuguese"
+  },
+  "auth": {
+    "login": "Sign in",
+    "loginDescription": "Sign in to your account",
+    "loggingIn": "Signing in...",
+    "loginFailed": "Invalid email or password",
+    "register": "Create account",
+    "registerDescription": "Create a new account to get started",
+    "registering": "Creating account...",
+    "registerFailed": "Registration failed",
+    "email": "Email",
+    "emailPlaceholder": "you@example.com",
+    "emailRequired": "Email is required",
+    "password": "Password",
+    "passwordPlaceholder": "Enter your password",
+    "passwordRequired": "Password is required",
+    "passwordTooShort": "Password must be at least 6 characters",
+    "displayName": "Display name",
+    "displayNamePlaceholder": "Your name",
+    "displayNameRequired": "Display name is required",
+    "noAccount": "Don't have an account?",
+    "registerLink": "Sign up",
+    "hasAccount": "Already have an account?",
+    "loginLink": "Sign in"
   }
 }

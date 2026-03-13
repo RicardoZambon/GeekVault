@@ -8,7 +8,8 @@
     "wishlist": "Lista de Desejos",
     "profile": "Perfil",
     "toggleMenu": "Alternar menu",
-    "toggleTheme": "Alternar tema"
+    "toggleTheme": "Alternar tema",
+    "logout": "Sair"
   },
   "dashboard": {
     "title": "Painel",
@@ -30,5 +31,29 @@
     "label": "Idioma",
     "en": "Inglês",
     "pt": "Português"
+  },
+  "auth": {
+    "login": "Entrar",
+    "loginDescription": "Entre na sua conta",
+    "loggingIn": "Entrando...",
+    "loginFailed": "Email ou senha inválidos",
+    "register": "Criar conta",
+    "registerDescription": "Crie uma nova conta para começar",
+    "registering": "Criando conta...",
+    "registerFailed": "Falha no cadastro",
+    "email": "Email",
+    "emailPlaceholder": "voce@exemplo.com",
+    "emailRequired": "Email é obrigatório",
+    "password": "Senha",
+    "passwordPlaceholder": "Digite sua senha",
+    "passwordRequired": "Senha é obrigatória",
+    "passwordTooShort": "A senha deve ter pelo menos 6 caracteres",
+    "displayName": "Nome de exibição",
+    "displayNamePlaceholder": "Seu nome",
+    "displayNameRequired": "Nome de exibição é obrigatório",
+    "noAccount": "Não tem uma conta?",
+    "registerLink": "Cadastre-se",
+    "hasAccount": "Já tem uma conta?",
+    "loginLink": "Entrar"
   }
 }

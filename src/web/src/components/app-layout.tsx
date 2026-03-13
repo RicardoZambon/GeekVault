@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { NavLink, Outlet } from "react-router-dom"
+import { NavLink, Outlet, useNavigate } from "react-router-dom"
 import { useTranslation } from "react-i18next"
 import {
   LayoutDashboard,
@@ -10,10 +10,12 @@ import {
   Moon,
   Sun,
   Languages,
+  LogOut,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { useTheme } from "@/components/theme-provider"
+import { useAuth } from "@/components/auth-provider"
 import { cn } from "@/lib/utils"
 
 const navItems = [
@@ -87,6 +89,27 @@ function LanguageToggle() {
   )
 }
 
+function LogoutButton() {
+  const { t } = useTranslation()
+  const { logout } = useAuth()
+  const navigate = useNavigate()
+
+  const handleLogout = () => {
+    logout()
+    navigate("/login", { replace: true })
+  }
+
+  return (
+    <button
+      onClick={handleLogout}
+      className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-sidebar-foreground/70 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+    >
+      <LogOut className="h-4 w-4" />
+      {t("nav.logout")}
+    </button>
+  )
+}
+
 export default function AppLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
@@ -102,6 +125,9 @@ export default function AppLayout() {
           </div>
           <div className="flex-1 overflow-y-auto p-4">
             <NavLinks />
+          </div>
+          <div className="border-t p-4">
+            <LogoutButton />
           </div>
         </div>
       </aside>
@@ -122,8 +148,11 @@ export default function AppLayout() {
               <div className="flex h-14 items-center border-b px-4 pt-0">
                 <span className="text-lg font-bold">GeekVault</span>
               </div>
-              <div className="p-4">
+              <div className="flex flex-1 flex-col p-4">
                 <NavLinks onClick={() => setSidebarOpen(false)} />
+                <div className="mt-auto border-t pt-4">
+                  <LogoutButton />
+                </div>
               </div>
             </SheetContent>
           </Sheet>
