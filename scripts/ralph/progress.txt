@@ -477,3 +477,25 @@ Started: Fri Mar 13 12:14:54 PM UTC 2026
   - Form state pattern: separate useState for each form field + `formFields` array for custom field builder
   - No browser testing tools available — manual browser verification needed
 ---
+
+## 2026-03-13 - US-027
+- Added collections list page with card grid showing cover image, name, type, item count
+- Collection cards are clickable and navigate to `/collections/:id` detail page
+- Create collection dialog with name, description, collection type selector, cover image upload
+- Edit collection from card's three-dot menu (reuses same dialog)
+- Delete collection with confirmation dialog
+- Card menu (MoreVertical icon) with Edit/Delete options, closes on outside click
+- Cover image uploaded separately after collection creation via POST /collections/{id}/cover
+- Collection type selector disabled when editing (can't change type after creation)
+- Created placeholder CollectionDetail page at `/collections/:id` route
+- Added route for `/collections/:id` in App.tsx
+- Added i18n translations for all UI strings in both en.json and pt.json
+- Typecheck passes, build succeeds, all 103 API tests pass
+- Files changed: `src/pages/Collections.tsx` (rewritten), `src/pages/CollectionDetail.tsx` (new), `App.tsx`, `src/i18n/locales/en.json`, `src/i18n/locales/pt.json`
+- **Learnings for future iterations:**
+  - Collections API returns `collectionTypeName` in the list response — useful for displaying type without a separate lookup
+  - Cover image upload is a separate POST endpoint — do it after create/edit, not in the same request
+  - Card menu pattern: use `useRef` + `mousedown` listener for outside-click dismissal
+  - Collection type cannot be changed after creation (FK constraint) — disable select in edit mode
+  - No browser testing tools available — manual browser verification needed
+---
