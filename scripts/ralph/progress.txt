@@ -1,3 +1,38 @@
 # Ralph Progress Log
-Started: Fri Mar 13 12:03:51 PM UTC 2026
+Started: Fri Mar 13 12:14:54 PM UTC 2026
+
+## Codebase Patterns
+- .NET 8 Web API project lives at `src/api/GeekVault.Api/`
+- DbContext is `ApplicationDbContext` in `Data/ApplicationDbContext.cs`
+- Connection string key: `DefaultConnection` in appsettings.json
+- SQL Server: `localhost,1433`, user `sa`, password `P@ssw0rd`, database `ApplicationDB`
+- Uses minimal API style (not controllers)
+- Build with `dotnet build` from the project directory
+- DbContext inherits from `IdentityDbContext<ApplicationUser>` — always call `base.OnModelCreating()` in OnModelCreating
+- Identity registered with `AddIdentity<ApplicationUser, IdentityRole>()` in Program.cs
+- Migrations generated with `dotnet ef migrations add <Name>` from the project directory
+---
+
+## 2026-03-13 - US-001
+- Scaffolded .NET 8 Web API with EF Core and SQL Server
+- Added `ApplicationDbContext` with SQL Server provider configured via connection string
+- Added `GET /api/health` endpoint returning `{ status: "healthy" }`
+- Removed sample WeatherForecast code
+- Files changed: `Program.cs`, `appsettings.json`, `Data/ApplicationDbContext.cs`
+- **Learnings for future iterations:**
+  - Project already had EF Core packages pre-installed in .csproj (SqlServer, Design, Tools)
+  - Uses minimal API style (top-level Program.cs), not controllers
+  - Swagger is configured for development environment only
+---
+
+## 2026-03-13 - US-002
+- Added ApplicationUser entity extending IdentityUser with: DisplayName, Avatar, Bio, PreferredLanguage, PreferredCurrency
+- Configured ASP.NET Identity in DbContext (IdentityDbContext<ApplicationUser>) and Program.cs
+- Generated initial Identity migration (AddIdentityAndApplicationUser)
+- Files changed: `Models/ApplicationUser.cs`, `Data/ApplicationDbContext.cs`, `Program.cs`, `Migrations/`
+- **Learnings for future iterations:**
+  - Identity package `Microsoft.AspNetCore.Identity.EntityFrameworkCore` was already in csproj
+  - DbContext inherits from `IdentityDbContext<ApplicationUser>` (not plain DbContext)
+  - Identity is registered with `AddIdentity<ApplicationUser, IdentityRole>()` in Program.cs
+  - Always call `base.OnModelCreating(modelBuilder)` in DbContext when using IdentityDbContext
 ---
