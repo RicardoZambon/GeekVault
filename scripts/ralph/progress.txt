@@ -43,6 +43,13 @@ Started: Fri Mar 13 12:14:54 PM UTC 2026
 - React Router v6 with `BrowserRouter` in `main.tsx`, routes in `App.tsx`
 - Pages live in `src/pages/` directory
 - UI components go in `src/components/ui/` (shadcn/ui pattern)
+- App-level components (layout, providers) go in `src/components/` (not `ui/`)
+- ThemeProvider in `src/components/theme-provider.tsx` — wraps app in `main.tsx`, uses localStorage key `geekvault-theme`
+- Theme toggle: adds/removes `dark` class on `<html>` element, CSS variables in `index.css` handle both `:root` and `.dark`
+- AppLayout in `src/components/app-layout.tsx` — uses `<Outlet />` from React Router for nested routes
+- Radix UI primitives installed: `@radix-ui/react-dialog` (Sheet), `@radix-ui/react-slot` (Button asChild)
+- Mobile sidebar uses Sheet component (Radix Dialog) sliding from left
+- NavLink from react-router-dom for active state styling in sidebar
 ---
 
 ## 2026-03-13 - US-001
@@ -377,4 +384,23 @@ Started: Fri Mar 13 12:14:54 PM UTC 2026
   - Manual shadcn/ui setup: install deps, create `components.json`, `src/lib/utils.ts` (cn helper), and CSS variables in `index.css`
   - For shadcn/ui components, can add them manually from the shadcn/ui source or try the CLI on a compatible Node version
   - `verbatimModuleSyntax: true` in tsconfig means use `import type` for type-only imports
+---
+
+## 2026-03-13 - US-023
+- Added app layout with persistent sidebar navigation (Dashboard, Collections, Wishlist, Profile)
+- Sidebar collapses on mobile — uses Sheet component (Radix Dialog) sliding from left, triggered by hamburger menu
+- Header bar with app logo (GeekVault) and theme toggle button (Sun/Moon icons)
+- Light and dark theme support via ThemeProvider using CSS variables (`:root` / `.dark` class)
+- Theme preference persists in localStorage under `geekvault-theme` key
+- Created shadcn/ui Button and Sheet components manually (with Radix UI primitives)
+- Created placeholder pages: Dashboard, Collections, Wishlist, Profile
+- Routes nested under AppLayout using React Router Outlet pattern
+- Files changed: `src/components/theme-provider.tsx`, `src/components/app-layout.tsx`, `src/components/ui/button.tsx`, `src/components/ui/sheet.tsx`, `src/pages/Dashboard.tsx`, `src/pages/Collections.tsx`, `src/pages/Wishlist.tsx`, `src/pages/Profile.tsx`, `App.tsx`, `main.tsx`, `package.json`
+- **Learnings for future iterations:**
+  - Radix UI primitives (`@radix-ui/react-dialog`, `@radix-ui/react-slot`) work fine with React 19 + Vite 8
+  - Theme toggle pattern: add/remove `dark` class on `document.documentElement`, CSS variables handle the rest
+  - AppLayout uses `<Outlet />` for nested route rendering — all page routes are children of the layout route
+  - NavLink `end` prop needed for root `/` path to avoid matching all routes
+  - Sheet component needs tailwindcss-animate classes (animate-in/out) — these work with Tailwind v4 out of the box
+  - No browser testing tools available — manual browser verification needed
 ---
