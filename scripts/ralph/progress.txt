@@ -23,6 +23,9 @@ Started: Fri Mar 13 12:14:54 PM UTC 2026
 - Use custom `WebApplicationFactory` subclass (not `IClassFixture<WebApplicationFactory<Program>>` with `WithWebHostBuilder`) to share DB across tests
 - `Program` class exposed to tests via `Properties/ProgramPartial.cs` (`public partial class Program { }`)
 - Protected endpoints use `.RequireAuthorization()` — returns 401 without valid JWT Bearer token
+- Use `TestFactory<TMarker>` generic pattern for per-test-class factory isolation (avoids xUnit parallel test contention)
+- Avatar uploads go to `wwwroot/uploads/` — gitignored; use `IWebHostEnvironment` to resolve paths
+- Use `.DisableAntiforgery()` on file upload endpoints to avoid CSRF issues in API context
 ---
 
 ## 2026-03-13 - US-001
@@ -142,4 +145,21 @@ Started: Fri Mar 13 12:14:54 PM UTC 2026
   - JWT token includes `ClaimTypes.NameIdentifier` (userId) and `ClaimTypes.Email` claims
   - InMemory DB works fine with ASP.NET Identity for testing; use unique DB name per factory
   - Request/response DTOs defined as records at bottom of Program.cs (minimal API style)
+---
+
+## 2026-03-13 - US-010
+- Added profile API endpoints: GET /api/profile, PUT /api/profile, POST /api/profile/avatar
+- GET returns current user's profile (id, email, displayName, avatar, bio, preferences)
+- PUT updates displayName, bio, preferredLanguage, preferredCurrency
+- POST /api/profile/avatar handles multipart file upload, stores in wwwroot/uploads/
+- All endpoints require JWT authentication
+- Refactored test infrastructure: created generic `TestFactory<TMarker>` to isolate test classes
+- Added 7 profile tests (all passing) + existing 8 auth tests = 15 total
+- Files changed: `Program.cs`, `TestFactory.cs`, `ProfileEndpointsTests.cs`, `AuthEndpointsTests.cs`, `.gitignore`
+- **Learnings for future iterations:**
+  - Use `TestFactory<TMarker>` generic pattern — each test class gets its own WebApplicationFactory/DB to avoid parallel test contention
+  - File upload endpoints need `.DisableAntiforgery()` when using `ReadFormAsync()`
+  - Use `IWebHostEnvironment.WebRootPath` (or fallback to `ContentRootPath/wwwroot`) for file storage paths
+  - `wwwroot/uploads/` is gitignored — test-generated files won't pollute the repo
+  - `ClaimsPrincipal` injection in minimal API handlers gives access to JWT claims directly
 ---
