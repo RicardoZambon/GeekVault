@@ -658,3 +658,17 @@ Started: Fri Mar 13 12:14:54 PM UTC 2026
   - Multi-step dialogs use a `step` state variable to switch between upload/preview/done views
   - Manual browser verification needed (no browser testing tools configured)
 ---
+
+## 2026-03-13 - US-036
+- Implemented full user profile page with avatar upload, display name, bio, preferred language, and preferred currency
+- Profile form fetches GET /api/profile on mount, submits PUT /api/profile on save
+- Avatar upload via POST /api/profile/avatar with image preview
+- Language change updates app language immediately via i18n.changeLanguage()
+- Added 18 translation keys to both en.json and pt.json for profile section
+- Used native select elements and textarea styled with Tailwind (consistent with other pages)
+- Files changed: src/web/src/pages/Profile.tsx, src/web/src/i18n/locales/en.json, src/web/src/i18n/locales/pt.json
+- **Learnings for future iterations:**
+  - No shadcn/ui textarea or select components exist — use native HTML elements with Tailwind classes matching the Input component styles
+  - Currency dropdown uses hardcoded common currencies (USD, EUR, GBP, BRL, JPY, CAD, AUD)
+  - i18n language change is done via `i18n.changeLanguage(lng)` which auto-persists to localStorage via the `languageChanged` event listener in i18n/index.ts
+---
