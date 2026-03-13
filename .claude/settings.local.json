@@ -1,7 +1,13 @@
 {
   "permissions": {
     "allow": [
-      "Bash(find /workspaces/GeekVault -type f -name \"*.json\" -o -name \"*.yaml\" -o -name \"*.yml\" -o -name \"*.toml\" -o -name \"*.md\" 2>/dev/null | head -50)"
+      "Bash(find /workspaces/GeekVault -type f -name \"*.json\" -o -name \"*.yaml\" -o -name \"*.yml\" -o -name \"*.toml\" -o -name \"*.md\" 2>/dev/null | head -50)",
+      "Bash(nslookup github.com 2>&1; nslookup api.nuget.org 2>&1)",
+      "Bash(ping -c 3 -W 2 8.8.8.8 2>&1)",
+      "Bash(curl -s -o /dev/null -w \"HTTP %{http_code} in %{time_total}s\\\\n\" --max-time 10 https://github.com 2>&1; curl -s -o /dev/null -w \"HTTP %{http_code} in %{time_total}s\\\\n\" --max-time 10 https://api.nuget.org/v3/index.json 2>&1)",
+      "Bash(getent hosts:*)",
+      "Bash(curl -s -o /dev/null -w \"HTTP %{http_code} in %{time_total}s\\\\n\" --max-time 10 https://registry.npmjs.org 2>&1)",
+      "Bash(/opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P 'P@ssw0rd' -Q \"SELECT 1 AS connected\" 2>&1)"
     ]
   }
 }
