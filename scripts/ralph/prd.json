@@ -1,0 +1,620 @@
+{
+  "project": "GeekVault",
+  "branchName": "ralph/collection-management-mvp",
+  "description": "Collection Management System MVP - Catalog, track, and browse collectible items across any category",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Scaffold .NET 8 Web API with EF Core and SQL Server",
+      "description": "As a developer, I need a .NET 8 Web API project with Entity Framework Core configured for SQL Server so that we have a foundation to build on.",
+      "acceptanceCriteria": [
+        "Create .NET 8 Web API project in /workspaces/GeekVault/src/api",
+        "Add EF Core with SQL Server provider packages",
+        "Configure DbContext with connection string for localhost,1433 sa/P@ssw0rd ApplicationDB",
+        "Add a health check endpoint GET /api/health that returns 200",
+        "Project builds successfully",
+        "Typecheck passes"
+      ],
+      "priority": 1,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-002",
+      "title": "Add User entity with ASP.NET Identity",
+      "description": "As a developer, I need user accounts with ASP.NET Identity so that authentication can be built on top.",
+      "acceptanceCriteria": [
+        "Add ASP.NET Identity packages",
+        "Create ApplicationUser entity extending IdentityUser with: DisplayName, Avatar, Bio, PreferredLanguage, PreferredCurrency",
+        "Configure Identity in DbContext",
+        "Generate and apply initial migration",
+        "Typecheck passes"
+      ],
+      "priority": 2,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-003",
+      "title": "Add CollectionType entity with custom field schema",
+      "description": "As a developer, I need the CollectionType entity to define schemas for collections with custom fields.",
+      "acceptanceCriteria": [
+        "Create CollectionType entity with: Id, Name, Description, Icon, CustomFieldSchema (JSON column)",
+        "CustomFieldSchema supports field types: text, number, date, enum, boolean, image_url",
+        "Each custom field definition has: name, type, required, options (for enum)",
+        "Add EF Core configuration and migration",
+        "Maximum of 10 custom fields per collection type",
+        "Typecheck passes"
+      ],
+      "priority": 3,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-004",
+      "title": "Add Collection entity",
+      "description": "As a developer, I need the Collection entity to group catalog items under a user and collection type.",
+      "acceptanceCriteria": [
+        "Create Collection entity with: Id, UserId, CollectionTypeId, Name, Description, CoverImage, Visibility (enum: Private/Public/Shared)",
+        "Add foreign keys to ApplicationUser and CollectionType",
+        "Add EF Core configuration and migration",
+        "Typecheck passes"
+      ],
+      "priority": 4,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-005",
+      "title": "Add CatalogItem entity with custom fields",
+      "description": "As a developer, I need the CatalogItem entity to represent official collectibles in a collection.",
+      "acceptanceCriteria": [
+        "Create CatalogItem entity with: Id, CollectionId, Identifier, Name, Description, ReleaseDate, Manufacturer, ReferenceCode, Image, Rarity, CustomFieldValues (JSON column)",
+        "Add foreign key to Collection",
+        "Add EF Core configuration and migration",
+        "Typecheck passes"
+      ],
+      "priority": 5,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-006",
+      "title": "Add OwnedCopy entity",
+      "description": "As a developer, I need the OwnedCopy entity to track physical copies a user owns of catalog items.",
+      "acceptanceCriteria": [
+        "Create OwnedCopy entity with: Id, CatalogItemId, Condition (enum: Mint/NearMint/Excellent/Good/Fair/Poor), PurchasePrice, EstimatedValue, AcquisitionDate, AcquisitionSource, Notes, Images (JSON array)",
+        "Add foreign key to CatalogItem",
+        "Add EF Core configuration and migration",
+        "Typecheck passes"
+      ],
+      "priority": 6,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-007",
+      "title": "Add Set and SetItem entities",
+      "description": "As a developer, I need Set and SetItem entities for checklist-style completion tracking.",
+      "acceptanceCriteria": [
+        "Create Set entity with: Id, CollectionId, Name, ExpectedItemCount",
+        "Create SetItem entity with: Id, SetId, CatalogItemId (nullable), Name, SortOrder",
+        "Add foreign keys to Collection and CatalogItem",
+        "Add EF Core configuration and migration",
+        "Typecheck passes"
+      ],
+      "priority": 7,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-008",
+      "title": "Add WishlistItem entity",
+      "description": "As a developer, I need the WishlistItem entity so users can track items they want to acquire.",
+      "acceptanceCriteria": [
+        "Create WishlistItem entity with: Id, CollectionId, CatalogItemId (nullable), Name, Priority (int), TargetPrice, Notes",
+        "Add foreign keys to Collection and CatalogItem",
+        "Add EF Core configuration and migration",
+        "Typecheck passes"
+      ],
+      "priority": 8,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-009",
+      "title": "Add JWT authentication endpoints",
+      "description": "As a user, I want to register, login, and logout so that I can access my collections securely.",
+      "acceptanceCriteria": [
+        "POST /api/auth/register - creates user account, returns JWT token",
+        "POST /api/auth/login - authenticates user, returns JWT token",
+        "POST /api/auth/logout - invalidates session (if applicable)",
+        "JWT token includes user ID and email claims",
+        "Configure JWT authentication middleware",
+        "Protected endpoints return 401 without valid token",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 9,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-010",
+      "title": "Add user profile API endpoints",
+      "description": "As a user, I want to view and edit my profile so that I can personalize my account.",
+      "acceptanceCriteria": [
+        "GET /api/profile - returns current user profile",
+        "PUT /api/profile - updates display name, bio, preferred language, preferred currency",
+        "POST /api/profile/avatar - uploads avatar image (store locally in wwwroot/uploads)",
+        "All endpoints require authentication",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 10,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-011",
+      "title": "Add CollectionType CRUD API endpoints",
+      "description": "As a user, I want to create and manage collection types with custom field schemas.",
+      "acceptanceCriteria": [
+        "GET /api/collection-types - lists user's collection types",
+        "GET /api/collection-types/{id} - gets single collection type",
+        "POST /api/collection-types - creates collection type with custom fields",
+        "PUT /api/collection-types/{id} - updates collection type",
+        "DELETE /api/collection-types/{id} - deletes collection type",
+        "Validates max 10 custom fields",
+        "Validates custom field types are supported",
+        "All endpoints require authentication",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 11,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-012",
+      "title": "Add Collection CRUD API endpoints",
+      "description": "As a user, I want to create and manage collections to organize my collectibles.",
+      "acceptanceCriteria": [
+        "GET /api/collections - lists user's collections",
+        "GET /api/collections/{id} - gets single collection with item count",
+        "POST /api/collections - creates collection",
+        "PUT /api/collections/{id} - updates collection metadata",
+        "DELETE /api/collections/{id} - deletes collection and cascades",
+        "POST /api/collections/{id}/cover - uploads cover image",
+        "All endpoints require authentication and ownership check",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 12,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-013",
+      "title": "Add CatalogItem CRUD API endpoints",
+      "description": "As a user, I want to add and manage catalog items in my collections.",
+      "acceptanceCriteria": [
+        "GET /api/collections/{collectionId}/items - lists catalog items",
+        "GET /api/collections/{collectionId}/items/{id} - gets single item with owned copies",
+        "POST /api/collections/{collectionId}/items - creates catalog item with custom field values",
+        "PUT /api/collections/{collectionId}/items/{id} - updates catalog item",
+        "DELETE /api/collections/{collectionId}/items/{id} - deletes catalog item",
+        "Custom field values validated against collection type schema",
+        "All endpoints require authentication and ownership check",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 13,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-014",
+      "title": "Add OwnedCopy CRUD API endpoints",
+      "description": "As a user, I want to register and manage owned copies of catalog items, including duplicates.",
+      "acceptanceCriteria": [
+        "GET /api/items/{catalogItemId}/copies - lists owned copies",
+        "POST /api/items/{catalogItemId}/copies - creates owned copy",
+        "PUT /api/items/{catalogItemId}/copies/{id} - updates owned copy",
+        "DELETE /api/items/{catalogItemId}/copies/{id} - deletes owned copy",
+        "Multiple copies allowed per catalog item (duplicates supported)",
+        "Condition must be valid enum value",
+        "All endpoints require authentication and ownership check",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 14,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-015",
+      "title": "Add Set CRUD API endpoints",
+      "description": "As a user, I want to create sets and add expected items for completion tracking.",
+      "acceptanceCriteria": [
+        "GET /api/collections/{collectionId}/sets - lists sets",
+        "GET /api/collections/{collectionId}/sets/{id} - gets set with items and completion status",
+        "POST /api/collections/{collectionId}/sets - creates set",
+        "PUT /api/collections/{collectionId}/sets/{id} - updates set",
+        "DELETE /api/collections/{collectionId}/sets/{id} - deletes set",
+        "POST /api/collections/{collectionId}/sets/{id}/items - adds items to set (supports bulk)",
+        "All endpoints require authentication and ownership check",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 15,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-016",
+      "title": "Add set completion tracking logic",
+      "description": "As a user, I want to see completion percentage for my sets based on owned items.",
+      "acceptanceCriteria": [
+        "GET /api/collections/{collectionId}/sets/{id} returns completionPercentage and completedCount",
+        "A set item is 'complete' if its linked CatalogItem has at least one OwnedCopy",
+        "Completion percentage = completedCount / expectedItemCount * 100",
+        "Completion recalculates when owned copies are added or removed",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 16,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-017",
+      "title": "Add Wishlist CRUD API endpoints",
+      "description": "As a user, I want to manage a wishlist of items I want to acquire.",
+      "acceptanceCriteria": [
+        "GET /api/collections/{collectionId}/wishlist - lists wishlist items ordered by priority",
+        "POST /api/collections/{collectionId}/wishlist - adds wishlist item",
+        "PUT /api/collections/{collectionId}/wishlist/{id} - updates wishlist item",
+        "DELETE /api/collections/{collectionId}/wishlist/{id} - deletes wishlist item",
+        "All endpoints require authentication and ownership check",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 17,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-018",
+      "title": "Add search, filter, and sort API for catalog items",
+      "description": "As a user, I want to search, filter, and sort catalog items to find what I need.",
+      "acceptanceCriteria": [
+        "GET /api/collections/{collectionId}/items supports query param: search (searches name, description)",
+        "Supports filter params: condition, ownedStatus (owned/unowned/all)",
+        "Supports sort params: sortBy (name/price/value/date/rarity), sortDir (asc/desc)",
+        "Supports pagination: page, pageSize",
+        "Returns total count for pagination",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 18,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-019",
+      "title": "Add dashboard analytics API endpoint",
+      "description": "As a user, I want a dashboard API that returns aggregate stats for my collections.",
+      "acceptanceCriteria": [
+        "GET /api/dashboard returns: totalCollections, totalItems, totalOwnedCopies, totalEstimatedValue, totalInvested",
+        "Returns itemsByCondition breakdown (count per condition)",
+        "Returns collectionSummaries (name, itemCount, ownedCount, value per collection)",
+        "Returns recentAcquisitions (last 10 owned copies added)",
+        "Requires authentication",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 19,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-020",
+      "title": "Add CSV and JSON export API endpoints",
+      "description": "As a user, I want to export my collection data as CSV or JSON for backup.",
+      "acceptanceCriteria": [
+        "GET /api/collections/{id}/export?format=csv - returns CSV file download",
+        "GET /api/collections/{id}/export?format=json - returns JSON file download",
+        "Export includes catalog items with custom fields and owned copies",
+        "CSV has header row with column names",
+        "Requires authentication and ownership check",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 20,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-021",
+      "title": "Add CSV import API endpoint with validation",
+      "description": "As a user, I want to import catalog items from CSV to bulk-populate my collection.",
+      "acceptanceCriteria": [
+        "POST /api/collections/{id}/import - accepts CSV file upload",
+        "POST /api/collections/{id}/import/preview - returns parsed rows with validation errors (does not save)",
+        "POST /api/collections/{id}/import/confirm - saves previously previewed data",
+        "Validates required fields and custom field types against collection type schema",
+        "Returns count of imported items and any row-level errors",
+        "Requires authentication and ownership check",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 21,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-022",
+      "title": "Scaffold React + TypeScript frontend with Vite",
+      "description": "As a developer, I need a React + TypeScript frontend project so that we can build the UI.",
+      "acceptanceCriteria": [
+        "Create React + TypeScript project in /workspaces/GeekVault/src/web using Vite",
+        "Install and configure React Router for client-side routing",
+        "Install a UI component library (e.g., shadcn/ui or similar)",
+        "Configure proxy to backend API at localhost:5000 (or similar)",
+        "App renders a placeholder home page",
+        "Typecheck passes"
+      ],
+      "priority": 22,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-023",
+      "title": "Add app layout with sidebar navigation and theme toggle",
+      "description": "As a user, I want a sidebar navigation and light/dark theme so that I can navigate the app easily.",
+      "acceptanceCriteria": [
+        "App has persistent sidebar with links: Dashboard, Collections, Wishlist, Profile",
+        "Sidebar collapses on mobile (responsive)",
+        "Header bar with app logo and theme toggle button",
+        "Light and dark theme support using CSS variables or theme provider",
+        "Theme preference persists in localStorage",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 23,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-024",
+      "title": "Add i18n with English and Portuguese",
+      "description": "As a user, I want to use the app in English or Portuguese.",
+      "acceptanceCriteria": [
+        "Install and configure i18n library (e.g., react-i18next)",
+        "Create English translation file with all UI strings",
+        "Create Portuguese translation file with all UI strings",
+        "Language selector in app header or settings",
+        "Language preference persists in localStorage",
+        "Sidebar navigation labels are translated",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 24,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-025",
+      "title": "Add login and register pages",
+      "description": "As a user, I want to register and login so that I can access my collections.",
+      "acceptanceCriteria": [
+        "Login page with email and password fields",
+        "Register page with email, password, and display name fields",
+        "Form validation with error messages",
+        "Calls backend auth API endpoints",
+        "Stores JWT token and redirects to dashboard on success",
+        "Unauthenticated users redirected to login",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 25,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-026",
+      "title": "Add collection types management page",
+      "description": "As a user, I want to create and manage collection types with custom field definitions.",
+      "acceptanceCriteria": [
+        "Page lists existing collection types",
+        "Create form with name, description, icon fields",
+        "Custom field builder: add/remove fields with name, type, required, options",
+        "Edit and delete collection types",
+        "Calls backend CollectionType API",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 26,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-027",
+      "title": "Add collections list page",
+      "description": "As a user, I want to see all my collections and create new ones.",
+      "acceptanceCriteria": [
+        "Page displays collection cards with cover image, name, item count",
+        "Create collection button opens form (name, description, collection type, cover image)",
+        "Clicking a collection card navigates to collection detail page",
+        "Edit and delete collection from card menu",
+        "Calls backend Collection API",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 27,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-028",
+      "title": "Add collection detail page with gallery grid",
+      "description": "As a user, I want to browse catalog items in a visual gallery grid within a collection.",
+      "acceptanceCriteria": [
+        "Page shows collection header with name, description, cover image",
+        "Catalog items displayed in responsive gallery grid with images",
+        "Lazy loading for item images",
+        "Add catalog item button opens creation form",
+        "Form includes custom fields based on collection type schema",
+        "Owned items visually distinguished from unowned",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 28,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-029",
+      "title": "Add catalog item detail view",
+      "description": "As a user, I want to view full details of a catalog item including its owned copies.",
+      "acceptanceCriteria": [
+        "Detail view (modal or page) shows all catalog item fields",
+        "Displays custom field values",
+        "Lists owned copies with condition, price, acquisition info",
+        "Edit and delete catalog item buttons",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 29,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-030",
+      "title": "Add owned copies management UI",
+      "description": "As a user, I want to register, edit, and delete owned copies from the catalog item detail view.",
+      "acceptanceCriteria": [
+        "Add owned copy button in catalog item detail view",
+        "Form with condition dropdown, purchase price, estimated value, acquisition date, source, notes",
+        "Edit and delete owned copy inline",
+        "Multiple copies allowed per item (duplicates visible)",
+        "Calls backend OwnedCopy API",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 30,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-031",
+      "title": "Add set management page with completion progress",
+      "description": "As a user, I want to create sets within a collection and see completion progress.",
+      "acceptanceCriteria": [
+        "Sets tab or section within collection detail page",
+        "Create set form with name",
+        "Add items to set (search existing catalog items or add by name)",
+        "Each set shows progress bar with completion percentage",
+        "Set items show owned/unowned status with visual indicator",
+        "Calls backend Set API",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 31,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-032",
+      "title": "Add wishlist page",
+      "description": "As a user, I want to manage my wishlist of desired items across collections.",
+      "acceptanceCriteria": [
+        "Wishlist page accessible from sidebar",
+        "Shows wishlist items grouped by collection",
+        "Add wishlist item form with name, priority, target price, notes, optional catalog item link",
+        "Edit and delete wishlist items",
+        "Items sorted by priority",
+        "Calls backend Wishlist API",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 32,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-033",
+      "title": "Add dashboard page with analytics charts",
+      "description": "As a user, I want a dashboard showing collection stats and charts.",
+      "acceptanceCriteria": [
+        "Dashboard page accessible from sidebar (default landing page)",
+        "Shows stat cards: total collections, total items, total owned, total estimated value",
+        "Chart: items by condition (pie or bar chart)",
+        "Collection summary cards with item counts and values",
+        "Recent acquisitions list",
+        "Install chart library (e.g., recharts or chart.js)",
+        "Calls backend Dashboard API",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 33,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-034",
+      "title": "Add search, filter, and sort UI for catalog items",
+      "description": "As a user, I want to search, filter, and sort items within a collection.",
+      "acceptanceCriteria": [
+        "Search input that filters items by name in the collection detail page",
+        "Filter dropdown for condition (All, Mint, Near Mint, Excellent, Good, Fair, Poor)",
+        "Filter toggle for owned status (All, Owned, Unowned)",
+        "Sort dropdown (Name, Price, Value, Date, Rarity) with asc/desc toggle",
+        "Filters and sort persist in URL query params",
+        "Calls backend search/filter/sort API with params",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 34,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-035",
+      "title": "Add import and export UI",
+      "description": "As a user, I want to export and import collection data from the collection detail page.",
+      "acceptanceCriteria": [
+        "Export button with format selection (CSV, JSON) triggers file download",
+        "Import button opens file upload dialog (CSV only)",
+        "Import preview step shows parsed rows with validation errors highlighted",
+        "Confirm import button saves validated data",
+        "Shows success/error summary after import",
+        "Calls backend import/export API",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 35,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-036",
+      "title": "Add user profile page",
+      "description": "As a user, I want to view and edit my profile including avatar, display name, and preferences.",
+      "acceptanceCriteria": [
+        "Profile page accessible from sidebar",
+        "Shows display name, email, avatar, bio",
+        "Edit form for display name, bio, preferred language, preferred currency",
+        "Avatar upload with image preview",
+        "Language change updates app language immediately",
+        "Calls backend Profile API",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 36,
+      "passes": false,
+      "notes": ""
+    }
+  ]
+}

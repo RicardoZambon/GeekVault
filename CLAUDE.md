@@ -40,4 +40,20 @@ On container creation, `postCreateCommand` runs `.devcontainer/mssql/postCreateC
 
 ## Build / Test / Lint
 
-No application code, build commands, test commands, or lint configurations exist yet.
+- **Build API:** `cd src/api/GeekVault.Api && dotnet build`
+- **Run API:** `cd src/api/GeekVault.Api && dotnet run`
+
+## API Project Structure
+
+```
+src/api/GeekVault.Api/
+├── Data/
+│   └── ApplicationDbContext.cs   # EF Core DbContext
+├── Program.cs                     # Minimal API entry point
+├── appsettings.json               # Connection strings, config
+└── GeekVault.Api.csproj           # .NET 8 project file
+```
+
+- Uses **minimal API** style (not controllers)
+- EF Core with SQL Server provider
+- Swagger enabled in development
