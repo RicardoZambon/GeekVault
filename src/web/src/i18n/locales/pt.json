@@ -134,6 +134,26 @@
     "cancel": "Cancelar",
     "saveFailed": "Falha ao salvar item"
   },
+  "itemDetail": {
+    "fetchError": "Falha ao carregar item",
+    "notFound": "Item não encontrado",
+    "backToCollection": "Voltar à Coleção",
+    "edit": "Editar",
+    "delete": "Excluir",
+    "editTitle": "Editar Item do Catálogo",
+    "editDescription": "Atualize os detalhes deste item do catálogo.",
+    "deleteTitle": "Excluir Item do Catálogo",
+    "deleteConfirm": "Tem certeza de que deseja excluir este item do catálogo? Todas as cópias possuídas também serão removidas.",
+    "deleting": "Excluindo...",
+    "deleteFailed": "Falha ao excluir item",
+    "ownedCopies": "Cópias Possuídas",
+    "noCopies": "Nenhuma cópia possuída ainda.",
+    "purchasePrice": "Preço de Compra",
+    "estimatedValue": "Valor Estimado",
+    "acquisitionDate": "Data de Aquisição",
+    "acquisitionSource": "Origem",
+    "notes": "Notas"
+  },
   "wishlist": {
     "title": "Lista de Desejos",
     "description": "Itens que você deseja adicionar às suas coleções."

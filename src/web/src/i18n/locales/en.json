@@ -134,6 +134,26 @@
     "cancel": "Cancel",
     "saveFailed": "Failed to save item"
   },
+  "itemDetail": {
+    "fetchError": "Failed to load item",
+    "notFound": "Item not found",
+    "backToCollection": "Back to Collection",
+    "edit": "Edit",
+    "delete": "Delete",
+    "editTitle": "Edit Catalog Item",
+    "editDescription": "Update the details of this catalog item.",
+    "deleteTitle": "Delete Catalog Item",
+    "deleteConfirm": "Are you sure you want to delete this catalog item? All owned copies will also be removed.",
+    "deleting": "Deleting...",
+    "deleteFailed": "Failed to delete item",
+    "ownedCopies": "Owned Copies",
+    "noCopies": "No owned copies yet.",
+    "purchasePrice": "Purchase Price",
+    "estimatedValue": "Estimated Value",
+    "acquisitionDate": "Acquisition Date",
+    "acquisitionSource": "Source",
+    "notes": "Notes"
+  },
   "wishlist": {
     "title": "Wishlist",
     "description": "Items you want to add to your collections."
