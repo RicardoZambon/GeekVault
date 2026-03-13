@@ -11,6 +11,8 @@ Started: Fri Mar 13 12:14:54 PM UTC 2026
 - DbContext inherits from `IdentityDbContext<ApplicationUser>` — always call `base.OnModelCreating()` in OnModelCreating
 - Identity registered with `AddIdentity<ApplicationUser, IdentityRole>()` in Program.cs
 - Migrations generated with `dotnet ef migrations add <Name>` from the project directory
+- Use `OwnsMany` + `ToJson()` for JSON columns storing lists of owned types in EF Core 8
+- Entity models live in `Models/` directory under namespace `GeekVault.Api.Models`
 ---
 
 ## 2026-03-13 - US-001
@@ -35,4 +37,17 @@ Started: Fri Mar 13 12:14:54 PM UTC 2026
   - DbContext inherits from `IdentityDbContext<ApplicationUser>` (not plain DbContext)
   - Identity is registered with `AddIdentity<ApplicationUser, IdentityRole>()` in Program.cs
   - Always call `base.OnModelCreating(modelBuilder)` in DbContext when using IdentityDbContext
+---
+
+## 2026-03-13 - US-003
+- Created `CollectionType` entity with Id, Name, Description, Icon, and CustomFieldSchema (JSON column)
+- Created `CustomFieldDefinition` model supporting field types: text, number, date, enum, boolean, image_url
+- Each custom field definition has: Name, Type, Required, Options (for enum)
+- Configured EF Core with `OwnsMany` + `ToJson()` for JSON column storage
+- Generated migration `AddCollectionType`
+- Files changed: `Models/CollectionType.cs`, `Models/CustomFieldDefinition.cs`, `Data/ApplicationDbContext.cs`, `Migrations/`
+- **Learnings for future iterations:**
+  - Use `OwnsMany` with `ToJson()` for storing lists of owned types as JSON columns in EF Core 8
+  - JSON columns in EF Core 8 use owned entity types, not raw string serialization
+  - Max 10 custom fields validation will be enforced at API level (US-011), not at entity level
 ---
