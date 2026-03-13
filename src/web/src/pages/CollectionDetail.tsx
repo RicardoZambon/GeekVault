@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, type FormEvent } from "react"
 import { useParams, useNavigate, useSearchParams } from "react-router-dom"
 import { useTranslation } from "react-i18next"
-import { Plus, ArrowLeft, Image, Package, Check, Trash2, Pencil, Search, CheckCircle2, Circle, ArrowUp, ArrowDown } from "lucide-react"
+import { Plus, ArrowLeft, Image, Package, Check, Trash2, Pencil, Search, CheckCircle2, Circle, ArrowUp, ArrowDown, Download, Upload, AlertCircle, CheckCircle } from "lucide-react"
 import { useAuth } from "@/components/auth-provider"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -167,6 +167,22 @@ export default function CollectionDetail() {
   const [itemSearchQuery, setItemSearchQuery] = useState("")
   const [newItemName, setNewItemName] = useState("")
   const [addItemSubmitting, setAddItemSubmitting] = useState(false)
+
+  // Export state
+  const [exportDialogOpen, setExportDialogOpen] = useState(false)
+  const [exportFormat, setExportFormat] = useState<"csv" | "json">("csv")
+  const [exporting, setExporting] = useState(false)
+  const [exportError, setExportError] = useState("")
+
+  // Import state
+  const [importDialogOpen, setImportDialogOpen] = useState(false)
+  const [importFile, setImportFile] = useState<File | null>(null)
+  const [importStep, setImportStep] = useState<"upload" | "preview" | "done">("upload")
+  const [importPreviewing, setImportPreviewing] = useState(false)
+  const [importConfirming, setImportConfirming] = useState(false)
+  const [importError, setImportError] = useState("")
+  const [importPreviewData, setImportPreviewData] = useState<{ rows: Array<{ rowNumber: number; data: Record<string, string>; errors: string[] }>; validCount: number; errorCount: number } | null>(null)
+  const [importResult, setImportResult] = useState<{ importedCount: number } | null>(null)
 
   const headers: Record<string, string> = {
     Authorization: `Bearer ${token}`,
@@ -461,6 +477,100 @@ export default function CollectionDetail() {
     }
   }
 
+  // --- Export ---
+  async function handleExport() {
+    setExportError("")
+    setExporting(true)
+    try {
+      const res = await fetch(`/api/collections/${id}/export?format=${exportFormat}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      if (!res.ok) throw new Error(t("collectionDetail.exportFailed"))
+      const blob = await res.blob()
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement("a")
+      a.href = url
+      a.download = `${collection?.name ?? "collection"}.${exportFormat}`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      URL.revokeObjectURL(url)
+      setExportDialogOpen(false)
+    } catch (err) {
+      setExportError(err instanceof Error ? err.message : t("collectionDetail.exportFailed"))
+    } finally {
+      setExporting(false)
+    }
+  }
+
+  // --- Import ---
+  function openImportDialog() {
+    setImportFile(null)
+    setImportStep("upload")
+    setImportPreviewing(false)
+    setImportConfirming(false)
+    setImportError("")
+    setImportPreviewData(null)
+    setImportResult(null)
+    setImportDialogOpen(true)
+  }
+
+  async function handleImportPreview() {
+    if (!importFile) {
+      setImportError(t("collectionDetail.importNoFile"))
+      return
+    }
+    setImportError("")
+    setImportPreviewing(true)
+    try {
+      const formData = new FormData()
+      formData.append("file", importFile)
+      const res = await fetch(`/api/collections/${id}/import/preview`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+        body: formData,
+      })
+      if (!res.ok) {
+        const data = await res.json().catch(() => null)
+        throw new Error(data?.message ?? t("collectionDetail.importPreviewFailed"))
+      }
+      const data = await res.json()
+      setImportPreviewData(data)
+      setImportStep("preview")
+    } catch (err) {
+      setImportError(err instanceof Error ? err.message : t("collectionDetail.importPreviewFailed"))
+    } finally {
+      setImportPreviewing(false)
+    }
+  }
+
+  async function handleImportConfirm() {
+    setImportError("")
+    setImportConfirming(true)
+    try {
+      const formData = new FormData()
+      formData.append("file", importFile!)
+      const res = await fetch(`/api/collections/${id}/import/confirm`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+        body: formData,
+      })
+      if (!res.ok) {
+        const data = await res.json().catch(() => null)
+        throw new Error(data?.message ?? t("collectionDetail.importFailed"))
+      }
+      const data = await res.json()
+      setImportResult(data)
+      setImportStep("done")
+      await fetchItems()
+      await fetchCollection()
+    } catch (err) {
+      setImportError(err instanceof Error ? err.message : t("collectionDetail.importFailed"))
+    } finally {
+      setImportConfirming(false)
+    }
+  }
+
   // Filter catalog items for the search in add-items dialog
   const filteredCatalogItems = items.filter((item) => {
     if (!itemSearchQuery.trim()) return true
@@ -576,10 +686,20 @@ export default function CollectionDetail() {
           {/* Toolbar */}
           <div className="mt-4 flex items-center justify-between">
             <h2 className="text-lg font-semibold">{t("collectionDetail.catalogItems")}</h2>
-            <Button onClick={openAddItem}>
-              <Plus className="h-4 w-4" />
-              {t("collectionDetail.addItem")}
-            </Button>
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" onClick={() => { setExportError(""); setExportDialogOpen(true) }}>
+                <Download className="h-4 w-4" />
+                {t("collectionDetail.export")}
+              </Button>
+              <Button variant="outline" size="sm" onClick={openImportDialog}>
+                <Upload className="h-4 w-4" />
+                {t("collectionDetail.import")}
+              </Button>
+              <Button onClick={openAddItem}>
+                <Plus className="h-4 w-4" />
+                {t("collectionDetail.addItem")}
+              </Button>
+            </div>
           </div>
 
           {/* Search, Filter, Sort controls */}
@@ -1105,6 +1225,181 @@ export default function CollectionDetail() {
               {setsDeleting ? t("sets.deleting") : t("sets.delete")}
             </Button>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Export Dialog */}
+      <Dialog open={exportDialogOpen} onOpenChange={setExportDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>{t("collectionDetail.exportTitle")}</DialogTitle>
+            <DialogDescription>{t("collectionDetail.exportDescription")}</DialogDescription>
+          </DialogHeader>
+          {exportError && (
+            <div className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive-foreground">
+              {exportError}
+            </div>
+          )}
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>{t("collectionDetail.exportFormat")}</Label>
+              <div className="flex gap-2">
+                <button
+                  className={`flex-1 rounded-md border px-4 py-2 text-sm font-medium transition-colors ${
+                    exportFormat === "csv"
+                      ? "border-primary bg-primary/10 text-primary"
+                      : "border-input bg-transparent text-muted-foreground hover:text-foreground"
+                  }`}
+                  onClick={() => setExportFormat("csv")}
+                >
+                  {t("collectionDetail.exportCSV")}
+                </button>
+                <button
+                  className={`flex-1 rounded-md border px-4 py-2 text-sm font-medium transition-colors ${
+                    exportFormat === "json"
+                      ? "border-primary bg-primary/10 text-primary"
+                      : "border-input bg-transparent text-muted-foreground hover:text-foreground"
+                  }`}
+                  onClick={() => setExportFormat("json")}
+                >
+                  {t("collectionDetail.exportJSON")}
+                </button>
+              </div>
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setExportDialogOpen(false)} disabled={exporting}>
+                {t("collectionDetail.cancel")}
+              </Button>
+              <Button onClick={handleExport} disabled={exporting}>
+                <Download className="h-4 w-4" />
+                {exporting ? t("collectionDetail.saving") : t("collectionDetail.exportDownload")}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Import Dialog */}
+      <Dialog open={importDialogOpen} onOpenChange={setImportDialogOpen}>
+        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>{t("collectionDetail.importTitle")}</DialogTitle>
+            <DialogDescription>{t("collectionDetail.importDescription")}</DialogDescription>
+          </DialogHeader>
+
+          {importError && (
+            <div className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive-foreground">
+              {importError}
+            </div>
+          )}
+
+          {/* Step 1: Upload */}
+          {importStep === "upload" && (
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="import-file">{t("collectionDetail.importSelectFile")}</Label>
+                <Input
+                  id="import-file"
+                  type="file"
+                  accept=".csv"
+                  onChange={(e) => setImportFile(e.target.files?.[0] ?? null)}
+                  disabled={importPreviewing}
+                />
+              </div>
+              <div className="flex justify-end gap-2">
+                <Button variant="outline" onClick={() => setImportDialogOpen(false)} disabled={importPreviewing}>
+                  {t("collectionDetail.importCancel")}
+                </Button>
+                <Button onClick={handleImportPreview} disabled={importPreviewing || !importFile}>
+                  <Upload className="h-4 w-4" />
+                  {importPreviewing ? t("collectionDetail.importPreviewing") : t("collectionDetail.importPreview")}
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* Step 2: Preview */}
+          {importStep === "preview" && importPreviewData && (
+            <div className="space-y-4">
+              {/* Summary */}
+              <div className="flex gap-4">
+                <div className="flex items-center gap-2 text-sm">
+                  <CheckCircle className="h-4 w-4 text-green-500" />
+                  {t("collectionDetail.importValidRows", { count: importPreviewData.validCount })}
+                </div>
+                {importPreviewData.errorCount > 0 && (
+                  <div className="flex items-center gap-2 text-sm text-destructive">
+                    <AlertCircle className="h-4 w-4" />
+                    {t("collectionDetail.importErrorRows", { count: importPreviewData.errorCount })}
+                  </div>
+                )}
+              </div>
+
+              {/* Preview table */}
+              <div className="max-h-60 overflow-auto rounded-md border">
+                <table className="w-full text-sm">
+                  <thead className="sticky top-0 bg-muted">
+                    <tr>
+                      <th className="px-3 py-2 text-left font-medium">{t("collectionDetail.importRow")}</th>
+                      {importPreviewData.rows.length > 0 &&
+                        Object.keys(importPreviewData.rows[0].data).map((key) => (
+                          <th key={key} className="px-3 py-2 text-left font-medium">
+                            {key}
+                          </th>
+                        ))}
+                      <th className="px-3 py-2 text-left font-medium">{t("collectionDetail.importErrors")}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {importPreviewData.rows.map((row) => (
+                      <tr
+                        key={row.rowNumber}
+                        className={row.errors.length > 0 ? "bg-destructive/5" : ""}
+                      >
+                        <td className="px-3 py-1.5">{row.rowNumber}</td>
+                        {Object.values(row.data).map((val, i) => (
+                          <td key={i} className="max-w-[150px] truncate px-3 py-1.5">
+                            {val}
+                          </td>
+                        ))}
+                        <td className="px-3 py-1.5 text-xs text-destructive">
+                          {row.errors.join(", ")}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              <div className="flex justify-end gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => { setImportStep("upload"); setImportPreviewData(null) }}
+                  disabled={importConfirming}
+                >
+                  {t("collectionDetail.importBack")}
+                </Button>
+                <Button onClick={handleImportConfirm} disabled={importConfirming || importPreviewData.validCount === 0}>
+                  {importConfirming ? t("collectionDetail.importConfirming") : t("collectionDetail.importConfirm")}
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* Step 3: Done */}
+          {importStep === "done" && importResult && (
+            <div className="space-y-4">
+              <div className="flex items-center gap-2 rounded-md bg-green-500/10 px-3 py-2 text-sm text-green-700 dark:text-green-400">
+                <CheckCircle className="h-4 w-4" />
+                {t("collectionDetail.importSuccess", { count: importResult.importedCount })}
+              </div>
+              <div className="flex justify-end">
+                <Button onClick={() => setImportDialogOpen(false)}>
+                  OK
+                </Button>
+              </div>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
 
