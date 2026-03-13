@@ -543,3 +543,21 @@ Started: Fri Mar 13 12:14:54 PM UTC 2026
   - Edit form reuses the exact same custom field rendering pattern from CollectionDetail add item dialog
   - No browser testing tools available — manual browser verification needed
 ---
+
+## 2026-03-13 - US-030
+- Added owned copies management UI to CatalogItemDetail page
+- "Add Copy" button in owned copies section header opens dialog
+- Add/Edit dialog with condition dropdown, purchase price, estimated value, acquisition date, source, notes
+- Edit and delete buttons on each owned copy card (inline)
+- Delete confirmation dialog for owned copies
+- Multiple copies per item fully supported (duplicates visible and manageable)
+- Calls backend OwnedCopy API: POST/PUT/DELETE /api/items/{id}/copies
+- Added i18n translations for all owned copy UI strings in both en.json and pt.json
+- Typecheck passes, build succeeds, all 103 API tests pass
+- Files changed: `src/web/src/pages/CatalogItemDetail.tsx`, `src/web/src/i18n/locales/en.json`, `src/web/src/i18n/locales/pt.json`
+- **Learnings for future iterations:**
+  - CONDITIONS array defined as `const` for the condition dropdown — reuse PascalCase values matching backend enum
+  - Owned copy form reuses same dialog pattern as catalog item edit — Label + Input + select for condition
+  - `formatCondition()` already existed in the file for display — reused for dropdown option labels
+  - No browser testing tools available — manual browser verification needed
+---
