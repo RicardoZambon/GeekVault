@@ -13,6 +13,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
 
     public DbSet<CollectionType> CollectionTypes => Set<CollectionType>();
     public DbSet<Collection> Collections => Set<Collection>();
+    public DbSet<CatalogItem> CatalogItems => Set<CatalogItem>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -47,6 +48,26 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
                 .WithMany()
                 .HasForeignKey(e => e.CollectionTypeId)
                 .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<CatalogItem>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Identifier).IsRequired().HasMaxLength(200);
+            entity.Property(e => e.Name).IsRequired().HasMaxLength(200);
+            entity.Property(e => e.Description).HasMaxLength(2000);
+            entity.Property(e => e.Manufacturer).HasMaxLength(200);
+            entity.Property(e => e.ReferenceCode).HasMaxLength(200);
+            entity.Property(e => e.Image).HasMaxLength(500);
+            entity.Property(e => e.Rarity).HasMaxLength(100);
+            entity.HasOne(e => e.Collection)
+                .WithMany()
+                .HasForeignKey(e => e.CollectionId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.OwnsMany(e => e.CustomFieldValues, b =>
+            {
+                b.ToJson();
+            });
         });
     }
 }
