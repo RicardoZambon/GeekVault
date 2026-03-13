@@ -206,6 +206,137 @@ app.MapPost("/api/profile/avatar", async (
 .WithOpenApi()
 .DisableAntiforgery();
 
+// CollectionType endpoints
+var validFieldTypes = new HashSet<string> { "text", "number", "date", "enum", "boolean", "image_url" };
+
+app.MapGet("/api/collection-types", async (
+    ClaimsPrincipal principal,
+    ApplicationDbContext db) =>
+{
+    var userId = principal.FindFirstValue(ClaimTypes.NameIdentifier)!;
+    var types = await db.CollectionTypes
+        .Where(ct => ct.UserId == userId)
+        .Select(ct => new CollectionTypeResponse(ct.Id, ct.Name, ct.Description, ct.Icon,
+            ct.CustomFieldSchema.Select(f => new CustomFieldDto(f.Name, f.Type, f.Required, f.Options)).ToList()))
+        .ToListAsync();
+    return Results.Ok(types);
+})
+.RequireAuthorization()
+.WithName("ListCollectionTypes")
+.WithOpenApi();
+
+app.MapGet("/api/collection-types/{id:int}", async (
+    int id,
+    ClaimsPrincipal principal,
+    ApplicationDbContext db) =>
+{
+    var userId = principal.FindFirstValue(ClaimTypes.NameIdentifier)!;
+    var ct = await db.CollectionTypes.FirstOrDefaultAsync(c => c.Id == id && c.UserId == userId);
+    if (ct == null) return Results.NotFound();
+
+    return Results.Ok(new CollectionTypeResponse(ct.Id, ct.Name, ct.Description, ct.Icon,
+        ct.CustomFieldSchema.Select(f => new CustomFieldDto(f.Name, f.Type, f.Required, f.Options)).ToList()));
+})
+.RequireAuthorization()
+.WithName("GetCollectionType")
+.WithOpenApi();
+
+app.MapPost("/api/collection-types", async (
+    CreateCollectionTypeRequest request,
+    ClaimsPrincipal principal,
+    ApplicationDbContext db) =>
+{
+    var userId = principal.FindFirstValue(ClaimTypes.NameIdentifier)!;
+
+    if (request.CustomFields != null && request.CustomFields.Count > 10)
+        return Results.BadRequest(new { error = "Maximum of 10 custom fields allowed" });
+
+    if (request.CustomFields != null && request.CustomFields.Any(f => !validFieldTypes.Contains(f.Type)))
+        return Results.BadRequest(new { error = $"Invalid field type. Supported types: {string.Join(", ", validFieldTypes)}" });
+
+    var ct = new CollectionType
+    {
+        UserId = userId,
+        Name = request.Name,
+        Description = request.Description,
+        Icon = request.Icon,
+        CustomFieldSchema = request.CustomFields?.Select(f => new CustomFieldDefinition
+        {
+            Name = f.Name,
+            Type = f.Type,
+            Required = f.Required,
+            Options = f.Options
+        }).ToList() ?? new()
+    };
+
+    db.CollectionTypes.Add(ct);
+    await db.SaveChangesAsync();
+
+    return Results.Created($"/api/collection-types/{ct.Id}",
+        new CollectionTypeResponse(ct.Id, ct.Name, ct.Description, ct.Icon,
+            ct.CustomFieldSchema.Select(f => new CustomFieldDto(f.Name, f.Type, f.Required, f.Options)).ToList()));
+})
+.RequireAuthorization()
+.WithName("CreateCollectionType")
+.WithOpenApi();
+
+app.MapPut("/api/collection-types/{id:int}", async (
+    int id,
+    UpdateCollectionTypeRequest request,
+    ClaimsPrincipal principal,
+    ApplicationDbContext db) =>
+{
+    var userId = principal.FindFirstValue(ClaimTypes.NameIdentifier)!;
+    var ct = await db.CollectionTypes.FirstOrDefaultAsync(c => c.Id == id && c.UserId == userId);
+    if (ct == null) return Results.NotFound();
+
+    if (request.CustomFields != null && request.CustomFields.Count > 10)
+        return Results.BadRequest(new { error = "Maximum of 10 custom fields allowed" });
+
+    if (request.CustomFields != null && request.CustomFields.Any(f => !validFieldTypes.Contains(f.Type)))
+        return Results.BadRequest(new { error = $"Invalid field type. Supported types: {string.Join(", ", validFieldTypes)}" });
+
+    ct.Name = request.Name ?? ct.Name;
+    ct.Description = request.Description;
+    ct.Icon = request.Icon;
+    if (request.CustomFields != null)
+    {
+        ct.CustomFieldSchema = request.CustomFields.Select(f => new CustomFieldDefinition
+        {
+            Name = f.Name,
+            Type = f.Type,
+            Required = f.Required,
+            Options = f.Options
+        }).ToList();
+    }
+
+    await db.SaveChangesAsync();
+
+    return Results.Ok(new CollectionTypeResponse(ct.Id, ct.Name, ct.Description, ct.Icon,
+        ct.CustomFieldSchema.Select(f => new CustomFieldDto(f.Name, f.Type, f.Required, f.Options)).ToList()));
+})
+.RequireAuthorization()
+.WithName("UpdateCollectionType")
+.WithOpenApi();
+
+app.MapDelete("/api/collection-types/{id:int}", async (
+    int id,
+    ClaimsPrincipal principal,
+    ApplicationDbContext db) =>
+{
+    var userId = principal.FindFirstValue(ClaimTypes.NameIdentifier)!;
+    var ct = await db.CollectionTypes.FirstOrDefaultAsync(c => c.Id == id && c.UserId == userId);
+    if (ct == null) return Results.NotFound();
+
+    db.CollectionTypes.Remove(ct);
+    await db.SaveChangesAsync();
+
+    return Results.NoContent();
+})
+.RequireAuthorization()
+.WithName("DeleteCollectionType")
+.WithOpenApi();
+
 app.Run();
 
 static string GenerateJwtToken(ApplicationUser user, IConfiguration config)
@@ -238,3 +369,7 @@ record LoginRequest(string Email, string Password);
 record AuthResponse(string Token, string UserId, string Email, string? DisplayName);
 record UpdateProfileRequest(string? DisplayName, string? Bio, string? PreferredLanguage, string? PreferredCurrency);
 record ProfileResponse(string Id, string Email, string? DisplayName, string? Avatar, string? Bio, string? PreferredLanguage, string? PreferredCurrency);
+record CustomFieldDto(string Name, string Type, bool Required, List<string>? Options);
+record CreateCollectionTypeRequest(string Name, string? Description, string? Icon, List<CustomFieldDto>? CustomFields);
+record UpdateCollectionTypeRequest(string? Name, string? Description, string? Icon, List<CustomFieldDto>? CustomFields);
+record CollectionTypeResponse(int Id, string Name, string? Description, string? Icon, List<CustomFieldDto> CustomFields);
