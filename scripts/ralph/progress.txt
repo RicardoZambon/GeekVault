@@ -26,6 +26,8 @@ Started: Fri Mar 13 12:14:54 PM UTC 2026
 - Use `TestFactory<TMarker>` generic pattern for per-test-class factory isolation (avoids xUnit parallel test contention)
 - Avatar uploads go to `wwwroot/uploads/` — gitignored; use `IWebHostEnvironment` to resolve paths
 - Use `.DisableAntiforgery()` on file upload endpoints to avoid CSRF issues in API context
+- CRUD endpoints pattern: filter by UserId for ownership, validate input in handler, return DTO records
+- Each test method uses a unique user email to avoid parallel test conflicts
 ---
 
 ## 2026-03-13 - US-001
@@ -162,4 +164,19 @@ Started: Fri Mar 13 12:14:54 PM UTC 2026
   - Use `IWebHostEnvironment.WebRootPath` (or fallback to `ContentRootPath/wwwroot`) for file storage paths
   - `wwwroot/uploads/` is gitignored — test-generated files won't pollute the repo
   - `ClaimsPrincipal` injection in minimal API handlers gives access to JWT claims directly
+---
+
+## 2026-03-13 - US-011
+- Added CollectionType CRUD API endpoints: GET list, GET by id, POST create, PUT update, DELETE
+- All endpoints require JWT authentication and filter by UserId (ownership check)
+- Validates max 10 custom fields and supported field types (text, number, date, enum, boolean, image_url)
+- CollectionType model updated with UserId FK + migration added
+- 8 integration tests covering all CRUD operations, validation, and auth requirements
+- Files changed: `Program.cs`, `Models/CollectionType.cs`, `Data/ApplicationDbContext.cs`, `Migrations/`, `CollectionTypeEndpointsTests.cs`
+- **Learnings for future iterations:**
+  - CollectionType now has UserId for per-user ownership — all queries filter by `ct.UserId == userId`
+  - CRUD pattern: define `validFieldTypes` HashSet, validate in POST/PUT handlers, return DTOs via record types
+  - Use `Results.Created($"/api/resource/{id}", responseDto)` for POST endpoints
+  - Use `Results.NoContent()` for DELETE endpoints
+  - Each test method registers a unique user email to avoid conflicts in parallel test execution
 ---
