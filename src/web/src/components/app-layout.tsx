@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next"
 import {
   LayoutDashboard,
   Library,
+  Layers,
   Heart,
   User,
   Menu,
@@ -21,6 +22,7 @@ import { cn } from "@/lib/utils"
 const navItems = [
   { to: "/", labelKey: "nav.dashboard", icon: LayoutDashboard },
   { to: "/collections", labelKey: "nav.collections", icon: Library },
+  { to: "/collection-types", labelKey: "nav.collectionTypes", icon: Layers },
   { to: "/wishlist", labelKey: "nav.wishlist", icon: Heart },
   { to: "/profile", labelKey: "nav.profile", icon: User },
 ] as const
