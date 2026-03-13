@@ -33,6 +33,16 @@ Started: Fri Mar 13 12:14:54 PM UTC 2026
 - List endpoints return `PaginatedResponse<T>` (Items, TotalCount, Page, PageSize) — tests use `PaginatedResult<T>` to deserialize
 - File upload endpoints need both `.RequireAuthorization()` and `.DisableAntiforgery()`, and wrap `ReadFormAsync()` in try-catch for empty form handling
 - Use `.ThenInclude()` for nested eager loading: `.Include(c => c.CollectionType).ThenInclude(ct => ct.CustomFieldSchema)`
+- Frontend project lives at `src/web/` — React 19 + TypeScript + Vite 8
+- Frontend build: `cd src/web && npm run build` (runs tsc + vite build)
+- Frontend typecheck: `cd src/web && npx tsc -b`
+- Tailwind CSS v4 via PostCSS plugin (`@tailwindcss/postcss`) — Vite plugin incompatible with Vite 8
+- shadcn/ui set up manually (CLI incompatible with Node 24) — `components.json` + `src/lib/utils.ts` + CSS variables in `index.css`
+- Path alias `@/` maps to `src/` — configured in both `tsconfig.app.json` (paths) and `vite.config.ts` (resolve.alias)
+- API proxy: Vite dev server proxies `/api` requests to `http://localhost:5000`
+- React Router v6 with `BrowserRouter` in `main.tsx`, routes in `App.tsx`
+- Pages live in `src/pages/` directory
+- UI components go in `src/components/ui/` (shadcn/ui pattern)
 ---
 
 ## 2026-03-13 - US-001
@@ -348,4 +358,23 @@ Started: Fri Mar 13 12:14:54 PM UTC 2026
   - CSV parsing requires a custom parser to handle quoted fields (commas inside quotes, escaped double-quotes)
   - File upload endpoints need both `.RequireAuthorization()` and `.DisableAntiforgery()`
   - `ThenInclude` needed for nested navigation: `.Include(c => c.CollectionType).ThenInclude(ct => ct.CustomFieldSchema)`
+---
+
+## 2026-03-13 - US-022
+- Scaffolded React + TypeScript frontend with Vite 8 in `src/web/`
+- Installed and configured React Router v6 (BrowserRouter in main.tsx, Routes in App.tsx)
+- Set up shadcn/ui manually (CLI incompatible with Node 24): installed dependencies (class-variance-authority, clsx, tailwind-merge, lucide-react), created components.json, lib/utils.ts, CSS variables in index.css
+- Configured Tailwind CSS v4 via PostCSS plugin (@tailwindcss/vite incompatible with Vite 8)
+- Configured Vite proxy: `/api` -> `http://localhost:5000`
+- Created placeholder Home page with Tailwind styling
+- Removed Vite boilerplate (App.css, default assets, counter demo)
+- Set up `@/` path alias in tsconfig.app.json and vite.config.ts
+- Typecheck passes, build succeeds
+- Files changed: new `src/web/` directory with all project files
+- **Learnings for future iterations:**
+  - Vite 8 has peer dependency conflicts with `@tailwindcss/vite` — use `@tailwindcss/postcss` + `postcss.config.js` instead
+  - shadcn CLI (`npx shadcn@latest init`) fails on Node 24 due to tinyexec module resolution — set up manually instead
+  - Manual shadcn/ui setup: install deps, create `components.json`, `src/lib/utils.ts` (cn helper), and CSS variables in `index.css`
+  - For shadcn/ui components, can add them manually from the shadcn/ui source or try the CLI on a compatible Node version
+  - `verbatimModuleSyntax: true` in tsconfig means use `import type` for type-only imports
 ---
