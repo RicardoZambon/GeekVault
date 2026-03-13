@@ -1,39 +1,16 @@
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
-using GeekVault.Api.Data;
-using Microsoft.AspNetCore.Mvc.Testing;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace GeekVault.Api.Tests;
 
-public class AuthEndpointsTests : IClassFixture<AuthEndpointsTests.AuthTestFactory>
+public class AuthEndpointsTests : IClassFixture<TestFactory<AuthEndpointsTests>>
 {
-    private readonly AuthTestFactory _factory;
+    private readonly TestFactory<AuthEndpointsTests> _factory;
 
-    public AuthEndpointsTests(AuthTestFactory factory)
+    public AuthEndpointsTests(TestFactory<AuthEndpointsTests> factory)
     {
         _factory = factory;
-    }
-
-    public class AuthTestFactory : WebApplicationFactory<Program>
-    {
-        private readonly string _dbName = "TestDb_" + Guid.NewGuid();
-
-        protected override void ConfigureWebHost(Microsoft.AspNetCore.Hosting.IWebHostBuilder builder)
-        {
-            builder.ConfigureServices(services =>
-            {
-                var descriptor = services.SingleOrDefault(
-                    d => d.ServiceType == typeof(DbContextOptions<ApplicationDbContext>));
-                if (descriptor != null)
-                    services.Remove(descriptor);
-
-                services.AddDbContext<ApplicationDbContext>(options =>
-                    options.UseInMemoryDatabase(_dbName));
-            });
-        }
     }
 
     private async Task<(string Token, string UserId)> RegisterAndGetTokenAsync(HttpClient client, string email, string password = "Test@123456", string? displayName = null)

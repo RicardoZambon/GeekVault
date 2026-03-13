@@ -123,6 +123,89 @@ app.MapGet("/api/auth/me", (ClaimsPrincipal user) =>
 .WithName("Me")
 .WithOpenApi();
 
+// Profile endpoints
+app.MapGet("/api/profile", async (
+    ClaimsPrincipal principal,
+    UserManager<ApplicationUser> userManager) =>
+{
+    var userId = principal.FindFirstValue(ClaimTypes.NameIdentifier);
+    var user = await userManager.FindByIdAsync(userId!);
+    if (user == null) return Results.NotFound();
+
+    return Results.Ok(new ProfileResponse(
+        user.Id, user.Email!, user.DisplayName, user.Avatar, user.Bio,
+        user.PreferredLanguage, user.PreferredCurrency));
+})
+.RequireAuthorization()
+.WithName("GetProfile")
+.WithOpenApi();
+
+app.MapPut("/api/profile", async (
+    UpdateProfileRequest request,
+    ClaimsPrincipal principal,
+    UserManager<ApplicationUser> userManager) =>
+{
+    var userId = principal.FindFirstValue(ClaimTypes.NameIdentifier);
+    var user = await userManager.FindByIdAsync(userId!);
+    if (user == null) return Results.NotFound();
+
+    user.DisplayName = request.DisplayName;
+    user.Bio = request.Bio;
+    user.PreferredLanguage = request.PreferredLanguage;
+    user.PreferredCurrency = request.PreferredCurrency;
+
+    var result = await userManager.UpdateAsync(user);
+    if (!result.Succeeded)
+        return Results.BadRequest(new { errors = result.Errors.Select(e => e.Description) });
+
+    return Results.Ok(new ProfileResponse(
+        user.Id, user.Email!, user.DisplayName, user.Avatar, user.Bio,
+        user.PreferredLanguage, user.PreferredCurrency));
+})
+.RequireAuthorization()
+.WithName("UpdateProfile")
+.WithOpenApi();
+
+app.MapPost("/api/profile/avatar", async (
+    HttpRequest httpRequest,
+    ClaimsPrincipal principal,
+    UserManager<ApplicationUser> userManager,
+    IWebHostEnvironment env) =>
+{
+    var userId = principal.FindFirstValue(ClaimTypes.NameIdentifier);
+    var user = await userManager.FindByIdAsync(userId!);
+    if (user == null) return Results.NotFound();
+
+    if (!httpRequest.HasFormContentType)
+        return Results.BadRequest(new { error = "Expected multipart form data" });
+
+    var form = await httpRequest.ReadFormAsync();
+    var file = form.Files.GetFile("avatar");
+    if (file == null || file.Length == 0)
+        return Results.BadRequest(new { error = "No avatar file provided" });
+
+    var uploadsDir = Path.Combine(env.WebRootPath ?? Path.Combine(env.ContentRootPath, "wwwroot"), "uploads");
+    Directory.CreateDirectory(uploadsDir);
+
+    var extension = Path.GetExtension(file.FileName);
+    var fileName = $"{userId}{extension}";
+    var filePath = Path.Combine(uploadsDir, fileName);
+
+    using (var stream = new FileStream(filePath, FileMode.Create))
+    {
+        await file.CopyToAsync(stream);
+    }
+
+    user.Avatar = $"/uploads/{fileName}";
+    await userManager.UpdateAsync(user);
+
+    return Results.Ok(new { avatarUrl = user.Avatar });
+})
+.RequireAuthorization()
+.WithName("UploadAvatar")
+.WithOpenApi()
+.DisableAntiforgery();
+
 app.Run();
 
 static string GenerateJwtToken(ApplicationUser user, IConfiguration config)
@@ -153,3 +236,5 @@ static string GenerateJwtToken(ApplicationUser user, IConfiguration config)
 record RegisterRequest(string Email, string Password, string? DisplayName);
 record LoginRequest(string Email, string Password);
 record AuthResponse(string Token, string UserId, string Email, string? DisplayName);
+record UpdateProfileRequest(string? DisplayName, string? Bio, string? PreferredLanguage, string? PreferredCurrency);
+record ProfileResponse(string Id, string Email, string? DisplayName, string? Avatar, string? Bio, string? PreferredLanguage, string? PreferredCurrency);
