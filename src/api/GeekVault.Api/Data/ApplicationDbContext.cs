@@ -24,8 +24,15 @@ public class ApplicationDbContext : IdentityUserContext<ApplicationUser>
     {
         base.OnModelCreating(modelBuilder);
 
+        // Configure Users table under Security schema
+        modelBuilder.Entity<ApplicationUser>(entity =>
+        {
+            entity.ToTable("Users", "Security");
+        });
+
         modelBuilder.Entity<CollectionType>(entity =>
         {
+            entity.ToTable("CollectionTypes", "Vault");
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Name).IsRequired().HasMaxLength(200);
             entity.Property(e => e.Description).HasMaxLength(1000);
@@ -42,6 +49,7 @@ public class ApplicationDbContext : IdentityUserContext<ApplicationUser>
 
         modelBuilder.Entity<Collection>(entity =>
         {
+            entity.ToTable("Collections", "Vault");
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Name).IsRequired().HasMaxLength(200);
             entity.Property(e => e.Description).HasMaxLength(1000);
@@ -61,6 +69,7 @@ public class ApplicationDbContext : IdentityUserContext<ApplicationUser>
 
         modelBuilder.Entity<CatalogItem>(entity =>
         {
+            entity.ToTable("CatalogItems", "Vault");
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Identifier).IsRequired().HasMaxLength(200);
             entity.Property(e => e.Name).IsRequired().HasMaxLength(200);
@@ -81,6 +90,7 @@ public class ApplicationDbContext : IdentityUserContext<ApplicationUser>
 
         modelBuilder.Entity<OwnedCopy>(entity =>
         {
+            entity.ToTable("OwnedCopies", "Vault");
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Condition)
                 .HasConversion<string>()
@@ -101,6 +111,7 @@ public class ApplicationDbContext : IdentityUserContext<ApplicationUser>
 
         modelBuilder.Entity<Set>(entity =>
         {
+            entity.ToTable("Sets", "Vault");
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Name).IsRequired().HasMaxLength(200);
             entity.HasOne(e => e.Collection)
@@ -111,6 +122,7 @@ public class ApplicationDbContext : IdentityUserContext<ApplicationUser>
 
         modelBuilder.Entity<SetItem>(entity =>
         {
+            entity.ToTable("SetItems", "Vault");
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Name).IsRequired().HasMaxLength(200);
             entity.HasOne(e => e.Set)
@@ -125,6 +137,7 @@ public class ApplicationDbContext : IdentityUserContext<ApplicationUser>
 
         modelBuilder.Entity<WishlistItem>(entity =>
         {
+            entity.ToTable("WishlistItems", "Vault");
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Name).IsRequired().HasMaxLength(200);
             entity.Property(e => e.TargetPrice).HasColumnType("decimal(18,2)");
