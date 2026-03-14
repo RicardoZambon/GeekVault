@@ -16,6 +16,8 @@ Started: Sat Mar 14 06:01:01 PM UTC 2026
 - No .sln file — build/test individual .csproj files directly
 - Repositories are in `Repositories/{Domain}/` with interface + implementation pairs, registered as `AddScoped` in Program.cs
 - Vault repositories inject `ApplicationDbContext`; Security repositories inject `UserManager<User>`
+- Services are in `Services/{Domain}/` with interface + implementation pairs, registered as `AddScoped` in Program.cs
+- Services inject repositories (not DbContext or UserManager directly); AuthService also injects IConfiguration for JWT
 ---
 
 ## 2026-03-14 - US-001
@@ -101,4 +103,19 @@ Started: Sat Mar 14 06:01:01 PM UTC 2026
   - CatalogItemsRepository exposes IQueryable<CatalogItem> via GetByCollectionId() for search/filter/sort — service layer will compose the query
   - OwnedCopiesRepository.GetCatalogItemWithCollectionAsync verifies catalog item ownership via Collection.UserId join
   - Repositories follow the same pattern as UsersRepository: inject DbContext, expose async methods, return entities
+---
+
+## 2026-03-14 - US-008
+- Created `IAuthService` and `AuthService` with RegisterAsync and LoginAsync methods
+- JWT token generation logic extracted from Program.cs `GenerateJwtToken` static method into AuthService private method
+- Created `IProfileService` and `ProfileService` with GetProfileAsync, UpdateProfileAsync, and UploadAvatarAsync
+- Services inject `IUsersRepository` (not UserManager or DbContext directly)
+- AuthService injects `IConfiguration` for JWT settings
+- Registered both as `AddScoped` in Program.cs DI container
+- Files changed: 4 new files in `Services/Security/`, `Program.cs`
+- **Learnings for future iterations:**
+  - Services use tuple return types for operations that can fail: `(Response?, Errors?)` pattern
+  - ProfileService.UpdateProfileAsync returns `(null, null)` when user not found — callers should check Response == null with no errors to distinguish "not found" from "validation error"
+  - UploadAvatarAsync takes `webRootPath` as parameter rather than injecting IWebHostEnvironment — keeps service testable
+  - Services are not yet wired into endpoints (endpoints still use UserManager directly) — that happens in US-010
 ---
