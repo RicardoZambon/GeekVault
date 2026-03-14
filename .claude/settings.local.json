@@ -1,7 +1,27 @@
 {
   "permissions": {
     "allow": [
-      "Bash(find /workspaces/GeekVault -type f -name \"*.json\" -o -name \"*.yaml\" -o -name \"*.yml\" -o -name \"*.toml\" -o -name \"*.md\" 2>/dev/null | head -50)"
+      "Bash(find /workspaces/GeekVault -type f -name \"*.json\" -o -name \"*.yaml\" -o -name \"*.yml\" -o -name \"*.toml\" -o -name \"*.md\" 2>/dev/null | head -50)",
+      "Bash(nslookup github.com 2>&1; nslookup api.nuget.org 2>&1)",
+      "Bash(ping -c 3 -W 2 8.8.8.8 2>&1)",
+      "Bash(curl -s -o /dev/null -w \"HTTP %{http_code} in %{time_total}s\\\\n\" --max-time 10 https://github.com 2>&1; curl -s -o /dev/null -w \"HTTP %{http_code} in %{time_total}s\\\\n\" --max-time 10 https://api.nuget.org/v3/index.json 2>&1)",
+      "Bash(getent hosts:*)",
+      "Bash(curl -s -o /dev/null -w \"HTTP %{http_code} in %{time_total}s\\\\n\" --max-time 10 https://registry.npmjs.org 2>&1)",
+      "Bash(/opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P 'P@ssw0rd' -Q \"SELECT 1 AS connected\" 2>&1)",
+      "Bash(chmod +x /workspaces/GeekVault/scripts/version.sh)",
+      "Bash(cd /workspaces/GeekVault/src/web && npm install -D vitest @vitest/coverage-v8 jsdom 2>&1 | tail -5)",
+      "Bash(cd /workspaces/GeekVault && ./scripts/version.sh)",
+      "Bash(cd /workspaces/GeekVault/src/api/GeekVault.Api.Tests && dotnet test -c Release /p:CollectCoverage=true /p:CoverletOutputFormat=cobertura /p:CoverletOutput=./coverage/ /p:ThresholdType=line /p:Threshold=90 2>&1 | tail -30)",
+      "Bash(cd /workspaces/GeekVault/src/web && npx vitest run 2>&1 | tail -10)",
+      "Bash(npx vitest:*)",
+      "Bash(cd /workspaces/GeekVault && python3 -c \"\nimport yaml, sys\nfiles = ['.github/workflows/ci-backend.yml', '.github/workflows/ci-frontend.yml', '.github/workflows/release.yml']\nfor f in files:\n    try:\n        with open\\(f\\) as fh:\n            yaml.safe_load\\(fh\\)\n        print\\(f'{f}: valid YAML'\\)\n    except Exception as e:\n        print\\(f'{f}: INVALID - {e}'\\)\n        sys.exit\\(1\\)\n\")",
+      "Bash(cd /workspaces/GeekVault && node -e \"\nconst fs = require\\('fs'\\);\nconst files = ['.github/workflows/ci-backend.yml', '.github/workflows/ci-frontend.yml', '.github/workflows/release.yml'];\nfiles.forEach\\(f => {\n  try {\n    const content = fs.readFileSync\\(f, 'utf8'\\);\n    // Basic YAML validation - check for common issues\n    if \\(content.includes\\('\\\\t'\\)\\) throw new Error\\('Contains tabs'\\);\n    console.log\\(f + ': OK'\\);\n  } catch\\(e\\) {\n    console.error\\(f + ': ' + e.message\\);\n    process.exit\\(1\\);\n  }\n}\\);\n\")",
+      "Bash(cd /workspaces/GeekVault/src/api/GeekVault.Api.Tests && dotnet test -c Release /p:CollectCoverage=true /p:CoverletOutputFormat=cobertura /p:CoverletOutput=./coverage/ 2>&1 | grep -E \"\\(Module|GeekVault|Total|Average|\\\\+\\)\" | head -20)",
+      "Bash(ls -la /workspaces/GeekVault/src/api/GeekVault.Api.Tests/*.cs)",
+      "Bash(xargs basename:*)",
+      "Bash(cd /workspaces/GeekVault/src/api && find GeekVault.Api -name \"*.cs\" ! -path \"*/Migrations/*\" -exec wc -l {} + | tail -1)",
+      "Bash(cd /workspaces/GeekVault/src/api/GeekVault.Api.Tests && dotnet test -c Release /p:CollectCoverage=true /p:CoverletOutputFormat=cobertura /p:CoverletOutput=./coverage/ '/p:ExcludeByFile=**/Migrations/*.cs' 2>&1 | grep -E \"\\(Module|GeekVault\\\\.Api |Total|Average|\\\\+---\\)\" | head -15)",
+      "Bash(dotnet test:*)"
     ]
   }
 }
