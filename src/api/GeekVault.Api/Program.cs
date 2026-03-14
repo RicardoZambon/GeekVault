@@ -14,6 +14,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using GeekVault.Api.Repositories.Security;
+using GeekVault.Api.Repositories.Vault;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -50,6 +51,12 @@ builder.Services.AddAuthentication(options =>
 });
 
 builder.Services.AddScoped<IUsersRepository, UsersRepository>();
+builder.Services.AddScoped<ICollectionTypesRepository, CollectionTypesRepository>();
+builder.Services.AddScoped<ICollectionsRepository, CollectionsRepository>();
+builder.Services.AddScoped<ICatalogItemsRepository, CatalogItemsRepository>();
+builder.Services.AddScoped<IOwnedCopiesRepository, OwnedCopiesRepository>();
+builder.Services.AddScoped<ISetsRepository, SetsRepository>();
+builder.Services.AddScoped<IWishlistRepository, WishlistRepository>();
 
 builder.Services.AddAuthorization();
 
