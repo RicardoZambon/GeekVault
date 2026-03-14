@@ -1,3 +1,5 @@
+using GeekVault.Api.Entities.Security;
+
 namespace GeekVault.Api.Models;
 
 public class Collection
@@ -10,6 +12,6 @@ public class Collection
     public string? CoverImage { get; set; }
     public Visibility Visibility { get; set; } = Visibility.Private;
 
-    public ApplicationUser User { get; set; } = null!;
+    public User User { get; set; } = null!;
     public CollectionType CollectionType { get; set; } = null!;
 }

@@ -4,6 +4,7 @@ using System.Security.Claims;
 using System.Text;
 using System.Text.Json;
 using GeekVault.Api.Data;
+using GeekVault.Api.Entities.Security;
 using GeekVault.Api.Models;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
@@ -17,7 +18,7 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"),
         x => x.MigrationsHistoryTable("MigrationsHistory", "EF")));
 
-builder.Services.AddIdentityCore<ApplicationUser>()
+builder.Services.AddIdentityCore<User>()
     .AddEntityFrameworkStores<ApplicationDbContext>()
     .AddDefaultTokenProviders();
 
@@ -67,10 +68,10 @@ app.MapGet("/api/health", () => Results.Ok(new { status = "healthy" }))
 
 app.MapPost("/api/auth/register", async (
     RegisterRequest request,
-    UserManager<ApplicationUser> userManager,
+    UserManager<User> userManager,
     IConfiguration config) =>
 {
-    var user = new ApplicationUser
+    var user = new User
     {
         UserName = request.Email,
         Email = request.Email,
@@ -91,7 +92,7 @@ app.MapPost("/api/auth/register", async (
 
 app.MapPost("/api/auth/login", async (
     LoginRequest request,
-    UserManager<ApplicationUser> userManager,
+    UserManager<User> userManager,
     IConfiguration config) =>
 {
     var user = await userManager.FindByEmailAsync(request.Email);
@@ -129,7 +130,7 @@ app.MapGet("/api/auth/me", (ClaimsPrincipal user) =>
 // Profile endpoints
 app.MapGet("/api/profile", async (
     ClaimsPrincipal principal,
-    UserManager<ApplicationUser> userManager) =>
+    UserManager<User> userManager) =>
 {
     var userId = principal.FindFirstValue(ClaimTypes.NameIdentifier);
     var user = await userManager.FindByIdAsync(userId!);
@@ -146,7 +147,7 @@ app.MapGet("/api/profile", async (
 app.MapPut("/api/profile", async (
     UpdateProfileRequest request,
     ClaimsPrincipal principal,
-    UserManager<ApplicationUser> userManager) =>
+    UserManager<User> userManager) =>
 {
     var userId = principal.FindFirstValue(ClaimTypes.NameIdentifier);
     var user = await userManager.FindByIdAsync(userId!);
@@ -172,7 +173,7 @@ app.MapPut("/api/profile", async (
 app.MapPost("/api/profile/avatar", async (
     HttpRequest httpRequest,
     ClaimsPrincipal principal,
-    UserManager<ApplicationUser> userManager,
+    UserManager<User> userManager,
     IWebHostEnvironment env) =>
 {
     var userId = principal.FindFirstValue(ClaimTypes.NameIdentifier);
@@ -1592,7 +1593,7 @@ static string CsvEscape(string? value)
     return value;
 }
 
-static string GenerateJwtToken(ApplicationUser user, IConfiguration config)
+static string GenerateJwtToken(User user, IConfiguration config)
 {
     var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(config["Jwt:Key"]!));
     var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);

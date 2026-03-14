@@ -1,3 +1,4 @@
+using GeekVault.Api.Entities.Security;
 using GeekVault.Api.Models;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
@@ -5,7 +6,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace GeekVault.Api.Data;
 
-public class ApplicationDbContext : IdentityUserContext<ApplicationUser>
+public class ApplicationDbContext : IdentityUserContext<User>
 {
     public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
         : base(options)
@@ -25,7 +26,7 @@ public class ApplicationDbContext : IdentityUserContext<ApplicationUser>
         base.OnModelCreating(modelBuilder);
 
         // Configure Users table under Security schema
-        modelBuilder.Entity<ApplicationUser>(entity =>
+        modelBuilder.Entity<User>(entity =>
         {
             entity.ToTable("Users", "Security");
         });

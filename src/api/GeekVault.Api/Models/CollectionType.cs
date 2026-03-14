@@ -1,3 +1,5 @@
+using GeekVault.Api.Entities.Security;
+
 namespace GeekVault.Api.Models;
 
 public class CollectionType
@@ -9,5 +11,5 @@ public class CollectionType
     public string? Icon { get; set; }
     public List<CustomFieldDefinition> CustomFieldSchema { get; set; } = new();
 
-    public ApplicationUser User { get; set; } = null!;
+    public User User { get; set; } = null!;
 }
