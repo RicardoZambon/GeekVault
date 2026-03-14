@@ -174,3 +174,22 @@ Started: Sat Mar 14 06:01:01 PM UTC 2026
   - CollectionsService.UploadCoverAsync returns `(CoverUrl, NotFound, Error)` tuple — controller needs to check both NotFound and Error conditions
   - All 103 tests pass without modification — tests hit HTTP endpoints so internal restructuring is transparent
 ---
+
+## 2026-03-14 - US-012
+- Created `Controllers/Vault/CatalogItemsController.cs` with `MapCatalogItemEndpoints` extension method
+- Moved all 5 /api/collections/{id}/items CRUD endpoints from Program.cs, refactored to call `ICatalogItemsService`
+- Moved export endpoint (GET /api/collections/{id}/export) with CSV/JSON formatting
+- Moved import endpoints (POST /api/collections/{id}/import, /import/preview, /import/confirm) with CSV parsing helpers
+- Import preview cache (`importPreviews` dictionary) moved to static field on the controller
+- Created `Controllers/Vault/OwnedCopiesController.cs` with `MapOwnedCopyEndpoints` extension method
+- Moved all 4 /api/items/{id}/copies endpoints from Program.cs, refactored to call `IOwnedCopiesService`
+- Added `app.MapCatalogItemEndpoints()` and `app.MapOwnedCopyEndpoints()` calls in Program.cs
+- Removed unused `using` statements (System.Globalization, System.Text.Json, DTOs.Common)
+- Files changed: `Controllers/Vault/CatalogItemsController.cs` (new), `Controllers/Vault/OwnedCopiesController.cs` (new), `Program.cs`
+- **Learnings for future iterations:**
+  - Import/export endpoints don't have corresponding service methods yet — they still use DbContext directly in the controller. Future cleanup (US-014) can move this logic to services
+  - CSV parsing helpers (ParseCsvFile, ParseCsvLine, CsvEscape) are private static methods on CatalogItemsController — they could be extracted to a utility class if needed elsewhere
+  - The import preview cache is a static Dictionary on the controller — same in-process caching as before
+  - OwnedCopiesController is very thin: all 4 endpoints delegate directly to IOwnedCopiesService with the tuple return pattern
+  - All 103 tests pass without modification — tests hit HTTP endpoints so internal restructuring is transparent
+---
