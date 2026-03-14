@@ -6,7 +6,8 @@ Started: Sat Mar 14 06:01:01 PM UTC 2026
 - Auth uses `UserManager<User>` directly (no SignInManager) with `CheckPasswordAsync` for login
 - User entity is in `Entities/Security/User.cs` with namespace `GeekVault.Api.Entities.Security`
 - Tests use `WebApplicationFactory<Program>` with in-memory database via `TestFactory<TMarker>`
-- Program.cs is a single minimal API file with all endpoints, DTOs as records at the bottom
+- Program.cs is a single minimal API file with all endpoints; DTOs are in `DTOs/` folder organized by domain
+- DTOs use `public record` with namespaces: `GeekVault.Api.DTOs.Security`, `GeekVault.Api.DTOs.Vault`, `GeekVault.Api.DTOs.Common`
 - All Vault entities are in `Entities/Vault/` with namespace `GeekVault.Api.Entities.Vault`
 - Source files from previous branch need to be checked out explicitly when creating new feature branches
 - Database schemas: Security (Users), Vault (collection tables), EF (MigrationsHistory)
@@ -59,4 +60,15 @@ Started: Sat Mar 14 06:01:01 PM UTC 2026
   - Only `Program.cs` and `ApplicationDbContext.cs` had `using GeekVault.Api.Models` — tests don't reference entity namespaces directly
   - Migration files still reference `GeekVault.Api.Models` but they will be regenerated in US-015
   - The in-memory test database is namespace-agnostic so all 103 tests pass without test changes
+---
+
+## 2026-03-14 - US-005
+- Extracted all 39 DTO records from bottom of Program.cs into organized DTO files
+- Created DTOs/Security/ (AuthDtos.cs, ProfileDtos.cs), DTOs/Vault/ (9 files), DTOs/Common/ (PaginatedResponse.cs)
+- Added `using` statements for new DTO namespaces in Program.cs
+- Files changed: `Program.cs`, 12 new DTO files in `DTOs/` directory
+- **Learnings for future iterations:**
+  - DTOs were all `record` types at file scope in Program.cs — extracting to namespaced `public record` types works seamlessly
+  - Tests don't reference DTO types directly (they use anonymous types and JSON), so no test changes needed
+  - Some Vault DTOs reference each other (e.g., CatalogItemResponse uses OwnedCopyDto, CustomFieldValueDto) — keeping them in the same namespace avoids cross-references
 ---
