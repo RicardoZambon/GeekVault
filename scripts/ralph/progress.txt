@@ -22,6 +22,7 @@ Started: Sat Mar 14 06:01:01 PM UTC 2026
 - Services use tuple return patterns: `(Response?, Error?)` or `(Response?, NotFound, Error?)` for operations that can fail
 - Controllers are static classes in `Controllers/{Domain}/` with `MapXxxEndpoints(this IEndpointRouteBuilder app)` extension methods — inject services, not lower-level deps
 - DI registration is in `Extensions/ServiceCollectionExtensions.cs` with `AddSecurityServices(config)` and `AddVaultServices()` — add new services there, not in Program.cs
+- `IdentityUserContext<T>` creates AspNetUserClaims/Logins/Tokens tables by default — use `ExcludeFromMigrations()` to suppress them
 ---
 
 ## 2026-03-14 - US-001
@@ -224,4 +225,19 @@ Started: Sat Mar 14 06:01:01 PM UTC 2026
   - `AddSecurityServices` needs `IConfiguration` parameter for JWT settings; `AddVaultServices` needs no parameters
   - All 103 tests pass without modification — WebApplicationFactory still discovers all services through the extension methods
   - Program.cs now follows clean minimal API pattern: services → middleware → endpoints
+---
+
+## 2026-03-14 - US-015
+- Deleted all 8 old migration files from Migrations/ folder
+- Created single clean InitialCreate migration reflecting new schema organization
+- Used `ExcludeFromMigrations()` on IdentityUserClaim, IdentityUserLogin, IdentityUserToken to prevent AspNet* tables
+- Dropped existing database and ran `dotnet ef database update` to verify clean creation
+- Verified schemas: Security.Users, Vault.{CollectionTypes, Collections, CatalogItems, OwnedCopies, Sets, SetItems, WishlistItems}, EF.MigrationsHistory
+- No AspNetRoles, AspNetRoleClaims, AspNetUserClaims, AspNetUserLogins, AspNetUserRoles, or AspNetUserTokens tables
+- Files changed: `Data/ApplicationDbContext.cs`, `Migrations/` (8 deleted, 3 new)
+- **Learnings for future iterations:**
+  - `IdentityUserContext<T>` still creates AspNetUserClaims, AspNetUserLogins, AspNetUserTokens tables — use `ExcludeFromMigrations()` in OnModelCreating to prevent them
+  - `dotnet-ef` tool must be installed globally (`dotnet tool install --global dotnet-ef`) — it's not pre-installed in the dev container
+  - Always run `dotnet ef migrations remove` before `dotnet ef migrations add` when regenerating to avoid stale snapshots
+  - Database drop and recreate verifies the migration works from scratch — important for clean slate migrations
 ---
