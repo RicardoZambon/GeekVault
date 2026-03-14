@@ -7,7 +7,7 @@ Started: Sat Mar 14 06:01:01 PM UTC 2026
 - User entity is in `Entities/Security/User.cs` with namespace `GeekVault.Api.Entities.Security`
 - Tests use `WebApplicationFactory<Program>` with in-memory database via `TestFactory<TMarker>`
 - Program.cs is a single minimal API file with all endpoints, DTOs as records at the bottom
-- Non-User entity models are still in `Models/` namespace `GeekVault.Api.Models` (will move to `Entities/Vault/` in US-004)
+- All Vault entities are in `Entities/Vault/` with namespace `GeekVault.Api.Entities.Vault`
 - Source files from previous branch need to be checked out explicitly when creating new feature branches
 - Database schemas: Security (Users), Vault (collection tables), EF (MigrationsHistory)
 - `ToTable("Name", "Schema")` in OnModelCreating to set schema per entity
@@ -48,4 +48,15 @@ Started: Sat Mar 14 06:01:01 PM UTC 2026
   - Tests don't reference `ApplicationUser` directly — they use HTTP client against endpoints, so renaming the entity class doesn't require test changes
   - The `GenerateJwtToken` static method at the bottom of Program.cs also references the User type — easy to miss
   - Models that have navigation properties to User (Collection, CollectionType) need a `using GeekVault.Api.Entities.Security;` added
+---
+
+## 2026-03-14 - US-004
+- Moved all 12 Vault entity files from `Models/` to `Entities/Vault/` with namespace `GeekVault.Api.Entities.Vault`
+- Updated `using GeekVault.Api.Models` → `using GeekVault.Api.Entities.Vault` in `Data/ApplicationDbContext.cs` and `Program.cs`
+- Deleted empty `Models/` folder
+- Files changed: `Entities/Vault/*.cs` (12 new), `Data/ApplicationDbContext.cs`, `Program.cs`, `Models/*.cs` (12 deleted)
+- **Learnings for future iterations:**
+  - Only `Program.cs` and `ApplicationDbContext.cs` had `using GeekVault.Api.Models` — tests don't reference entity namespaces directly
+  - Migration files still reference `GeekVault.Api.Models` but they will be regenerated in US-015
+  - The in-memory test database is namespace-agnostic so all 103 tests pass without test changes
 ---
