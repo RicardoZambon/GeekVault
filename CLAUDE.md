@@ -88,3 +88,58 @@ src/web/
 - Path alias: `@/` maps to `src/`
 - API proxy: `/api` -> `http://localhost:5000`
 - i18n: `react-i18next` — translations in `src/i18n/locales/{en,pt}.json`, add keys to both files when adding UI strings
+- Testing: Vitest + `@vitest/coverage-v8` + jsdom — `npm test` to run, `npm run test:coverage` for coverage report
+
+## Conventional Commits
+
+All commits **must** follow the [Conventional Commits](https://www.conventionalcommits.org/) format. The CI/CD pipeline uses commit messages to calculate semantic versions automatically.
+
+**Format:** `<type>(<optional scope>): <description>`
+
+| Prefix | Version Bump | Example |
+|--------|-------------|---------|
+| `feat:` | MINOR (0.x.0) | `feat: add wishlist export` |
+| `fix:` | PATCH (0.0.x) | `fix: correct date parsing in imports` |
+| `<any>!:` | MAJOR (x.0.0) | `feat!: redesign collection API` |
+| `BREAKING CHANGE` in body | MAJOR (x.0.0) | (any type with breaking change footer) |
+| `chore:`, `docs:`, `style:`, `refactor:`, `test:`, `ci:` | No bump | `chore: update dependencies` |
+
+Only `feat`, `fix`, and breaking changes trigger a new version and Docker image build. All other prefixes (chore, docs, refactor, test, ci, style, etc.) do **not** create a release.
+
+## CI/CD
+
+### GitHub Actions Pipelines
+
+| Workflow | Trigger | What it does |
+|----------|---------|-------------|
+| `ci-backend.yml` | PR → main (changes in `src/api/`) | Build + test + 90% line coverage gate |
+| `ci-frontend.yml` | PR → main (changes in `src/web/`) | Typecheck + test + 90% coverage gate |
+| `release.yml` | Push to main (merged PR) | Semantic version → test → Docker build + push → git tag |
+
+### Required Secrets (set in GitHub repo settings)
+
+- `DOCKERHUB_USERNAME` — Docker Hub username
+- `DOCKERHUB_TOKEN` — Docker Hub access token
+
+### Docker Images
+
+- **Backend:** `<DOCKERHUB_USERNAME>/geekvault-api:<version>`
+- **Frontend:** `<DOCKERHUB_USERNAME>/geekvault-web:<version>`
+
+Both are also tagged `:latest` on each release.
+
+### Versioning
+
+Handled by `scripts/version.sh`. Reads conventional commit messages since the last `v*` git tag and determines the next version. If no version-bumping commits exist, the release is skipped entirely.
+
+## Deployment (Docker)
+
+```bash
+# Production build
+docker compose -f docker-compose.prod.yml up --build
+
+# With custom secrets
+SA_PASSWORD=<strong-password> JWT_KEY=<secret-key> docker compose -f docker-compose.prod.yml up --build
+```
+
+Services: `db` (SQL Server 2019), `api` (.NET on port 5000), `web` (nginx on port 80 proxying `/api` to backend)
