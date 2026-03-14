@@ -175,7 +175,7 @@ export default function Collections() {
       if (formCoverFile) {
         const coverId = editingId ?? saved.id
         const formData = new FormData()
-        formData.append("file", formCoverFile)
+        formData.append("cover", formCoverFile)
         await fetch(`/api/collections/${coverId}/cover`, {
           method: "POST",
           headers: { Authorization: `Bearer ${token}` },
