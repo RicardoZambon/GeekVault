@@ -1,0 +1,296 @@
+{
+  "project": "GeekVault",
+  "branchName": "ralph/backend-restructure",
+  "description": "Backend Restructure — Reorganize database schemas, entities, repositories, services, controllers, and DTOs into a domain-driven architecture",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Switch to AddIdentityCore and use IdentityUserContext",
+      "description": "As a developer, I want to remove unused ASP.NET Identity infrastructure so that the database only contains the Users table.",
+      "acceptanceCriteria": [
+        "Switch AddIdentity<ApplicationUser, IdentityRole>() to AddIdentityCore<ApplicationUser>() in Program.cs",
+        "Configure AddIdentityCore with AddEntityFrameworkStores<ApplicationDbContext>() and AddDefaultTokenProviders()",
+        "Change ApplicationDbContext base class from IdentityDbContext<ApplicationUser> to IdentityUserContext<ApplicationUser> to exclude role/claims/logins/tokens tables",
+        "Remove any IdentityRole references from the codebase",
+        "SignInManager is no longer available with AddIdentityCore — update auth endpoints to use UserManager.CheckPasswordAsync() instead if SignInManager was used",
+        "dotnet build succeeds",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 1,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-002",
+      "title": "Configure database schemas and table names in DbContext",
+      "description": "As a developer, I want database tables organized under Security, Vault, and EF schemas so the database structure reflects the application domains.",
+      "acceptanceCriteria": [
+        "Configure Users table as Security.Users via entity.ToTable(\"Users\", \"Security\") in OnModelCreating",
+        "Configure all collection-related tables under Vault schema: Vault.CollectionTypes, Vault.Collections, Vault.CatalogItems, Vault.OwnedCopies, Vault.Sets, Vault.SetItems, Vault.WishlistItems",
+        "Configure migrations history table via UseSqlServer options: x.MigrationsHistoryTable(\"MigrationsHistory\", \"EF\")",
+        "All foreign keys and indexes reference correct new table names",
+        "dotnet build succeeds",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 2,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-003",
+      "title": "Rename Models folder to Entities with Security subfolder",
+      "description": "As a developer, I want the User entity in Entities/Security/ so the code structure mirrors the database schema.",
+      "acceptanceCriteria": [
+        "Create Entities/Security/ folder",
+        "Move ApplicationUser to Entities/Security/User.cs and rename class from ApplicationUser to User",
+        "Update namespace to GeekVault.Api.Entities.Security",
+        "Update all references across the project: Program.cs, ApplicationDbContext, tests, any DTOs referencing ApplicationUser",
+        "Update AddIdentityCore<ApplicationUser> to AddIdentityCore<User>",
+        "Update IdentityUserContext<ApplicationUser> to IdentityUserContext<User>",
+        "Delete the old Models/ApplicationUser.cs file",
+        "dotnet build succeeds",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 3,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-004",
+      "title": "Move Vault entities to Entities/Vault subfolder",
+      "description": "As a developer, I want all collection-related entities in Entities/Vault/ matching the Vault database schema.",
+      "acceptanceCriteria": [
+        "Create Entities/Vault/ folder",
+        "Move these files to Entities/Vault/ with updated namespaces (GeekVault.Api.Entities.Vault): CollectionType.cs, Collection.cs, CatalogItem.cs, OwnedCopy.cs, OwnedCopyImage.cs, Set.cs, SetItem.cs, WishlistItem.cs, CustomFieldDefinition.cs, CustomFieldValue.cs, Visibility.cs (enum), Condition.cs (enum)",
+        "Update all using statements across Program.cs, ApplicationDbContext, and tests",
+        "Delete old files from Models/ folder and remove empty Models/ folder",
+        "dotnet build succeeds",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 4,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-005",
+      "title": "Extract DTOs into domain-organized folders",
+      "description": "As a developer, I want DTOs organized by domain in separate files so they are maintainable independently from entities.",
+      "acceptanceCriteria": [
+        "Create DTOs/Security/ folder with AuthDtos.cs (RegisterRequest, LoginRequest, AuthResponse) and ProfileDtos.cs (UpdateProfileRequest, ProfileResponse)",
+        "Create DTOs/Vault/ folder with: CollectionTypeDtos.cs, CollectionDtos.cs, CatalogItemDtos.cs, OwnedCopyDtos.cs, SetDtos.cs, WishlistDtos.cs, DashboardDtos.cs, ImportExportDtos.cs, CustomFieldDtos.cs",
+        "Create DTOs/Common/PaginatedResponse.cs for the generic PaginatedResponse<T>",
+        "Extract all record definitions from Program.cs into these DTO files",
+        "Update all references in Program.cs to use new DTO namespaces",
+        "dotnet build succeeds",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 5,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-006",
+      "title": "Create Security repositories",
+      "description": "As a developer, I want user data access encapsulated in a repository so endpoints don't depend directly on UserManager.",
+      "acceptanceCriteria": [
+        "Create Repositories/Security/IUsersRepository.cs interface with: FindByIdAsync, FindByEmailAsync, CreateAsync, CheckPasswordAsync, UpdateAsync",
+        "Create Repositories/Security/UsersRepository.cs implementing IUsersRepository, wrapping UserManager<User>",
+        "Register IUsersRepository as AddScoped in Program.cs DI container",
+        "dotnet build succeeds",
+        "Typecheck passes"
+      ],
+      "priority": 6,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-007",
+      "title": "Create Vault repositories",
+      "description": "As a developer, I want data access for all Vault entities encapsulated in repositories.",
+      "acceptanceCriteria": [
+        "Create Repositories/Vault/ folder with interfaces and implementations for: ICollectionTypesRepository/CollectionTypesRepository, ICollectionsRepository/CollectionsRepository, ICatalogItemsRepository/CatalogItemsRepository, IOwnedCopiesRepository/OwnedCopiesRepository, ISetsRepository/SetsRepository, IWishlistRepository/WishlistRepository",
+        "Each repository injects ApplicationDbContext and encapsulates all EF Core queries currently in Program.cs for that entity",
+        "CollectionsRepository includes summary/stats queries used by dashboard",
+        "CatalogItemsRepository includes search/filter/sort and bulk import operations",
+        "Register all interfaces as AddScoped in Program.cs DI container",
+        "dotnet build succeeds",
+        "Typecheck passes"
+      ],
+      "priority": 7,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-008",
+      "title": "Create Security services (Auth and Profile)",
+      "description": "As a developer, I want auth and profile business logic encapsulated in services.",
+      "acceptanceCriteria": [
+        "Create Services/Security/IAuthService.cs and AuthService.cs with: RegisterAsync(RegisterRequest), LoginAsync(LoginRequest) — includes JWT token generation logic extracted from Program.cs",
+        "Create Services/Security/IProfileService.cs and ProfileService.cs with: GetProfileAsync(userId), UpdateProfileAsync(userId, request), UploadAvatarAsync(userId, file)",
+        "Services inject IUsersRepository (not UserManager or DbContext directly)",
+        "AuthService injects IConfiguration for JWT settings",
+        "Register all interfaces as AddScoped in Program.cs DI container",
+        "dotnet build succeeds",
+        "Typecheck passes"
+      ],
+      "priority": 8,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-009",
+      "title": "Create Vault services",
+      "description": "As a developer, I want business logic for all Vault entities encapsulated in services.",
+      "acceptanceCriteria": [
+        "Create Services/Vault/ folder with interfaces and implementations for: ICollectionTypesService/CollectionTypesService, ICollectionsService/CollectionsService, ICatalogItemsService/CatalogItemsService, IOwnedCopiesService/OwnedCopiesService, ISetsService/SetsService, IWishlistService/WishlistService, IDashboardService/DashboardService",
+        "Each service injects its corresponding repository interface",
+        "Services contain business logic currently inline in Program.cs endpoints (validation, mapping, etc.)",
+        "Register all interfaces as AddScoped in Program.cs DI container",
+        "dotnet build succeeds",
+        "Typecheck passes"
+      ],
+      "priority": 9,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-010",
+      "title": "Extract Auth and Profile endpoints into controller files",
+      "description": "As a developer, I want auth and profile API endpoints in dedicated files using minimal API extension methods.",
+      "acceptanceCriteria": [
+        "Create Controllers/Security/AuthController.cs with static extension method MapAuthEndpoints(this IEndpointRouteBuilder app)",
+        "Move POST /api/auth/register and POST /api/auth/login endpoints from Program.cs, refactored to call IAuthService",
+        "Create Controllers/Security/ProfileController.cs with static extension method MapProfileEndpoints(this IEndpointRouteBuilder app)",
+        "Move GET /api/profile, PUT /api/profile, POST /api/profile/avatar endpoints from Program.cs, refactored to call IProfileService",
+        "Call app.MapAuthEndpoints() and app.MapProfileEndpoints() in Program.cs",
+        "All API routes remain unchanged",
+        "dotnet build succeeds",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 10,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-011",
+      "title": "Extract CollectionType and Collection endpoints into controller files",
+      "description": "As a developer, I want collection type and collection endpoints in dedicated files.",
+      "acceptanceCriteria": [
+        "Create Controllers/Vault/CollectionTypesController.cs with MapCollectionTypeEndpoints extension method",
+        "Move all /api/collection-types endpoints from Program.cs, refactored to call ICollectionTypesService",
+        "Create Controllers/Vault/CollectionsController.cs with MapCollectionEndpoints extension method",
+        "Move all /api/collections endpoints from Program.cs, refactored to call ICollectionsService",
+        "Call extension methods in Program.cs",
+        "All API routes remain unchanged",
+        "dotnet build succeeds",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 11,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-012",
+      "title": "Extract CatalogItem and OwnedCopy endpoints into controller files",
+      "description": "As a developer, I want catalog item and owned copy endpoints in dedicated files.",
+      "acceptanceCriteria": [
+        "Create Controllers/Vault/CatalogItemsController.cs with MapCatalogItemEndpoints extension method",
+        "Move all /api/collections/{id}/items endpoints including search/filter/sort and import/export from Program.cs, refactored to call ICatalogItemsService",
+        "Create Controllers/Vault/OwnedCopiesController.cs with MapOwnedCopyEndpoints extension method",
+        "Move all /api/items/{id}/copies endpoints from Program.cs, refactored to call IOwnedCopiesService",
+        "Call extension methods in Program.cs",
+        "All API routes remain unchanged",
+        "dotnet build succeeds",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 12,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-013",
+      "title": "Extract Set, Wishlist, and Dashboard endpoints into controller files",
+      "description": "As a developer, I want set, wishlist, and dashboard endpoints in dedicated files.",
+      "acceptanceCriteria": [
+        "Create Controllers/Vault/SetsController.cs with MapSetEndpoints extension method",
+        "Move all /api/collections/{id}/sets endpoints from Program.cs, refactored to call ISetsService",
+        "Create Controllers/Vault/WishlistController.cs with MapWishlistEndpoints extension method",
+        "Move all /api/collections/{id}/wishlist endpoints from Program.cs, refactored to call IWishlistService",
+        "Create Controllers/Vault/DashboardController.cs with MapDashboardEndpoints extension method",
+        "Move GET /api/dashboard from Program.cs, refactored to call IDashboardService",
+        "Call extension methods in Program.cs",
+        "All API routes remain unchanged",
+        "dotnet build succeeds",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 13,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-014",
+      "title": "Clean up Program.cs with DI extension methods",
+      "description": "As a developer, I want Program.cs to be clean and under 100 lines with organized DI registration.",
+      "acceptanceCriteria": [
+        "Create a DI registration extension method file (e.g., Extensions/ServiceCollectionExtensions.cs) with AddSecurityServices() and AddVaultServices() methods",
+        "Program.cs only contains: builder config, services.AddSecurityServices(), services.AddVaultServices(), middleware pipeline, and app.MapXxxEndpoints() calls",
+        "Health check endpoint remains in Program.cs",
+        "Remove all endpoint logic, DTOs, and inline code from Program.cs",
+        "Program.cs is under 100 lines",
+        "Swagger still works and shows all endpoints",
+        "dotnet build succeeds",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 14,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-015",
+      "title": "Delete all migrations and create clean InitialCreate",
+      "description": "As a developer, I want a single clean migration reflecting the new schema organization.",
+      "acceptanceCriteria": [
+        "Delete all files in Migrations/ folder",
+        "Run: dotnet ef migrations add InitialCreate",
+        "Migration creates Security schema with Users table (all Identity user columns + DisplayName, Avatar, Bio, PreferredLanguage, PreferredCurrency)",
+        "Migration creates Vault schema with all collection tables (CollectionTypes, Collections, CatalogItems, OwnedCopies, Sets, SetItems, WishlistItems)",
+        "Migrations history stored in EF.MigrationsHistory table",
+        "Drop existing database and run dotnet ef database update to verify clean creation",
+        "Verify schemas with: SELECT TABLE_SCHEMA, TABLE_NAME FROM INFORMATION_SCHEMA.TABLES",
+        "No AspNetRoles, AspNetRoleClaims, AspNetUserClaims, AspNetUserLogins, AspNetUserRoles, or AspNetUserTokens tables exist",
+        "dotnet build succeeds",
+        "Typecheck passes"
+      ],
+      "priority": 15,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-016",
+      "title": "Update all unit tests for new architecture",
+      "description": "As a developer, I want all existing tests passing against the restructured codebase with 90%+ coverage.",
+      "acceptanceCriteria": [
+        "Update TestFactory.cs to work with new ApplicationDbContext (IdentityUserContext<User> base class, new entity namespaces)",
+        "Update all 13 test files (AuthEndpointsTests, ProfileEndpointsTests, CollectionTypeEndpointsTests, CollectionEndpointsTests, CatalogItemEndpointsTests, CatalogItemSearchTests, OwnedCopyEndpointsTests, SetEndpointsTests, WishlistEndpointsTests, DashboardEndpointsTests, ImportEndpointsTests, ExportEndpointsTests) with correct namespace references and entity name changes (ApplicationUser -> User)",
+        "All tests pass: dotnet test succeeds",
+        "Line coverage remains at or above 90%",
+        "dotnet build succeeds for both API and test projects",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 16,
+      "passes": false,
+      "notes": ""
+    }
+  ]
+}
