@@ -159,3 +159,18 @@ Started: Sat Mar 14 06:01:01 PM UTC 2026
   - All 103 tests pass without modification — tests hit HTTP endpoints via WebApplicationFactory, so the internal restructuring is transparent
   - After removing endpoints from Program.cs, check for unused `using` statements and the `GenerateJwtToken` helper that was only used by auth endpoints
 ---
+
+## 2026-03-14 - US-011
+- Created `Controllers/Vault/CollectionTypesController.cs` with `MapCollectionTypeEndpoints` extension method
+- Moved all 5 /api/collection-types endpoints (GET list, GET by id, POST, PUT, DELETE) from Program.cs, refactored to call `ICollectionTypesService`
+- Created `Controllers/Vault/CollectionsController.cs` with `MapCollectionEndpoints` extension method
+- Moved all 6 /api/collections endpoints (GET list, GET by id, POST, PUT, DELETE, POST cover) from Program.cs, refactored to call `ICollectionsService`
+- Added `app.MapCollectionTypeEndpoints()` and `app.MapCollectionEndpoints()` calls in Program.cs
+- Removed `validFieldTypes` HashSet from Program.cs (validation now in CollectionTypesService)
+- Files changed: `Controllers/Vault/CollectionTypesController.cs` (new), `Controllers/Vault/CollectionsController.cs` (new), `Program.cs`
+- **Learnings for future iterations:**
+  - Same pattern as Security controllers: static class with extension method on `IEndpointRouteBuilder`, inject services not lower-level deps
+  - CollectionTypesService already encapsulates `validFieldTypes` validation — no need to duplicate it in the controller
+  - CollectionsService.UploadCoverAsync returns `(CoverUrl, NotFound, Error)` tuple — controller needs to check both NotFound and Error conditions
+  - All 103 tests pass without modification — tests hit HTTP endpoints so internal restructuring is transparent
+---
