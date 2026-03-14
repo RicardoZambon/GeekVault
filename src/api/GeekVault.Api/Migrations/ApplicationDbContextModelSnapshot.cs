@@ -465,6 +465,7 @@ namespace GeekVault.Api.Migrations
                         {
                             t.ExcludeFromMigrations();
                 });
+                });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserRole<string>", b =>
                 {
