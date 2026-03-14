@@ -23,30 +23,30 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">100% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>0/10</span>
+                <span class='fraction'>10/10</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">100% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>0/9</span>
+                <span class='fraction'>9/9</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">100% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>0/2</span>
+                <span class='fraction'>2/2</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">100% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>0/10</span>
+                <span class='fraction'>10/10</span>
             </div>
         
             
@@ -61,7 +61,7 @@
             </div>
         </template>
     </div>
-    <div class='status-line low'></div>
+    <div class='status-line high'></div>
     <pre><table class="coverage">
 <tr><td class="line-count quiet"><a name='L1'></a><a href='#L1'>1</a>
 <a name='L2'></a><a href='#L2'>2</a>
@@ -131,38 +131,36 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">11x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">16x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -186,7 +184,9 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">import * as React from "react"
@@ -194,16 +194,16 @@ import * as DialogPrimitive from "@radix-ui/react-dialog"
 import { X } from "lucide-react"
 import { cn } from "@/lib/utils"
 &nbsp;
-const Sheet = <span class="cstat-no" title="statement not covered" >DialogPrimitive.Root</span>
-const SheetTrigger = <span class="cstat-no" title="statement not covered" >DialogPrimitive.Trigger</span>
-const SheetClose = <span class="cstat-no" title="statement not covered" >DialogPrimitive.Close</span>
-const SheetPortal = <span class="cstat-no" title="statement not covered" >DialogPrimitive.Portal</span>
+const Sheet = DialogPrimitive.Root
+const SheetTrigger = DialogPrimitive.Trigger
+const SheetClose = DialogPrimitive.Close
+const SheetPortal = DialogPrimitive.Portal
 &nbsp;
-const SheetOverlay = <span class="cstat-no" title="statement not covered" >React.<span class="fstat-no" title="function not covered" >forwardRef&lt;</span></span>
+const SheetOverlay = React.forwardRef&lt;
   React.ComponentRef&lt;typeof DialogPrimitive.Overlay&gt;,
   React.ComponentPropsWithoutRef&lt;typeof DialogPrimitive.Overlay&gt;
 &gt;(({ className, ...props }, ref) =&gt; (
-<span class="cstat-no" title="statement not covered" >  &lt;DialogPrimitive.Overlay</span>
+  &lt;DialogPrimitive.Overlay
     className={cn(
       "fixed inset-0 z-50 bg-black/80 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
       className
@@ -212,18 +212,18 @@ const SheetOverlay = <span class="cstat-no" title="statement not covered" >React
     ref={ref}
   /&gt;
 ))
-<span class="cstat-no" title="statement not covered" >SheetOverlay.displayName = DialogPrimitive.Overlay.displayName</span>
+SheetOverlay.displayName = DialogPrimitive.Overlay.displayName
 &nbsp;
 interface SheetContentProps
   extends React.ComponentPropsWithoutRef&lt;typeof DialogPrimitive.Content&gt; {
   side?: "top" | "bottom" | "left" | "right"
 }
 &nbsp;
-const SheetContent = <span class="cstat-no" title="statement not covered" >React.<span class="fstat-no" title="function not covered" >forwardRef&lt;</span></span>
+const SheetContent = React.forwardRef&lt;
   React.ComponentRef&lt;typeof DialogPrimitive.Content&gt;,
   SheetContentProps
-&gt;(({ side = <span class="branch-0 cbranch-no" title="branch not covered" >"right", c</span>lassName, children, ...props }, ref) =&gt; (
-<span class="cstat-no" title="statement not covered" >  &lt;SheetPortal&gt;</span>
+&gt;(({ side = "right", className, children, ...props }, ref) =&gt; (
+  &lt;SheetPortal&gt;
     &lt;SheetOverlay /&gt;
     &lt;DialogPrimitive.Content
       ref={ref}
@@ -249,7 +249,7 @@ const SheetContent = <span class="cstat-no" title="statement not covered" >React
     &lt;/DialogPrimitive.Content&gt;
   &lt;/SheetPortal&gt;
 ))
-<span class="cstat-no" title="statement not covered" >SheetContent.displayName = DialogPrimitive.Content.displayName</span>
+SheetContent.displayName = DialogPrimitive.Content.displayName
 &nbsp;
 export { Sheet, SheetTrigger, SheetClose, SheetContent }
 &nbsp;</pre></td></tr></table></pre>
@@ -259,7 +259,7 @@ export { Sheet, SheetTrigger, SheetClose, SheetContent }
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-03-14T01:34:48.982Z
+                at 2026-03-14T14:26:57.664Z
             </div>
         <script src="../../../prettify.js"></script>
         <script>

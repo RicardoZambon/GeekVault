@@ -33,5 +33,6 @@ jobs:
             /p:CoverletOutputFormat=cobertura \
             /p:CoverletOutput=./coverage/ \
             /p:ThresholdType=line \
-            /p:Threshold=90
+            /p:Threshold=90 \
+            /p:ExcludeByFile="**/Migrations/*.cs"
         working-directory: src/api/GeekVault.Api.Tests

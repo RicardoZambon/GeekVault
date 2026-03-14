@@ -15,7 +15,13 @@
       "Bash(cd /workspaces/GeekVault/src/web && npx vitest run 2>&1 | tail -10)",
       "Bash(npx vitest:*)",
       "Bash(cd /workspaces/GeekVault && python3 -c \"\nimport yaml, sys\nfiles = ['.github/workflows/ci-backend.yml', '.github/workflows/ci-frontend.yml', '.github/workflows/release.yml']\nfor f in files:\n    try:\n        with open\\(f\\) as fh:\n            yaml.safe_load\\(fh\\)\n        print\\(f'{f}: valid YAML'\\)\n    except Exception as e:\n        print\\(f'{f}: INVALID - {e}'\\)\n        sys.exit\\(1\\)\n\")",
-      "Bash(cd /workspaces/GeekVault && node -e \"\nconst fs = require\\('fs'\\);\nconst files = ['.github/workflows/ci-backend.yml', '.github/workflows/ci-frontend.yml', '.github/workflows/release.yml'];\nfiles.forEach\\(f => {\n  try {\n    const content = fs.readFileSync\\(f, 'utf8'\\);\n    // Basic YAML validation - check for common issues\n    if \\(content.includes\\('\\\\t'\\)\\) throw new Error\\('Contains tabs'\\);\n    console.log\\(f + ': OK'\\);\n  } catch\\(e\\) {\n    console.error\\(f + ': ' + e.message\\);\n    process.exit\\(1\\);\n  }\n}\\);\n\")"
+      "Bash(cd /workspaces/GeekVault && node -e \"\nconst fs = require\\('fs'\\);\nconst files = ['.github/workflows/ci-backend.yml', '.github/workflows/ci-frontend.yml', '.github/workflows/release.yml'];\nfiles.forEach\\(f => {\n  try {\n    const content = fs.readFileSync\\(f, 'utf8'\\);\n    // Basic YAML validation - check for common issues\n    if \\(content.includes\\('\\\\t'\\)\\) throw new Error\\('Contains tabs'\\);\n    console.log\\(f + ': OK'\\);\n  } catch\\(e\\) {\n    console.error\\(f + ': ' + e.message\\);\n    process.exit\\(1\\);\n  }\n}\\);\n\")",
+      "Bash(cd /workspaces/GeekVault/src/api/GeekVault.Api.Tests && dotnet test -c Release /p:CollectCoverage=true /p:CoverletOutputFormat=cobertura /p:CoverletOutput=./coverage/ 2>&1 | grep -E \"\\(Module|GeekVault|Total|Average|\\\\+\\)\" | head -20)",
+      "Bash(ls -la /workspaces/GeekVault/src/api/GeekVault.Api.Tests/*.cs)",
+      "Bash(xargs basename:*)",
+      "Bash(cd /workspaces/GeekVault/src/api && find GeekVault.Api -name \"*.cs\" ! -path \"*/Migrations/*\" -exec wc -l {} + | tail -1)",
+      "Bash(cd /workspaces/GeekVault/src/api/GeekVault.Api.Tests && dotnet test -c Release /p:CollectCoverage=true /p:CoverletOutputFormat=cobertura /p:CoverletOutput=./coverage/ '/p:ExcludeByFile=**/Migrations/*.cs' 2>&1 | grep -E \"\\(Module|GeekVault\\\\.Api |Total|Average|\\\\+---\\)\" | head -15)",
+      "Bash(dotnet test:*)"
     ]
   }
 }
