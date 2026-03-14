@@ -18,6 +18,8 @@ Started: Sat Mar 14 06:01:01 PM UTC 2026
 - Vault repositories inject `ApplicationDbContext`; Security repositories inject `UserManager<User>`
 - Services are in `Services/{Domain}/` with interface + implementation pairs, registered as `AddScoped` in Program.cs
 - Services inject repositories (not DbContext or UserManager directly); AuthService also injects IConfiguration for JWT
+- CatalogItem entity has NO OwnedCopies navigation property — use `repo.Query()` IQueryable for cross-entity query composition
+- Services use tuple return patterns: `(Response?, Error?)` or `(Response?, NotFound, Error?)` for operations that can fail
 ---
 
 ## 2026-03-14 - US-001
@@ -118,4 +120,24 @@ Started: Sat Mar 14 06:01:01 PM UTC 2026
   - ProfileService.UpdateProfileAsync returns `(null, null)` when user not found — callers should check Response == null with no errors to distinguish "not found" from "validation error"
   - UploadAvatarAsync takes `webRootPath` as parameter rather than injecting IWebHostEnvironment — keeps service testable
   - Services are not yet wired into endpoints (endpoints still use UserManager directly) — that happens in US-010
+---
+
+## 2026-03-14 - US-009
+- Created 7 Vault service interfaces and implementations in `Services/Vault/`
+- ICollectionTypesService/CollectionTypesService: CRUD with custom field validation (max 10 fields, valid types)
+- ICollectionsService/CollectionsService: CRUD + cover image upload
+- ICatalogItemsService/CatalogItemsService: CRUD + search/filter/sort/pagination + custom field schema validation
+- IOwnedCopiesService/OwnedCopiesService: CRUD with condition enum validation + ownership verification via repo
+- ISetsService/SetsService: CRUD + set items management with sort order + completion percentage calculation
+- IWishlistService/WishlistService: CRUD with priority ordering
+- IDashboardService/DashboardService: Aggregates collection summaries, condition counts, recent acquisitions
+- Added `Query()` method to IOwnedCopiesRepository and ICatalogItemsRepository for cross-entity IQueryable composition
+- Registered all 7 services as AddScoped in Program.cs DI container
+- Files changed: 14 new files in `Services/Vault/`, `Program.cs`, `Repositories/Vault/IOwnedCopiesRepository.cs`, `Repositories/Vault/OwnedCopiesRepository.cs`, `Repositories/Vault/ICatalogItemsRepository.cs`, `Repositories/Vault/CatalogItemsRepository.cs`
+- **Learnings for future iterations:**
+  - CatalogItem entity does NOT have an OwnedCopies navigation property — use `repo.Query()` for cross-entity IQueryable composition instead of navigation properties
+  - Added `IQueryable<T> Query()` to IOwnedCopiesRepository and ICatalogItemsRepository for complex cross-entity queries (condition filtering, dashboard joins)
+  - Services are not yet wired into endpoints (endpoints still use DbContext directly) — that happens in US-010 through US-013
+  - CollectionTypesService encapsulates the valid field types set internally — no need to pass it from the endpoint
+  - Services follow the tuple return pattern from Security services: `(Response?, Error?)` or `(Response?, NotFound, Error?)` for operations that can fail
 ---
