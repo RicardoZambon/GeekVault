@@ -1,0 +1,37 @@
+name: Frontend CI
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "src/web/**"
+
+jobs:
+  build-and-test:
+    name: Build & Test (React)
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: src/web/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+        working-directory: src/web
+
+      - name: Typecheck
+        run: npx tsc -b
+        working-directory: src/web
+
+      - name: Test with coverage
+        run: npm run test:coverage
+        working-directory: src/web
+
+      - name: Build
+        run: npm run build
+        working-directory: src/web
