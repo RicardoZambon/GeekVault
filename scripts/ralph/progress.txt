@@ -1,3 +1,51 @@
 # Ralph Progress Log
 Started: Sat Mar 14 06:01:01 PM UTC 2026
 ---
+
+## Codebase Patterns
+- Auth uses `UserManager<User>` directly (no SignInManager) with `CheckPasswordAsync` for login
+- User entity is in `Entities/Security/User.cs` with namespace `GeekVault.Api.Entities.Security`
+- Tests use `WebApplicationFactory<Program>` with in-memory database via `TestFactory<TMarker>`
+- Program.cs is a single minimal API file with all endpoints, DTOs as records at the bottom
+- Non-User entity models are still in `Models/` namespace `GeekVault.Api.Models` (will move to `Entities/Vault/` in US-004)
+- Source files from previous branch need to be checked out explicitly when creating new feature branches
+- Database schemas: Security (Users), Vault (collection tables), EF (MigrationsHistory)
+- `ToTable("Name", "Schema")` in OnModelCreating to set schema per entity
+- `MigrationsHistoryTable("MigrationsHistory", "EF")` in UseSqlServer options
+- No .sln file — build/test individual .csproj files directly
+---
+
+## 2026-03-14 - US-001
+- Switched `AddIdentity<ApplicationUser, IdentityRole>()` to `AddIdentityCore<ApplicationUser>()` in Program.cs
+- Changed `ApplicationDbContext` base class from `IdentityDbContext<ApplicationUser>` to `IdentityUserContext<ApplicationUser>`
+- No SignInManager was in use — endpoints already used `UserManager.CheckPasswordAsync()`
+- IdentityRole references only remain in migration files (will be cleaned up in US-015)
+- Files changed: `Program.cs`, `Data/ApplicationDbContext.cs`
+- **Learnings for future iterations:**
+  - The codebase was already using `UserManager.CheckPasswordAsync` so no auth endpoint changes were needed
+  - `IdentityUserContext<T>` lives in `Microsoft.AspNetCore.Identity.EntityFrameworkCore` — same namespace as `IdentityDbContext<T>`
+  - All 103 tests pass with in-memory database after the Identity change — no test modifications needed
+---
+
+## 2026-03-14 - US-002
+- Configured Users table under `Security` schema via `entity.ToTable("Users", "Security")`
+- Configured all Vault entities (CollectionTypes, Collections, CatalogItems, OwnedCopies, Sets, SetItems, WishlistItems) under `Vault` schema
+- Configured migrations history table as `EF.MigrationsHistory` via `MigrationsHistoryTable` in UseSqlServer options
+- Files changed: `Data/ApplicationDbContext.cs`, `Program.cs`
+- **Learnings for future iterations:**
+  - `ToTable` must be called before other entity configuration (HasKey, etc.) for clarity but order doesn't technically matter
+  - In-memory test database ignores schema names, so all 103 tests pass without modification
+  - No .sln file exists — must build/test by specifying .csproj paths directly
+---
+
+## 2026-03-14 - US-003
+- Created `Entities/Security/User.cs` — renamed class from `ApplicationUser` to `User` with namespace `GeekVault.Api.Entities.Security`
+- Updated all references: `ApplicationDbContext.cs` (IdentityUserContext<User>, Entity<User>), `Program.cs` (AddIdentityCore<User>, UserManager<User>, new User, GenerateJwtToken)
+- Updated `Collection.cs` and `CollectionType.cs` navigation properties from `ApplicationUser` to `User` with added using
+- Deleted old `Models/ApplicationUser.cs`
+- Files changed: `Entities/Security/User.cs` (new), `Data/ApplicationDbContext.cs`, `Program.cs`, `Models/Collection.cs`, `Models/CollectionType.cs`, `Models/ApplicationUser.cs` (deleted)
+- **Learnings for future iterations:**
+  - Tests don't reference `ApplicationUser` directly — they use HTTP client against endpoints, so renaming the entity class doesn't require test changes
+  - The `GenerateJwtToken` static method at the bottom of Program.cs also references the User type — easy to miss
+  - Models that have navigation properties to User (Collection, CollectionType) need a `using GeekVault.Api.Entities.Security;` added
+---
