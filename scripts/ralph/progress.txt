@@ -72,3 +72,14 @@ Started: Sat Mar 14 06:01:01 PM UTC 2026
   - Tests don't reference DTO types directly (they use anonymous types and JSON), so no test changes needed
   - Some Vault DTOs reference each other (e.g., CatalogItemResponse uses OwnedCopyDto, CustomFieldValueDto) — keeping them in the same namespace avoids cross-references
 ---
+
+## 2026-03-14 - US-006
+- Created `IUsersRepository` interface with: FindByIdAsync, FindByEmailAsync, CreateAsync, CheckPasswordAsync, UpdateAsync
+- Created `UsersRepository` implementation wrapping `UserManager<User>`
+- Registered `IUsersRepository` as `AddScoped` in Program.cs DI container
+- Files changed: `Repositories/Security/IUsersRepository.cs` (new), `Repositories/Security/UsersRepository.cs` (new), `Program.cs`
+- **Learnings for future iterations:**
+  - Repository returns `IdentityResult` from Create/Update to let callers handle error reporting — don't swallow Identity errors in the repository layer
+  - `UserManager<User>` is already registered by `AddIdentityCore<User>()` so it can be injected into the repository
+  - Tests don't need changes since they hit HTTP endpoints, not repositories directly
+---
