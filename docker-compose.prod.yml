@@ -1,0 +1,35 @@
+services:
+  db:
+    image: mcr.microsoft.com/mssql/server:2019-latest
+    environment:
+      SA_PASSWORD: "${SA_PASSWORD:-P@ssw0rd}"
+      ACCEPT_EULA: "Y"
+    ports:
+      - "1433:1433"
+    volumes:
+      - sqldata:/var/opt/mssql
+
+  api:
+    build:
+      context: ./src/api
+      dockerfile: Dockerfile
+    environment:
+      ConnectionStrings__DefaultConnection: "Server=db,1433;Database=ApplicationDB;User Id=sa;Password=${SA_PASSWORD:-P@ssw0rd};TrustServerCertificate=True"
+      Jwt__Key: "${JWT_KEY:-GeekVault-SuperSecret-JWT-Key-That-Is-Long-Enough-For-256-Bits!}"
+      Jwt__Issuer: "GeekVault.Api"
+      Jwt__Audience: "GeekVault.Client"
+      Jwt__ExpiresInMinutes: "60"
+    depends_on:
+      - db
+
+  web:
+    build:
+      context: ./src/web
+      dockerfile: Dockerfile
+    ports:
+      - "80:80"
+    depends_on:
+      - api
+
+volumes:
+  sqldata:
