@@ -13,6 +13,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog"
+import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 
 const CONDITIONS = ["Mint", "NearMint", "Excellent", "Good", "Fair", "Poor"] as const
 
@@ -788,22 +789,17 @@ export default function CatalogItemDetail() {
       </Dialog>
 
       {/* Delete Confirmation Dialog */}
-      <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{t("itemDetail.deleteTitle")}</DialogTitle>
-            <DialogDescription>{t("itemDetail.deleteConfirm")}</DialogDescription>
-          </DialogHeader>
-          <div className="flex justify-end gap-2 pt-4">
-            <Button variant="outline" onClick={() => setDeleteOpen(false)} disabled={deleting}>
-              {t("collectionDetail.cancel")}
-            </Button>
-            <Button variant="destructive" onClick={handleDelete} disabled={deleting}>
-              {deleting ? t("itemDetail.deleting") : t("itemDetail.delete")}
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <ConfirmDialog
+        open={deleteOpen}
+        onOpenChange={setDeleteOpen}
+        title={t("itemDetail.deleteTitle")}
+        description={t("itemDetail.deleteConfirm")}
+        confirmLabel={t("itemDetail.delete")}
+        cancelLabel={t("collectionDetail.cancel")}
+        loadingLabel={t("itemDetail.deleting")}
+        loading={deleting}
+        onConfirm={handleDelete}
+      />
 
       {/* Owned Copy Dialog */}
       <Dialog open={copyDialogOpen} onOpenChange={setCopyDialogOpen}>
@@ -941,22 +937,17 @@ export default function CatalogItemDetail() {
       </Dialog>
 
       {/* Delete Copy Confirmation Dialog */}
-      <Dialog open={deleteCopyOpen} onOpenChange={setDeleteCopyOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{t("ownedCopy.deleteTitle")}</DialogTitle>
-            <DialogDescription>{t("ownedCopy.deleteConfirm")}</DialogDescription>
-          </DialogHeader>
-          <div className="flex justify-end gap-2 pt-4">
-            <Button variant="outline" onClick={() => setDeleteCopyOpen(false)} disabled={deletingCopy}>
-              {t("collectionDetail.cancel")}
-            </Button>
-            <Button variant="destructive" onClick={handleDeleteCopy} disabled={deletingCopy}>
-              {deletingCopy ? t("ownedCopy.deleting") : t("itemDetail.delete")}
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <ConfirmDialog
+        open={deleteCopyOpen}
+        onOpenChange={setDeleteCopyOpen}
+        title={t("ownedCopy.deleteTitle")}
+        description={t("ownedCopy.deleteConfirm")}
+        confirmLabel={t("itemDetail.delete")}
+        cancelLabel={t("collectionDetail.cancel")}
+        loadingLabel={t("ownedCopy.deleting")}
+        loading={deletingCopy}
+        onConfirm={handleDeleteCopy}
+      />
     </div>
   )
 }

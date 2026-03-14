@@ -13,6 +13,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog"
+import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 
 interface CustomFieldDefinition {
   name: string
@@ -161,6 +162,9 @@ export default function CollectionDetail() {
   const [deleteSetDialogOpen, setDeleteSetDialogOpen] = useState(false)
   const [deletingSetId, setDeletingSetId] = useState<number | null>(null)
   const [setsDeleting, setSetsDeleting] = useState(false)
+  const [deleteSetItemDialogOpen, setDeleteSetItemDialogOpen] = useState(false)
+  const [deletingSetItemId, setDeletingSetItemId] = useState<number | null>(null)
+  const [setItemDeleting, setSetItemDeleting] = useState(false)
 
   // Add items to set
   const [addItemsDialogOpen, setAddItemsDialogOpen] = useState(false)
@@ -488,18 +492,28 @@ export default function CollectionDetail() {
     }
   }
 
-  async function handleRemoveSetItem(setItemId: number) {
-    if (!selectedSet) return
+  function confirmRemoveSetItem(setItemId: number) {
+    setDeletingSetItemId(setItemId)
+    setDeleteSetItemDialogOpen(true)
+  }
+
+  async function handleRemoveSetItem() {
+    if (!selectedSet || deletingSetItemId == null) return
+    setSetItemDeleting(true)
     try {
-      const res = await fetch(`/api/collections/${id}/sets/${selectedSet.id}/items/${setItemId}`, {
+      const res = await fetch(`/api/collections/${id}/sets/${selectedSet.id}/items/${deletingSetItemId}`, {
         method: "DELETE",
         headers,
       })
       if (!res.ok) throw new Error("Failed to remove item")
+      setDeleteSetItemDialogOpen(false)
+      setDeletingSetItemId(null)
       await fetchSetDetail(selectedSet.id)
       await fetchSets()
     } catch {
       // non-critical
+    } finally {
+      setSetItemDeleting(false)
     }
   }
 
@@ -992,7 +1006,7 @@ export default function CollectionDetail() {
                                   )}
                                   <button
                                     className="rounded p-1 text-muted-foreground hover:text-destructive"
-                                    onClick={() => handleRemoveSetItem(si.id)}
+                                    onClick={() => confirmRemoveSetItem(si.id)}
                                   >
                                     <Trash2 className="h-3.5 w-3.5" />
                                   </button>
@@ -1245,22 +1259,30 @@ export default function CollectionDetail() {
       </Dialog>
 
       {/* Delete Set Confirmation Dialog */}
-      <Dialog open={deleteSetDialogOpen} onOpenChange={setDeleteSetDialogOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>{t("sets.deleteTitle")}</DialogTitle>
-            <DialogDescription>{t("sets.deleteConfirm")}</DialogDescription>
-          </DialogHeader>
-          <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={() => setDeleteSetDialogOpen(false)} disabled={setsDeleting}>
-              {t("sets.cancel")}
-            </Button>
-            <Button variant="destructive" onClick={handleDeleteSet} disabled={setsDeleting}>
-              {setsDeleting ? t("sets.deleting") : t("sets.delete")}
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <ConfirmDialog
+        open={deleteSetDialogOpen}
+        onOpenChange={setDeleteSetDialogOpen}
+        title={t("sets.deleteTitle")}
+        description={t("sets.deleteConfirm")}
+        confirmLabel={t("sets.delete")}
+        cancelLabel={t("sets.cancel")}
+        loadingLabel={t("sets.deleting")}
+        loading={setsDeleting}
+        onConfirm={handleDeleteSet}
+      />
+
+      {/* Delete Set Item Confirmation Dialog */}
+      <ConfirmDialog
+        open={deleteSetItemDialogOpen}
+        onOpenChange={(open) => { setDeleteSetItemDialogOpen(open); if (!open) setDeletingSetItemId(null) }}
+        title={t("sets.removeItemTitle")}
+        description={t("sets.removeItemConfirm")}
+        confirmLabel={t("sets.delete")}
+        cancelLabel={t("sets.cancel")}
+        loadingLabel={t("sets.deleting")}
+        loading={setItemDeleting}
+        onConfirm={handleRemoveSetItem}
+      />
 
       {/* Export Dialog */}
       <Dialog open={exportDialogOpen} onOpenChange={setExportDialogOpen}>

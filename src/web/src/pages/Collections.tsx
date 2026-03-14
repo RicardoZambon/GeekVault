@@ -13,6 +13,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog"
+import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 
 interface CollectionType {
   id: number
@@ -436,37 +437,17 @@ export default function Collections() {
       </Dialog>
 
       {/* Delete Confirmation Dialog */}
-      <Dialog
+      <ConfirmDialog
         open={deleteId !== null}
         onOpenChange={(open) => !open && setDeleteId(null)}
-      >
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>{t("collections.deleteTitle")}</DialogTitle>
-            <DialogDescription>
-              {t("collections.deleteConfirm")}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="flex justify-end gap-2">
-            <Button
-              variant="outline"
-              onClick={() => setDeleteId(null)}
-              disabled={deleting}
-            >
-              {t("collections.cancel")}
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={handleDelete}
-              disabled={deleting}
-            >
-              {deleting
-                ? t("collections.deleting")
-                : t("collections.delete")}
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+        title={t("collections.deleteTitle")}
+        description={t("collections.deleteConfirm")}
+        confirmLabel={t("collections.delete")}
+        cancelLabel={t("collections.cancel")}
+        loadingLabel={t("collections.deleting")}
+        loading={deleting}
+        onConfirm={handleDelete}
+      />
     </div>
   )
 }

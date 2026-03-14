@@ -272,7 +272,9 @@
     "alreadyAdded": "Adicionado",
     "noItemsFound": "Nenhum item encontrado.",
     "emptyItems": "Nenhum item neste conjunto ainda. Adicione itens para acompanhar o progresso.",
-    "viewItem": "Ver"
+    "viewItem": "Ver",
+    "removeItemTitle": "Remover Item",
+    "removeItemConfirm": "Tem certeza de que deseja remover este item do conjunto?"
   },
   "wishlist": {
     "title": "Lista de Desejos",
