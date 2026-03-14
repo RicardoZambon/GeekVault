@@ -193,3 +193,20 @@ Started: Sat Mar 14 06:01:01 PM UTC 2026
   - OwnedCopiesController is very thin: all 4 endpoints delegate directly to IOwnedCopiesService with the tuple return pattern
   - All 103 tests pass without modification — tests hit HTTP endpoints so internal restructuring is transparent
 ---
+
+## 2026-03-14 - US-013
+- Created `Controllers/Vault/SetsController.cs` with `MapSetEndpoints` extension method
+- Moved all 7 /api/collections/{id}/sets endpoints (GET list, GET by id, POST, PUT, DELETE, POST items) from Program.cs, refactored to call `ISetsService`
+- Created `Controllers/Vault/WishlistController.cs` with `MapWishlistEndpoints` extension method
+- Moved all 4 /api/collections/{id}/wishlist endpoints (GET list, POST, PUT, DELETE) from Program.cs, refactored to call `IWishlistService`
+- Created `Controllers/Vault/DashboardController.cs` with `MapDashboardEndpoints` extension method
+- Moved GET /api/dashboard from Program.cs, refactored to call `IDashboardService`
+- Added `app.MapSetEndpoints()`, `app.MapWishlistEndpoints()`, `app.MapDashboardEndpoints()` calls in Program.cs
+- Removed unused `using` statements (System.Security.Claims, DTOs.Vault, Entities.Vault)
+- Files changed: `Controllers/Vault/SetsController.cs` (new), `Controllers/Vault/WishlistController.cs` (new), `Controllers/Vault/DashboardController.cs` (new), `Program.cs`
+- **Learnings for future iterations:**
+  - WishlistService.UpdateAsync returns a 3-tuple `(Response?, CollectionNotFound, ItemNotFound)` — both bool flags need checking in the controller
+  - DashboardController is the thinnest controller: single endpoint delegating entirely to IDashboardService
+  - Program.cs now has zero inline endpoint logic — all endpoints are in controller files
+  - All 103 tests pass without modification — tests hit HTTP endpoints so internal restructuring is transparent
+---
