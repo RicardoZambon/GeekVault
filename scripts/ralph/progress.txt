@@ -14,6 +14,8 @@ Started: Sat Mar 14 06:01:01 PM UTC 2026
 - `ToTable("Name", "Schema")` in OnModelCreating to set schema per entity
 - `MigrationsHistoryTable("MigrationsHistory", "EF")` in UseSqlServer options
 - No .sln file — build/test individual .csproj files directly
+- Repositories are in `Repositories/{Domain}/` with interface + implementation pairs, registered as `AddScoped` in Program.cs
+- Vault repositories inject `ApplicationDbContext`; Security repositories inject `UserManager<User>`
 ---
 
 ## 2026-03-14 - US-001
@@ -82,4 +84,21 @@ Started: Sat Mar 14 06:01:01 PM UTC 2026
   - Repository returns `IdentityResult` from Create/Update to let callers handle error reporting — don't swallow Identity errors in the repository layer
   - `UserManager<User>` is already registered by `AddIdentityCore<User>()` so it can be injected into the repository
   - Tests don't need changes since they hit HTTP endpoints, not repositories directly
+---
+
+## 2026-03-14 - US-007
+- Created 6 Vault repository interfaces and implementations in `Repositories/Vault/`
+- ICollectionTypesRepository/CollectionTypesRepository: CRUD for collection types by user
+- ICollectionsRepository/CollectionsRepository: CRUD + dashboard summary/stats queries (GetCollectionSummariesAsync)
+- ICatalogItemsRepository/CatalogItemsRepository: CRUD + IQueryable for search/filter/sort + bulk import (AddRangeAsync) + GetByCollectionIdWithFieldsAsync for export
+- IOwnedCopiesRepository/OwnedCopiesRepository: CRUD + GetCatalogItemWithCollectionAsync for ownership verification + GetByUserCatalogItemIds for dashboard queries
+- ISetsRepository/SetsRepository: CRUD + set items management (GetSetItemsAsync, GetMaxSortOrderAsync, AddSetItemsAsync)
+- IWishlistRepository/WishlistRepository: CRUD ordered by priority
+- Registered all 6 interfaces as AddScoped in Program.cs
+- Files changed: 12 new files in `Repositories/Vault/`, `Program.cs`
+- **Learnings for future iterations:**
+  - CollectionSummary helper class defined alongside ICollectionsRepository interface — used by dashboard service later
+  - CatalogItemsRepository exposes IQueryable<CatalogItem> via GetByCollectionId() for search/filter/sort — service layer will compose the query
+  - OwnedCopiesRepository.GetCatalogItemWithCollectionAsync verifies catalog item ownership via Collection.UserId join
+  - Repositories follow the same pattern as UsersRepository: inject DbContext, expose async methods, return entities
 ---
