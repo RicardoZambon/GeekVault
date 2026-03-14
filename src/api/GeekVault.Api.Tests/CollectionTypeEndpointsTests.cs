@@ -132,6 +132,155 @@ public class CollectionTypeEndpointsTests : IClassFixture<TestFactory<Collection
     }
 
     [Fact]
+    public async Task UpdateCollectionType_WithoutCustomFields_PreservesExistingFields()
+    {
+        var client = await CreateAuthenticatedClientAsync("ct-preserve@example.com");
+
+        var createResponse = await client.PostAsJsonAsync("/api/collection-types", new
+        {
+            Name = "With Fields",
+            CustomFields = new[]
+            {
+                new { Name = "Color", Type = "text", Required = false, Options = (string[]?)null }
+            }
+        });
+        var created = await createResponse.Content.ReadFromJsonAsync<CollectionTypeResult>();
+
+        // Update only the name, without sending customFields
+        var response = await client.PutAsJsonAsync($"/api/collection-types/{created!.Id}", new
+        {
+            Name = "Renamed"
+        });
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var ct = await response.Content.ReadFromJsonAsync<CollectionTypeResult>();
+        Assert.Equal("Renamed", ct!.Name);
+        Assert.Single(ct.CustomFields);
+        Assert.Equal("Color", ct.CustomFields[0].Name);
+    }
+
+    [Fact]
+    public async Task UpdateCollectionType_RemoveField_CleansUpCatalogItems()
+    {
+        var client = await CreateAuthenticatedClientAsync("ct-cleanup@example.com");
+
+        // Create type with two fields
+        var ctResponse = await client.PostAsJsonAsync("/api/collection-types", new
+        {
+            Name = "Cards",
+            CustomFields = new[]
+            {
+                new { Name = "Linha", Type = "text", Required = false, Options = (string[]?)null },
+                new { Name = "Year", Type = "number", Required = false, Options = (string[]?)null }
+            }
+        });
+        var ct = await ctResponse.Content.ReadFromJsonAsync<CollectionTypeResult>();
+
+        // Create collection and catalog item with both fields
+        var colResponse = await client.PostAsJsonAsync("/api/collections", new
+        {
+            Name = "Test Col",
+            CollectionTypeId = ct!.Id
+        });
+        var col = await colResponse.Content.ReadFromJsonAsync<CollectionResult>();
+
+        var itemResponse = await client.PostAsJsonAsync($"/api/collections/{col!.Id}/items", new
+        {
+            Identifier = "CARD-001",
+            Name = "Test Item",
+            CustomFieldValues = new[]
+            {
+                new { Name = "Linha", Value = "Premium" },
+                new { Name = "Year", Value = "2024" }
+            }
+        });
+        var item = await itemResponse.Content.ReadFromJsonAsync<CatalogItemResult>();
+        Assert.Equal(2, item!.CustomFieldValues.Count);
+
+        // Remove "Linha" field from the collection type
+        await client.PutAsJsonAsync($"/api/collection-types/{ct.Id}", new
+        {
+            Name = "Cards",
+            CustomFields = new[]
+            {
+                new { Name = "Year", Type = "number", Required = false, Options = (string[]?)null }
+            }
+        });
+
+        // Verify catalog item no longer has the removed field
+        var getItemResponse = await client.GetAsync($"/api/collections/{col.Id}/items/{item.Id}");
+        var updatedItem = await getItemResponse.Content.ReadFromJsonAsync<CatalogItemResult>();
+        Assert.Single(updatedItem!.CustomFieldValues);
+        Assert.Equal("Year", updatedItem.CustomFieldValues[0].Name);
+    }
+
+    [Fact]
+    public async Task UpdateCollectionType_RemoveField_ThenEditItem_Succeeds()
+    {
+        var client = await CreateAuthenticatedClientAsync("ct-editafter@example.com");
+
+        // Create type with field
+        var ctResponse = await client.PostAsJsonAsync("/api/collection-types", new
+        {
+            Name = "Cards",
+            CustomFields = new[]
+            {
+                new { Name = "Linha", Type = "text", Required = false, Options = (string[]?)null },
+                new { Name = "Year", Type = "number", Required = false, Options = (string[]?)null }
+            }
+        });
+        var ct = await ctResponse.Content.ReadFromJsonAsync<CollectionTypeResult>();
+
+        // Create collection and item
+        var colResponse = await client.PostAsJsonAsync("/api/collections", new
+        {
+            Name = "Test Col",
+            CollectionTypeId = ct!.Id
+        });
+        var col = await colResponse.Content.ReadFromJsonAsync<CollectionResult>();
+
+        var itemResponse = await client.PostAsJsonAsync($"/api/collections/{col!.Id}/items", new
+        {
+            Identifier = "CARD-001",
+            Name = "Test Item",
+            CustomFieldValues = new[]
+            {
+                new { Name = "Linha", Value = "Premium" },
+                new { Name = "Year", Value = "2024" }
+            }
+        });
+        var item = await itemResponse.Content.ReadFromJsonAsync<CatalogItemResult>();
+
+        // Remove "Linha" from collection type schema
+        await client.PutAsJsonAsync($"/api/collection-types/{ct.Id}", new
+        {
+            Name = "Cards",
+            CustomFields = new[]
+            {
+                new { Name = "Year", Type = "number", Required = false, Options = (string[]?)null }
+            }
+        });
+
+        // Edit the item - should succeed even if client sends the old field
+        var updateResponse = await client.PutAsJsonAsync($"/api/collections/{col.Id}/items/{item!.Id}", new
+        {
+            Name = "Updated Item",
+            CustomFieldValues = new[]
+            {
+                new { Name = "Linha", Value = "Premium" },
+                new { Name = "Year", Value = "2025" }
+            }
+        });
+        Assert.Equal(HttpStatusCode.OK, updateResponse.StatusCode);
+        var updated = await updateResponse.Content.ReadFromJsonAsync<CatalogItemResult>();
+        Assert.Equal("Updated Item", updated!.Name);
+        // "Linha" should be filtered out, only "Year" remains
+        Assert.Single(updated.CustomFieldValues);
+        Assert.Equal("Year", updated.CustomFieldValues[0].Name);
+        Assert.Equal("2025", updated.CustomFieldValues[0].Value);
+    }
+
+    [Fact]
     public async Task DeleteCollectionType_ReturnsNoContent()
     {
         var client = await CreateAuthenticatedClientAsync("ct-delete@example.com");
@@ -157,4 +306,7 @@ public class CollectionTypeEndpointsTests : IClassFixture<TestFactory<Collection
     private record AuthResult(string Token, string UserId, string Email, string? DisplayName);
     private record CustomFieldResult(string Name, string Type, bool Required, List<string>? Options);
     private record CollectionTypeResult(int Id, string Name, string? Description, string? Icon, List<CustomFieldResult> CustomFields);
+    private record CollectionResult(int Id, string Name);
+    private record CustomFieldValueResult(string Name, string Value);
+    private record CatalogItemResult(int Id, int CollectionId, string Identifier, string Name, string? Description, DateTime? ReleaseDate, string? Manufacturer, string? ReferenceCode, string? Image, string? Rarity, List<CustomFieldValueResult> CustomFieldValues, List<object>? OwnedCopies);
 }

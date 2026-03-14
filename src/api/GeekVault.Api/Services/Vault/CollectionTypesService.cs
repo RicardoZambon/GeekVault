@@ -7,11 +7,13 @@ namespace GeekVault.Api.Services.Vault;
 public class CollectionTypesService : ICollectionTypesService
 {
     private readonly ICollectionTypesRepository _repository;
+    private readonly ICatalogItemsRepository _catalogItemsRepository;
     private static readonly HashSet<string> ValidFieldTypes = new() { "text", "number", "date", "enum", "boolean", "image_url" };
 
-    public CollectionTypesService(ICollectionTypesRepository repository)
+    public CollectionTypesService(ICollectionTypesRepository repository, ICatalogItemsRepository catalogItemsRepository)
     {
         _repository = repository;
+        _catalogItemsRepository = catalogItemsRepository;
     }
 
     public async Task<List<CollectionTypeResponse>> GetAllAsync(string userId)
@@ -65,6 +67,10 @@ public class CollectionTypesService : ICollectionTypesService
         ct.Icon = request.Icon;
         if (request.CustomFields != null)
         {
+            var oldFieldNames = ct.CustomFieldSchema.Select(f => f.Name).ToHashSet();
+            var newFieldNames = request.CustomFields.Select(f => f.Name).ToHashSet();
+            var removedFieldNames = oldFieldNames.Except(newFieldNames).ToHashSet();
+
             ct.CustomFieldSchema = request.CustomFields.Select(f => new CustomFieldDefinition
             {
                 Name = f.Name,
@@ -72,6 +78,19 @@ public class CollectionTypesService : ICollectionTypesService
                 Required = f.Required,
                 Options = f.Options
             }).ToList();
+
+            // Clean up orphaned custom field values from catalog items
+            if (removedFieldNames.Count > 0)
+            {
+                var items = await _catalogItemsRepository.GetByCollectionTypeIdAsync(ct.Id);
+                foreach (var item in items)
+                {
+                    item.CustomFieldValues = item.CustomFieldValues
+                        .Where(fv => !removedFieldNames.Contains(fv.Name))
+                        .ToList();
+                }
+                await _catalogItemsRepository.SaveChangesAsync();
+            }
         }
 
         await _repository.SaveChangesAsync();

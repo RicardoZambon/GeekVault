@@ -111,19 +111,16 @@ public class CatalogItemsService : ICatalogItemsService
         var collection = await _collectionsRepository.GetByIdAndUserIdWithTypeAsync(collectionId, userId);
         if (collection == null) return (null, true, null);
 
-        // Validate custom field values against schema
+        // Validate and filter custom field values against schema
+        var validatedFieldValues = new List<CustomFieldValueDto>();
         if (request.CustomFieldValues != null && request.CustomFieldValues.Count > 0)
         {
             var schema = collection.CollectionType.CustomFieldSchema;
-            foreach (var fv in request.CustomFieldValues)
-            {
-                var fieldDef = schema.FirstOrDefault(f => f.Name == fv.Name);
-                if (fieldDef == null)
-                    return (null, false, $"Unknown custom field: {fv.Name}");
-            }
+            var schemaFieldNames = schema.Select(f => f.Name).ToHashSet();
+            validatedFieldValues = request.CustomFieldValues.Where(fv => schemaFieldNames.Contains(fv.Name)).ToList();
             foreach (var field in schema.Where(f => f.Required))
             {
-                if (!request.CustomFieldValues.Any(fv => fv.Name == field.Name && !string.IsNullOrEmpty(fv.Value)))
+                if (!validatedFieldValues.Any(fv => fv.Name == field.Name && !string.IsNullOrEmpty(fv.Value)))
                     return (null, false, $"Required custom field missing: {field.Name}");
             }
         }
@@ -139,11 +136,11 @@ public class CatalogItemsService : ICatalogItemsService
             ReferenceCode = request.ReferenceCode,
             Image = request.Image,
             Rarity = request.Rarity,
-            CustomFieldValues = request.CustomFieldValues?.Select(f => new CustomFieldValue
+            CustomFieldValues = validatedFieldValues.Select(f => new CustomFieldValue
             {
                 Name = f.Name,
                 Value = f.Value
-            }).ToList() ?? new()
+            }).ToList()
         };
 
         await _catalogItemsRepository.AddAsync(item);
@@ -164,18 +161,6 @@ public class CatalogItemsService : ICatalogItemsService
         var item = await _catalogItemsRepository.GetByIdAndCollectionIdAsync(id, collectionId);
         if (item == null) return (null, true, null);
 
-        // Validate custom field values against schema
-        if (request.CustomFieldValues != null && request.CustomFieldValues.Count > 0)
-        {
-            var schema = collection.CollectionType.CustomFieldSchema;
-            foreach (var fv in request.CustomFieldValues)
-            {
-                var fieldDef = schema.FirstOrDefault(f => f.Name == fv.Name);
-                if (fieldDef == null)
-                    return (null, false, $"Unknown custom field: {fv.Name}");
-            }
-        }
-
         item.Name = request.Name ?? item.Name;
         item.Identifier = request.Identifier ?? item.Identifier;
         item.Description = request.Description;
@@ -186,11 +171,16 @@ public class CatalogItemsService : ICatalogItemsService
         item.Rarity = request.Rarity;
         if (request.CustomFieldValues != null)
         {
-            item.CustomFieldValues = request.CustomFieldValues.Select(f => new CustomFieldValue
-            {
-                Name = f.Name,
-                Value = f.Value
-            }).ToList();
+            // Filter out fields that no longer exist in the schema
+            var schema = collection.CollectionType.CustomFieldSchema;
+            var schemaFieldNames = schema.Select(f => f.Name).ToHashSet();
+            item.CustomFieldValues = request.CustomFieldValues
+                .Where(fv => schemaFieldNames.Contains(fv.Name))
+                .Select(f => new CustomFieldValue
+                {
+                    Name = f.Name,
+                    Value = f.Value
+                }).ToList();
         }
 
         await _catalogItemsRepository.SaveChangesAsync();

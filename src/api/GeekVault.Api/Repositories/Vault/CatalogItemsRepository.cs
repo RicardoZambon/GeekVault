@@ -33,6 +33,13 @@ public class CatalogItemsRepository : ICatalogItemsRepository
             .ToListAsync();
     }
 
+    public async Task<List<CatalogItem>> GetByCollectionTypeIdAsync(int collectionTypeId)
+    {
+        return await _db.CatalogItems
+            .Where(ci => _db.Collections.Any(c => c.Id == ci.CollectionId && c.CollectionTypeId == collectionTypeId))
+            .ToListAsync();
+    }
+
     public async Task AddAsync(CatalogItem item)
     {
         _db.CatalogItems.Add(item);
