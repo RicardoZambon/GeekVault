@@ -1,4 +1,4 @@
-namespace GeekVault.Api.Models;
+namespace GeekVault.Api.Entities.Vault;
 
 public class WishlistItem
 {

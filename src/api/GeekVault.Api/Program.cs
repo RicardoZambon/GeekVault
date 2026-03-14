@@ -5,7 +5,7 @@ using System.Text;
 using System.Text.Json;
 using GeekVault.Api.Data;
 using GeekVault.Api.Entities.Security;
-using GeekVault.Api.Models;
+using GeekVault.Api.Entities.Vault;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
