@@ -23,6 +23,7 @@ Started: Sat Mar 14 06:01:01 PM UTC 2026
 - Controllers are static classes in `Controllers/{Domain}/` with `MapXxxEndpoints(this IEndpointRouteBuilder app)` extension methods — inject services, not lower-level deps
 - DI registration is in `Extensions/ServiceCollectionExtensions.cs` with `AddSecurityServices(config)` and `AddVaultServices()` — add new services there, not in Program.cs
 - `IdentityUserContext<T>` creates AspNetUserClaims/Logins/Tokens tables by default — use `ExcludeFromMigrations()` to suppress them
+- Coverage: Exclude migrations with `ExcludeByFile=**/Migrations/*.cs` in test csproj; line threshold is 90%
 ---
 
 ## 2026-03-14 - US-001
@@ -240,4 +241,19 @@ Started: Sat Mar 14 06:01:01 PM UTC 2026
   - `dotnet-ef` tool must be installed globally (`dotnet tool install --global dotnet-ef`) — it's not pre-installed in the dev container
   - Always run `dotnet ef migrations remove` before `dotnet ef migrations add` when regenerating to avoid stale snapshots
   - Database drop and recreate verifies the migration works from scratch — important for clean slate migrations
+---
+
+## 2026-03-14 - US-016
+- All 103 existing tests already pass against the restructured architecture — no test file modifications needed
+- Tests use HTTP client via `WebApplicationFactory<Program>` so they're decoupled from internal architecture (entity names, namespaces, repositories, services)
+- TestFactory.cs already works with the new `ApplicationDbContext` (IdentityUserContext<User> base class) — no changes needed
+- Configured coverage exclusion for auto-generated migration files (`ExcludeByFile=**/Migrations/*.cs`) in test csproj
+- Added `Threshold=90` and `ThresholdType=line` to csproj for enforcing 90% line coverage threshold
+- Line coverage: 96.52% (above 90% threshold), Branch coverage: 69.18%, Method coverage: 94.89%
+- Files changed: `GeekVault.Api.Tests/GeekVault.Api.Tests.csproj`
+- **Learnings for future iterations:**
+  - Migrations are auto-generated and should always be excluded from coverage — they add ~1682 lines of 0% coverage
+  - Integration tests via `WebApplicationFactory` are resilient to internal restructuring — as long as HTTP API contracts don't change, tests continue passing
+  - Coverlet `Threshold` property in csproj only applies to the type specified by `ThresholdType` — branch coverage won't fail the build unless added separately
+  - The in-memory database provider ignores schema names, table configurations, and EF migrations — it just works with the entity model
 ---
