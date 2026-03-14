@@ -179,6 +179,32 @@ public class CollectionEndpointsTests : IClassFixture<TestFactory<CollectionEndp
     }
 
     [Fact]
+    public async Task UploadCover_ThenGetCollection_ShowsCoverImage()
+    {
+        var (client, typeId) = await CreateAuthenticatedClientWithTypeAsync("col-cover-persist@example.com");
+
+        var createResponse = await client.PostAsJsonAsync("/api/collections", new
+        {
+            Name = "Cover Persist",
+            CollectionTypeId = typeId
+        });
+        var created = await createResponse.Content.ReadFromJsonAsync<CollectionResult>();
+
+        using var content = new MultipartFormDataContent();
+        var fileContent = new ByteArrayContent(new byte[] { 0x89, 0x50, 0x4E, 0x47 });
+        fileContent.Headers.ContentType = new MediaTypeHeaderValue("image/png");
+        content.Add(fileContent, "cover", "cover.png");
+
+        await client.PostAsync($"/api/collections/{created!.Id}/cover", content);
+
+        var response = await client.GetAsync($"/api/collections/{created.Id}");
+        var col = await response.Content.ReadFromJsonAsync<CollectionResult>();
+        Assert.NotNull(col);
+        Assert.NotNull(col.CoverImage);
+        Assert.Contains("/uploads/", col.CoverImage);
+    }
+
+    [Fact]
     public async Task Collection_RequiresAuth()
     {
         var client = _factory.CreateClient();
