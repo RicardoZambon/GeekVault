@@ -89,7 +89,7 @@ export default function CatalogItemDetail() {
   const [formReleaseDate, setFormReleaseDate] = useState("")
   const [formManufacturer, setFormManufacturer] = useState("")
   const [formReferenceCode, setFormReferenceCode] = useState("")
-  const [formImage, setFormImage] = useState("")
+  const [formImageFile, setFormImageFile] = useState<File | null>(null)
   const [formRarity, setFormRarity] = useState("")
   const [formCustomFields, setFormCustomFields] = useState<Record<string, string>>({})
   const [formError, setFormError] = useState("")
@@ -187,7 +187,7 @@ export default function CatalogItemDetail() {
     setFormReleaseDate(item.releaseDate ?? "")
     setFormManufacturer(item.manufacturer ?? "")
     setFormReferenceCode(item.referenceCode ?? "")
-    setFormImage(item.image ?? "")
+    setFormImageFile(null)
     setFormRarity(item.rarity ?? "")
     const cf: Record<string, string> = {}
     for (const fv of item.customFieldValues ?? []) {
@@ -233,7 +233,6 @@ export default function CatalogItemDetail() {
         releaseDate: formReleaseDate || null,
         manufacturer: formManufacturer.trim() || null,
         referenceCode: formReferenceCode.trim() || null,
-        image: formImage.trim() || null,
         rarity: formRarity.trim() || null,
         customFieldValues: customFieldValues.length > 0 ? customFieldValues : null,
       }
@@ -247,6 +246,16 @@ export default function CatalogItemDetail() {
       if (!res.ok) {
         const data = await res.json().catch(() => null)
         throw new Error(data?.message ?? t("collectionDetail.saveFailed"))
+      }
+
+      if (formImageFile) {
+        const formData = new FormData()
+        formData.append("image", formImageFile)
+        await fetch(`/api/collections/${collectionId}/items/${itemId}/image`, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${token}` },
+          body: formData,
+        })
       }
 
       setEditOpen(false)
@@ -686,10 +695,18 @@ export default function CatalogItemDetail() {
               <Label htmlFor="edit-image">{t("collectionDetail.imageLabel")}</Label>
               <Input
                 id="edit-image"
-                value={formImage}
-                onChange={(e) => setFormImage(e.target.value)}
+                type="file"
+                accept="image/*"
+                onChange={(e) => setFormImageFile(e.target.files?.[0] ?? null)}
                 disabled={submitting}
               />
+              {item?.image && (
+                <img
+                  src={item.image}
+                  alt={item.name}
+                  className="mt-2 h-20 w-20 rounded border object-cover"
+                />
+              )}
             </div>
 
             {/* Custom fields */}

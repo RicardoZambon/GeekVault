@@ -134,7 +134,6 @@ public class CatalogItemsService : ICatalogItemsService
             ReleaseDate = request.ReleaseDate,
             Manufacturer = request.Manufacturer,
             ReferenceCode = request.ReferenceCode,
-            Image = request.Image,
             Rarity = request.Rarity,
             CustomFieldValues = validatedFieldValues.Select(f => new CustomFieldValue
             {
@@ -167,7 +166,6 @@ public class CatalogItemsService : ICatalogItemsService
         item.ReleaseDate = request.ReleaseDate;
         item.Manufacturer = request.Manufacturer;
         item.ReferenceCode = request.ReferenceCode;
-        item.Image = request.Image;
         item.Rarity = request.Rarity;
         if (request.CustomFieldValues != null)
         {
@@ -202,5 +200,35 @@ public class CatalogItemsService : ICatalogItemsService
         _catalogItemsRepository.Remove(item);
         await _catalogItemsRepository.SaveChangesAsync();
         return true;
+    }
+
+    public async Task<(string? ImageUrl, bool NotFound, string? Error)> UploadImageAsync(
+        int collectionId, int id, string userId, IFormFile file, string webRootPath)
+    {
+        var collection = await _collectionsRepository.GetByIdAndUserIdAsync(collectionId, userId);
+        if (collection == null) return (null, true, null);
+
+        var item = await _catalogItemsRepository.GetByIdAndCollectionIdAsync(id, collectionId);
+        if (item == null) return (null, true, null);
+
+        if (file.Length == 0)
+            return (null, false, "No image file provided");
+
+        var uploadsDir = Path.Combine(webRootPath, "uploads");
+        Directory.CreateDirectory(uploadsDir);
+
+        var extension = Path.GetExtension(file.FileName);
+        var fileName = $"catalogitem-{id}{extension}";
+        var filePath = Path.Combine(uploadsDir, fileName);
+
+        using (var stream = new FileStream(filePath, FileMode.Create))
+        {
+            await file.CopyToAsync(stream);
+        }
+
+        item.Image = $"/uploads/{fileName}";
+        await _catalogItemsRepository.SaveChangesAsync();
+
+        return (item.Image, false, null);
     }
 }

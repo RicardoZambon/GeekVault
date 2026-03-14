@@ -106,6 +106,36 @@ public static class CatalogItemsController
         .WithName("DeleteCatalogItem")
         .WithOpenApi();
 
+        app.MapPost("/api/collections/{collectionId:int}/items/{id:int}/image", async (
+            int collectionId,
+            int id,
+            HttpRequest httpRequest,
+            ClaimsPrincipal principal,
+            ICatalogItemsService service,
+            IWebHostEnvironment env) =>
+        {
+            var userId = principal.FindFirstValue(ClaimTypes.NameIdentifier)!;
+
+            if (!httpRequest.HasFormContentType)
+                return Results.BadRequest(new { error = "Expected multipart form data" });
+
+            var form = await httpRequest.ReadFormAsync();
+            var file = form.Files.GetFile("image");
+            if (file == null || file.Length == 0)
+                return Results.BadRequest(new { error = "No image file provided" });
+
+            var webRootPath = env.WebRootPath ?? Path.Combine(env.ContentRootPath, "wwwroot");
+            var (imageUrl, notFound, error) = await service.UploadImageAsync(collectionId, id, userId, file, webRootPath);
+            if (notFound) return Results.NotFound();
+            if (error != null) return Results.BadRequest(new { error });
+
+            return Results.Ok(new { imageUrl });
+        })
+        .RequireAuthorization()
+        .WithName("UploadCatalogItemImage")
+        .WithOpenApi()
+        .DisableAntiforgery();
+
         // Export endpoint
         app.MapGet("/api/collections/{id:int}/export", async (
             int id,

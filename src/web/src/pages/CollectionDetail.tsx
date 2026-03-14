@@ -144,7 +144,7 @@ export default function CollectionDetail() {
   const [formReleaseDate, setFormReleaseDate] = useState("")
   const [formManufacturer, setFormManufacturer] = useState("")
   const [formReferenceCode, setFormReferenceCode] = useState("")
-  const [formImage, setFormImage] = useState("")
+  const [formImageFile, setFormImageFile] = useState<File | null>(null)
   const [formRarity, setFormRarity] = useState("")
   const [formCustomFields, setFormCustomFields] = useState<Record<string, string>>({})
   const [formError, setFormError] = useState("")
@@ -293,7 +293,7 @@ export default function CollectionDetail() {
     setFormReleaseDate("")
     setFormManufacturer("")
     setFormReferenceCode("")
-    setFormImage("")
+    setFormImageFile(null)
     setFormRarity("")
     setFormCustomFields({})
     setFormError("")
@@ -336,7 +336,6 @@ export default function CollectionDetail() {
         releaseDate: formReleaseDate || null,
         manufacturer: formManufacturer.trim() || null,
         referenceCode: formReferenceCode.trim() || null,
-        image: formImage.trim() || null,
         rarity: formRarity.trim() || null,
         customFieldValues: customFieldValues.length > 0 ? customFieldValues : null,
       }
@@ -350,6 +349,18 @@ export default function CollectionDetail() {
       if (!res.ok) {
         const data = await res.json().catch(() => null)
         throw new Error(data?.message ?? t("collectionDetail.saveFailed"))
+      }
+
+      const saved = await res.json()
+
+      if (formImageFile) {
+        const formData = new FormData()
+        formData.append("image", formImageFile)
+        await fetch(`/api/collections/${id}/items/${saved.id}/image`, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${token}` },
+          body: formData,
+        })
       }
 
       setDialogOpen(false)
@@ -1083,9 +1094,9 @@ export default function CollectionDetail() {
               <Label htmlFor="item-image">{t("collectionDetail.imageLabel")}</Label>
               <Input
                 id="item-image"
-                value={formImage}
-                onChange={(e) => setFormImage(e.target.value)}
-                placeholder={t("collectionDetail.imagePlaceholder")}
+                type="file"
+                accept="image/*"
+                onChange={(e) => setFormImageFile(e.target.files?.[0] ?? null)}
                 disabled={submitting}
               />
             </div>
