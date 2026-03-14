@@ -20,6 +20,7 @@ Started: Sat Mar 14 06:01:01 PM UTC 2026
 - Services inject repositories (not DbContext or UserManager directly); AuthService also injects IConfiguration for JWT
 - CatalogItem entity has NO OwnedCopies navigation property — use `repo.Query()` IQueryable for cross-entity query composition
 - Services use tuple return patterns: `(Response?, Error?)` or `(Response?, NotFound, Error?)` for operations that can fail
+- Controllers are static classes in `Controllers/{Domain}/` with `MapXxxEndpoints(this IEndpointRouteBuilder app)` extension methods — inject services, not lower-level deps
 ---
 
 ## 2026-03-14 - US-001
@@ -140,4 +141,21 @@ Started: Sat Mar 14 06:01:01 PM UTC 2026
   - Services are not yet wired into endpoints (endpoints still use DbContext directly) — that happens in US-010 through US-013
   - CollectionTypesService encapsulates the valid field types set internally — no need to pass it from the endpoint
   - Services follow the tuple return pattern from Security services: `(Response?, Error?)` or `(Response?, NotFound, Error?)` for operations that can fail
+---
+
+## 2026-03-14 - US-010
+- Created `Controllers/Security/AuthController.cs` with `MapAuthEndpoints` extension method
+- Moved POST /api/auth/register, POST /api/auth/login, POST /api/auth/logout, GET /api/auth/me from Program.cs
+- Auth endpoints now call `IAuthService` instead of `UserManager<User>` directly
+- Created `Controllers/Security/ProfileController.cs` with `MapProfileEndpoints` extension method
+- Moved GET /api/profile, PUT /api/profile, POST /api/profile/avatar from Program.cs
+- Profile endpoints now call `IProfileService` instead of `UserManager<User>` directly
+- Removed `GenerateJwtToken` static method from Program.cs (logic already in AuthService)
+- Cleaned up unused `using` statements (`System.IdentityModel.Tokens.Jwt`, `DTOs.Security`)
+- Files changed: `Controllers/Security/AuthController.cs` (new), `Controllers/Security/ProfileController.cs` (new), `Program.cs`
+- **Learnings for future iterations:**
+  - Controllers are static classes with extension methods on `IEndpointRouteBuilder` — pattern: `public static IEndpointRouteBuilder MapXxxEndpoints(this IEndpointRouteBuilder app)`
+  - When extracting endpoints, inject services (IAuthService, IProfileService) instead of lower-level dependencies (UserManager, DbContext) — the services already encapsulate those
+  - All 103 tests pass without modification — tests hit HTTP endpoints via WebApplicationFactory, so the internal restructuring is transparent
+  - After removing endpoints from Program.cs, check for unused `using` statements and the `GenerateJwtToken` helper that was only used by auth endpoints
 ---
