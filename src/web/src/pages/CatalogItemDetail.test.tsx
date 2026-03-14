@@ -620,7 +620,6 @@ describe("CatalogItemDetail", () => {
     fireEvent.change(screen.getByDisplayValue("First issue"), { target: { value: "" } })
     fireEvent.change(screen.getByDisplayValue("Marvel"), { target: { value: "" } })
     fireEvent.change(screen.getByDisplayValue("REF-001"), { target: { value: "" } })
-    fireEvent.change(screen.getByDisplayValue("http://img.jpg"), { target: { value: "" } })
     fireEvent.change(screen.getByDisplayValue("Rare"), { target: { value: "" } })
     fireEvent.change(screen.getByDisplayValue("1963-03-01"), { target: { value: "" } })
     // Clear custom field
@@ -654,7 +653,6 @@ describe("CatalogItemDetail", () => {
     expect(body.description).toBeNull()
     expect(body.manufacturer).toBeNull()
     expect(body.referenceCode).toBeNull()
-    expect(body.image).toBeNull()
     expect(body.rarity).toBeNull()
     expect(body.releaseDate).toBeNull()
   })
@@ -933,11 +931,6 @@ describe("CatalogItemDetail", () => {
     const rarityInput = screen.getByDisplayValue("Rare")
     fireEvent.change(rarityInput, { target: { value: "Common" } })
     expect(rarityInput).toHaveValue("Common")
-
-    // Modify image URL
-    const imgInput = screen.getByDisplayValue("http://img.jpg")
-    fireEvent.change(imgInput, { target: { value: "http://new.jpg" } })
-    expect(imgInput).toHaveValue("http://new.jpg")
 
     // Modify release date
     const dateInput = screen.getByDisplayValue("1963-03-01")

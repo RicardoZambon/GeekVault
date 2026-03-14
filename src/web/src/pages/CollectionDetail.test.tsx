@@ -197,8 +197,6 @@ describe("CollectionDetail", () => {
     fireEvent.change(screen.getByLabelText("collectionDetail.manufacturerLabel"), { target: { value: "Acme" } })
     fireEvent.change(screen.getByLabelText("collectionDetail.referenceCodeLabel"), { target: { value: "REF-1" } })
     fireEvent.change(screen.getByLabelText("collectionDetail.rarityLabel"), { target: { value: "Rare" } })
-    fireEvent.change(screen.getByLabelText("collectionDetail.imageLabel"), { target: { value: "http://img.png" } })
-
     const submitButtons = screen.getAllByText("collectionDetail.addItem")
     fireEvent.click(submitButtons[submitButtons.length - 1])
 
@@ -1675,7 +1673,6 @@ describe("CollectionDetail", () => {
     fireEvent.change(screen.getByLabelText("collectionDetail.manufacturerLabel"), { target: { value: "MFG" } })
     fireEvent.change(screen.getByLabelText("collectionDetail.referenceCodeLabel"), { target: { value: "REF" } })
     fireEvent.change(screen.getByLabelText("collectionDetail.rarityLabel"), { target: { value: "Common" } })
-    fireEvent.change(screen.getByLabelText("collectionDetail.imageLabel"), { target: { value: "http://img.png" } })
   })
 
   it("closes add items to set dialog", async () => {

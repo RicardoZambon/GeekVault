@@ -70,15 +70,14 @@ public class SetEndpointsTests : IClassFixture<TestFactory<SetEndpointsTests>>
         var (client, collectionId, _) = await CreateAuthenticatedClientWithCollectionAsync("set-create@example.com");
         var response = await client.PostAsJsonAsync($"/api/collections/{collectionId}/sets", new
         {
-            Name = "Series 1",
-            ExpectedItemCount = 10
+            Name = "Series 1"
         });
 
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
         var set = await response.Content.ReadFromJsonAsync<SetResult>();
         Assert.NotNull(set);
         Assert.Equal("Series 1", set.Name);
-        Assert.Equal(10, set.ExpectedItemCount);
+        Assert.Equal(0, set.ExpectedItemCount);
         Assert.True(set.Id > 0);
     }
 
@@ -90,8 +89,7 @@ public class SetEndpointsTests : IClassFixture<TestFactory<SetEndpointsTests>>
         // Create set
         var createResponse = await client.PostAsJsonAsync($"/api/collections/{collectionId}/sets", new
         {
-            Name = "Complete Set",
-            ExpectedItemCount = 2
+            Name = "Complete Set"
         });
         var created = await createResponse.Content.ReadFromJsonAsync<SetResult>();
 
@@ -108,6 +106,7 @@ public class SetEndpointsTests : IClassFixture<TestFactory<SetEndpointsTests>>
         var set = await response.Content.ReadFromJsonAsync<SetResult>();
         Assert.NotNull(set);
         Assert.Equal("Complete Set", set.Name);
+        Assert.Equal(2, set.ExpectedItemCount);
         Assert.NotNull(set.Items);
         Assert.Equal(2, set.Items.Count);
         Assert.Equal(0, set.CompletedCount); // No owned copies yet
@@ -119,18 +118,18 @@ public class SetEndpointsTests : IClassFixture<TestFactory<SetEndpointsTests>>
     {
         var (client, collectionId, catalogItemId) = await CreateAuthenticatedClientWithCollectionAsync("set-completion@example.com");
 
-        // Create set with expected count of 2
+        // Create set
         var createResponse = await client.PostAsJsonAsync($"/api/collections/{collectionId}/sets", new
         {
-            Name = "Completion Test",
-            ExpectedItemCount = 2
+            Name = "Completion Test"
         });
         var created = await createResponse.Content.ReadFromJsonAsync<SetResult>();
 
-        // Add item linked to catalog item
+        // Add 2 items, one linked to catalog item
         await client.PostAsJsonAsync($"/api/collections/{collectionId}/sets/{created!.Id}/items", new[]
         {
-            new { Name = "Linked Item", CatalogItemId = catalogItemId, SortOrder = 1 }
+            new { Name = "Linked Item", CatalogItemId = (int?)catalogItemId, SortOrder = (int?)1 },
+            new { Name = "Unlinked Item", CatalogItemId = (int?)null, SortOrder = (int?)2 }
         });
 
         // Add owned copy for the catalog item
@@ -139,7 +138,8 @@ public class SetEndpointsTests : IClassFixture<TestFactory<SetEndpointsTests>>
         var response = await client.GetAsync($"/api/collections/{collectionId}/sets/{created.Id}");
         var set = await response.Content.ReadFromJsonAsync<SetResult>();
 
-        Assert.Equal(1, set!.CompletedCount);
+        Assert.Equal(2, set!.ExpectedItemCount);
+        Assert.Equal(1, set.CompletedCount);
         Assert.Equal(50, set.CompletionPercentage);
     }
 
@@ -150,21 +150,18 @@ public class SetEndpointsTests : IClassFixture<TestFactory<SetEndpointsTests>>
 
         var createResponse = await client.PostAsJsonAsync($"/api/collections/{collectionId}/sets", new
         {
-            Name = "Old Name",
-            ExpectedItemCount = 5
+            Name = "Old Name"
         });
         var created = await createResponse.Content.ReadFromJsonAsync<SetResult>();
 
         var response = await client.PutAsJsonAsync($"/api/collections/{collectionId}/sets/{created!.Id}", new
         {
-            Name = "New Name",
-            ExpectedItemCount = 10
+            Name = "New Name"
         });
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var set = await response.Content.ReadFromJsonAsync<SetResult>();
         Assert.Equal("New Name", set!.Name);
-        Assert.Equal(10, set.ExpectedItemCount);
     }
 
     [Fact]
@@ -174,8 +171,7 @@ public class SetEndpointsTests : IClassFixture<TestFactory<SetEndpointsTests>>
 
         var createResponse = await client.PostAsJsonAsync($"/api/collections/{collectionId}/sets", new
         {
-            Name = "To Delete",
-            ExpectedItemCount = 3
+            Name = "To Delete"
         });
         var created = await createResponse.Content.ReadFromJsonAsync<SetResult>();
 
@@ -194,8 +190,7 @@ public class SetEndpointsTests : IClassFixture<TestFactory<SetEndpointsTests>>
 
         var createResponse = await client.PostAsJsonAsync($"/api/collections/{collectionId}/sets", new
         {
-            Name = "Bulk Set",
-            ExpectedItemCount = 3
+            Name = "Bulk Set"
         });
         var created = await createResponse.Content.ReadFromJsonAsync<SetResult>();
 
@@ -213,11 +208,29 @@ public class SetEndpointsTests : IClassFixture<TestFactory<SetEndpointsTests>>
     }
 
     [Fact]
-    public async Task Sets_RequiresAuth()
+    public async Task AddSetItems_ThenGetSet_ReturnsCorrectExpectedCount()
     {
-        var client = _factory.CreateClient();
-        var response = await client.GetAsync("/api/collections/1/sets");
-        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+        var (client, collectionId, catalogItemId) = await CreateAuthenticatedClientWithCollectionAsync("set-itemcount@example.com");
+
+        var createResponse = await client.PostAsJsonAsync($"/api/collections/{collectionId}/sets", new
+        {
+            Name = "Count Set"
+        });
+        var created = await createResponse.Content.ReadFromJsonAsync<SetResult>();
+        Assert.Equal(0, created!.ExpectedItemCount);
+
+        // Add 3 items
+        await client.PostAsJsonAsync($"/api/collections/{collectionId}/sets/{created.Id}/items", new[]
+        {
+            new { Name = "Item 1", CatalogItemId = (int?)catalogItemId, SortOrder = (int?)1 },
+            new { Name = "Item 2", CatalogItemId = (int?)null, SortOrder = (int?)2 },
+            new { Name = "Item 3", CatalogItemId = (int?)null, SortOrder = (int?)3 }
+        });
+
+        // ExpectedItemCount should now be 3
+        var response = await client.GetAsync($"/api/collections/{collectionId}/sets/{created.Id}");
+        var set = await response.Content.ReadFromJsonAsync<SetResult>();
+        Assert.Equal(3, set!.ExpectedItemCount);
     }
 
     [Fact]
@@ -225,11 +238,10 @@ public class SetEndpointsTests : IClassFixture<TestFactory<SetEndpointsTests>>
     {
         var (client, collectionId, catalogItemId) = await CreateAuthenticatedClientWithCollectionAsync("set-listcounts@example.com");
 
-        // Create set with expected count of 2
+        // Create set
         var createResponse = await client.PostAsJsonAsync($"/api/collections/{collectionId}/sets", new
         {
-            Name = "Counted Set",
-            ExpectedItemCount = 2
+            Name = "Counted Set"
         });
         var created = await createResponse.Content.ReadFromJsonAsync<SetResult>();
 
@@ -251,6 +263,14 @@ public class SetEndpointsTests : IClassFixture<TestFactory<SetEndpointsTests>>
         Assert.Equal(1, sets[0].CompletedCount);
         Assert.Equal(50, sets[0].CompletionPercentage);
         Assert.Equal(2, sets[0].ExpectedItemCount);
+    }
+
+    [Fact]
+    public async Task Sets_RequiresAuth()
+    {
+        var client = _factory.CreateClient();
+        var response = await client.GetAsync("/api/collections/1/sets");
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
 
     [Fact]

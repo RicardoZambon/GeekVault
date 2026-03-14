@@ -40,11 +40,12 @@ public class SetsService : ISetsService
                     if (hasOwnedCopy) completedCount++;
                 }
             }
-            var completionPercentage = s.ExpectedItemCount > 0
-                ? (double)completedCount / s.ExpectedItemCount * 100
+            var expectedItemCount = items.Count;
+            var completionPercentage = expectedItemCount > 0
+                ? (double)completedCount / expectedItemCount * 100
                 : 0;
 
-            responses.Add(new SetResponse(s.Id, s.CollectionId, s.Name, s.ExpectedItemCount,
+            responses.Add(new SetResponse(s.Id, s.CollectionId, s.Name, expectedItemCount,
                 null, completedCount, Math.Round(completionPercentage, 2)));
         }
 
@@ -72,11 +73,12 @@ public class SetsService : ISetsService
                 if (hasOwnedCopy) completedCount++;
             }
         }
-        var completionPercentage = set.ExpectedItemCount > 0
-            ? (double)completedCount / set.ExpectedItemCount * 100
+        var expectedItemCount = itemResponses.Count;
+        var completionPercentage = expectedItemCount > 0
+            ? (double)completedCount / expectedItemCount * 100
             : 0;
 
-        return new SetResponse(set.Id, set.CollectionId, set.Name, set.ExpectedItemCount,
+        return new SetResponse(set.Id, set.CollectionId, set.Name, expectedItemCount,
             itemResponses, completedCount, Math.Round(completionPercentage, 2));
     }
 
@@ -89,13 +91,12 @@ public class SetsService : ISetsService
         {
             CollectionId = collectionId,
             Name = request.Name,
-            ExpectedItemCount = request.ExpectedItemCount
         };
 
         await _setsRepository.AddAsync(set);
         await _setsRepository.SaveChangesAsync();
 
-        return new SetResponse(set.Id, set.CollectionId, set.Name, set.ExpectedItemCount, null, null, null);
+        return new SetResponse(set.Id, set.CollectionId, set.Name, 0, null, 0, 0);
     }
 
     public async Task<SetResponse?> UpdateAsync(int collectionId, int id, string userId, UpdateSetRequest request)
@@ -107,12 +108,26 @@ public class SetsService : ISetsService
         if (set == null) return null;
 
         set.Name = request.Name ?? set.Name;
-        if (request.ExpectedItemCount.HasValue)
-            set.ExpectedItemCount = request.ExpectedItemCount.Value;
 
         await _setsRepository.SaveChangesAsync();
 
-        return new SetResponse(set.Id, set.CollectionId, set.Name, set.ExpectedItemCount, null, null, null);
+        var items = await _setsRepository.GetSetItemsAsync(id);
+        var completedCount = 0;
+        foreach (var item in items)
+        {
+            if (item.CatalogItemId != null)
+            {
+                var hasOwnedCopy = await _ownedCopiesRepository.AnyByCatalogItemIdAsync(item.CatalogItemId.Value);
+                if (hasOwnedCopy) completedCount++;
+            }
+        }
+        var expectedItemCount = items.Count;
+        var completionPercentage = expectedItemCount > 0
+            ? (double)completedCount / expectedItemCount * 100
+            : 0;
+
+        return new SetResponse(set.Id, set.CollectionId, set.Name, expectedItemCount,
+            null, completedCount, Math.Round(completionPercentage, 2));
     }
 
     public async Task<bool?> DeleteAsync(int collectionId, int id, string userId)
