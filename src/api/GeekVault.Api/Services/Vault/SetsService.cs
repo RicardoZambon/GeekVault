@@ -172,4 +172,20 @@ public class SetsService : ISetsService
 
         return items.Select(si => new SetItemResponse(si.Id, si.SetId, si.CatalogItemId, si.Name, si.SortOrder)).ToList();
     }
+
+    public async Task<bool?> DeleteSetItemAsync(int collectionId, int setId, int itemId, string userId)
+    {
+        var collection = await _collectionsRepository.GetByIdAndUserIdAsync(collectionId, userId);
+        if (collection == null) return null;
+
+        var set = await _setsRepository.GetByIdAndCollectionIdAsync(setId, collectionId);
+        if (set == null) return null;
+
+        var item = await _setsRepository.GetSetItemByIdAsync(setId, itemId);
+        if (item == null) return false;
+
+        _setsRepository.RemoveSetItem(item);
+        await _setsRepository.SaveChangesAsync();
+        return true;
+    }
 }

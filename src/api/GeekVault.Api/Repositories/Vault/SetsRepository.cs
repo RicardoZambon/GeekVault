@@ -71,6 +71,16 @@ public class SetsRepository : ISetsRepository
         await _db.SaveChangesAsync();
     }
 
+    public async Task<SetItem?> GetSetItemByIdAsync(int setId, int itemId)
+    {
+        return await _db.SetItems.FirstOrDefaultAsync(si => si.SetId == setId && si.Id == itemId);
+    }
+
+    public void RemoveSetItem(SetItem item)
+    {
+        _db.SetItems.Remove(item);
+    }
+
     public async Task SaveChangesAsync()
     {
         await _db.SaveChangesAsync();

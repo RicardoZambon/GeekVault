@@ -10,4 +10,5 @@ public interface ISetsService
     Task<SetResponse?> UpdateAsync(int collectionId, int id, string userId, UpdateSetRequest request);
     Task<bool?> DeleteAsync(int collectionId, int id, string userId);
     Task<List<SetItemResponse>?> AddItemsAsync(int collectionId, int id, string userId, List<CreateSetItemRequest> request);
+    Task<bool?> DeleteSetItemAsync(int collectionId, int setId, int itemId, string userId);
 }

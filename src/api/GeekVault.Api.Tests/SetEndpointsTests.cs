@@ -266,6 +266,65 @@ public class SetEndpointsTests : IClassFixture<TestFactory<SetEndpointsTests>>
     }
 
     [Fact]
+    public async Task DeleteSetItem_RemovesItem()
+    {
+        var (client, collectionId, catalogItemId) = await CreateAuthenticatedClientWithCollectionAsync("set-delitem@example.com");
+
+        var createResponse = await client.PostAsJsonAsync($"/api/collections/{collectionId}/sets", new { Name = "Del Item Set" });
+        var created = await createResponse.Content.ReadFromJsonAsync<SetResult>();
+
+        var addResponse = await client.PostAsJsonAsync($"/api/collections/{collectionId}/sets/{created!.Id}/items", new[]
+        {
+            new { Name = "Item A", CatalogItemId = (int?)null, SortOrder = (int?)1 },
+            new { Name = "Item B", CatalogItemId = (int?)null, SortOrder = (int?)2 }
+        });
+        var addedItems = await addResponse.Content.ReadFromJsonAsync<List<SetItemResult>>();
+
+        var response = await client.DeleteAsync($"/api/collections/{collectionId}/sets/{created.Id}/items/{addedItems![0].Id}");
+        Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
+
+        var getResponse = await client.GetAsync($"/api/collections/{collectionId}/sets/{created.Id}");
+        var set = await getResponse.Content.ReadFromJsonAsync<SetResult>();
+        Assert.Single(set!.Items!);
+        Assert.Equal("Item B", set.Items![0].Name);
+    }
+
+    [Fact]
+    public async Task DeleteSetItem_WrongItemId_ReturnsNotFound()
+    {
+        var (client, collectionId, _) = await CreateAuthenticatedClientWithCollectionAsync("set-delitem-nf@example.com");
+
+        var createResponse = await client.PostAsJsonAsync($"/api/collections/{collectionId}/sets", new { Name = "NF Set" });
+        var created = await createResponse.Content.ReadFromJsonAsync<SetResult>();
+
+        var response = await client.DeleteAsync($"/api/collections/{collectionId}/sets/{created!.Id}/items/99999");
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task DeleteSetItem_UpdatesExpectedCount()
+    {
+        var (client, collectionId, _) = await CreateAuthenticatedClientWithCollectionAsync("set-delitem-count@example.com");
+
+        var createResponse = await client.PostAsJsonAsync($"/api/collections/{collectionId}/sets", new { Name = "Count Set" });
+        var created = await createResponse.Content.ReadFromJsonAsync<SetResult>();
+
+        var addResponse = await client.PostAsJsonAsync($"/api/collections/{collectionId}/sets/{created!.Id}/items", new[]
+        {
+            new { Name = "A", CatalogItemId = (int?)null, SortOrder = (int?)1 },
+            new { Name = "B", CatalogItemId = (int?)null, SortOrder = (int?)2 },
+            new { Name = "C", CatalogItemId = (int?)null, SortOrder = (int?)3 }
+        });
+        var addedItems = await addResponse.Content.ReadFromJsonAsync<List<SetItemResult>>();
+
+        await client.DeleteAsync($"/api/collections/{collectionId}/sets/{created.Id}/items/{addedItems![0].Id}");
+
+        var getResponse = await client.GetAsync($"/api/collections/{collectionId}/sets/{created.Id}");
+        var set = await getResponse.Content.ReadFromJsonAsync<SetResult>();
+        Assert.Equal(2, set!.ExpectedItemCount);
+    }
+
+    [Fact]
     public async Task Sets_RequiresAuth()
     {
         var client = _factory.CreateClient();

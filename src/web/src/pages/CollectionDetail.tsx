@@ -488,6 +488,21 @@ export default function CollectionDetail() {
     }
   }
 
+  async function handleRemoveSetItem(setItemId: number) {
+    if (!selectedSet) return
+    try {
+      const res = await fetch(`/api/collections/${id}/sets/${selectedSet.id}/items/${setItemId}`, {
+        method: "DELETE",
+        headers,
+      })
+      if (!res.ok) throw new Error("Failed to remove item")
+      await fetchSetDetail(selectedSet.id)
+      await fetchSets()
+    } catch {
+      // non-critical
+    }
+  }
+
   // --- Export ---
   async function handleExport() {
     setExportError("")
@@ -966,14 +981,22 @@ export default function CollectionDetail() {
                                 <span className={owned ? "text-foreground" : "text-muted-foreground"}>
                                   {si.name}
                                 </span>
-                                {si.catalogItemId && (
+                                <div className="ml-auto flex items-center gap-1">
+                                  {si.catalogItemId && (
+                                    <button
+                                      className="text-xs text-primary hover:underline"
+                                      onClick={() => navigate(`/collections/${id}/items/${si.catalogItemId}`)}
+                                    >
+                                      {t("sets.viewItem")}
+                                    </button>
+                                  )}
                                   <button
-                                    className="ml-auto text-xs text-primary hover:underline"
-                                    onClick={() => navigate(`/collections/${id}/items/${si.catalogItemId}`)}
+                                    className="rounded p-1 text-muted-foreground hover:text-destructive"
+                                    onClick={() => handleRemoveSetItem(si.id)}
                                   >
-                                    {t("sets.viewItem")}
+                                    <Trash2 className="h-3.5 w-3.5" />
                                   </button>
-                                )}
+                                </div>
                               </li>
                             )
                           })}

@@ -105,6 +105,23 @@ public static class SetsController
         .WithName("AddSetItems")
         .WithOpenApi();
 
+        app.MapDelete("/api/collections/{collectionId:int}/sets/{id:int}/items/{itemId:int}", async (
+            int collectionId,
+            int id,
+            int itemId,
+            ClaimsPrincipal principal,
+            ISetsService service) =>
+        {
+            var userId = principal.FindFirstValue(ClaimTypes.NameIdentifier)!;
+            var result = await service.DeleteSetItemAsync(collectionId, id, itemId, userId);
+            if (result == null || result == false) return Results.NotFound();
+
+            return Results.NoContent();
+        })
+        .RequireAuthorization()
+        .WithName("DeleteSetItem")
+        .WithOpenApi();
+
         return app;
     }
 }
