@@ -33,6 +33,21 @@ public class SetsRepository : ISetsRepository
             .ToListAsync();
     }
 
+    public async Task<Dictionary<int, List<SetItem>>> GetSetItemsByCollectionAsync(int collectionId)
+    {
+        var setIds = await _db.Sets
+            .Where(s => s.CollectionId == collectionId)
+            .Select(s => s.Id)
+            .ToListAsync();
+
+        var items = await _db.SetItems
+            .Where(si => setIds.Contains(si.SetId))
+            .ToListAsync();
+
+        return items.GroupBy(si => si.SetId)
+            .ToDictionary(g => g.Key, g => g.ToList());
+    }
+
     public async Task<int> GetMaxSortOrderAsync(int setId)
     {
         return await _db.SetItems

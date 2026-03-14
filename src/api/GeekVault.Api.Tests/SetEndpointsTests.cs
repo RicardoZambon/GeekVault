@@ -221,6 +221,39 @@ public class SetEndpointsTests : IClassFixture<TestFactory<SetEndpointsTests>>
     }
 
     [Fact]
+    public async Task ListSets_ReturnsCompletionCounts()
+    {
+        var (client, collectionId, catalogItemId) = await CreateAuthenticatedClientWithCollectionAsync("set-listcounts@example.com");
+
+        // Create set with expected count of 2
+        var createResponse = await client.PostAsJsonAsync($"/api/collections/{collectionId}/sets", new
+        {
+            Name = "Counted Set",
+            ExpectedItemCount = 2
+        });
+        var created = await createResponse.Content.ReadFromJsonAsync<SetResult>();
+
+        // Add items to set
+        await client.PostAsJsonAsync($"/api/collections/{collectionId}/sets/{created!.Id}/items", new[]
+        {
+            new { Name = "Item A", CatalogItemId = (int?)catalogItemId, SortOrder = (int?)1 },
+            new { Name = "Item B", CatalogItemId = (int?)null, SortOrder = (int?)2 }
+        });
+
+        // Add owned copy for the catalog item
+        await client.PostAsJsonAsync($"/api/items/{catalogItemId}/copies", new { Condition = "Mint" });
+
+        // List should include completion counts
+        var response = await client.GetAsync($"/api/collections/{collectionId}/sets");
+        var sets = await response.Content.ReadFromJsonAsync<List<SetResult>>();
+        Assert.NotNull(sets);
+        Assert.Single(sets);
+        Assert.Equal(1, sets[0].CompletedCount);
+        Assert.Equal(50, sets[0].CompletionPercentage);
+        Assert.Equal(2, sets[0].ExpectedItemCount);
+    }
+
+    [Fact]
     public async Task Sets_WrongCollection_ReturnsNotFound()
     {
         var (client, _, _) = await CreateAuthenticatedClientWithCollectionAsync("set-wrongcol@example.com");

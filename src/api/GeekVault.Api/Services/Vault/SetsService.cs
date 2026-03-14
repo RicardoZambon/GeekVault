@@ -23,7 +23,32 @@ public class SetsService : ISetsService
         if (collection == null) return null;
 
         var sets = await _setsRepository.GetByCollectionIdAsync(collectionId);
-        return sets.Select(s => new SetResponse(s.Id, s.CollectionId, s.Name, s.ExpectedItemCount, null, null, null)).ToList();
+        var allSetItems = await _setsRepository.GetSetItemsByCollectionAsync(collectionId);
+
+        var responses = new List<SetResponse>();
+        foreach (var s in sets)
+        {
+            allSetItems.TryGetValue(s.Id, out var setItems);
+            var items = setItems ?? new List<Entities.Vault.SetItem>();
+
+            var completedCount = 0;
+            foreach (var item in items)
+            {
+                if (item.CatalogItemId != null)
+                {
+                    var hasOwnedCopy = await _ownedCopiesRepository.AnyByCatalogItemIdAsync(item.CatalogItemId.Value);
+                    if (hasOwnedCopy) completedCount++;
+                }
+            }
+            var completionPercentage = s.ExpectedItemCount > 0
+                ? (double)completedCount / s.ExpectedItemCount * 100
+                : 0;
+
+            responses.Add(new SetResponse(s.Id, s.CollectionId, s.Name, s.ExpectedItemCount,
+                null, completedCount, Math.Round(completionPercentage, 2)));
+        }
+
+        return responses;
     }
 
     public async Task<SetResponse?> GetByIdAsync(int collectionId, int id, string userId)
