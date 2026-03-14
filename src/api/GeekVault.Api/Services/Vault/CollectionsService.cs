@@ -96,7 +96,7 @@ public class CollectionsService : ICollectionsService
         Directory.CreateDirectory(uploadsDir);
 
         var extension = Path.GetExtension(file.FileName);
-        var fileName = $"collection-{id}{extension}";
+        var fileName = $"collection-{id}-{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}{extension}";
         var filePath = Path.Combine(uploadsDir, fileName);
 
         using (var stream = new FileStream(filePath, FileMode.Create))

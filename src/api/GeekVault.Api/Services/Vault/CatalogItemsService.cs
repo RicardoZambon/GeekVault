@@ -218,7 +218,7 @@ public class CatalogItemsService : ICatalogItemsService
         Directory.CreateDirectory(uploadsDir);
 
         var extension = Path.GetExtension(file.FileName);
-        var fileName = $"catalogitem-{id}{extension}";
+        var fileName = $"catalogitem-{id}-{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}{extension}";
         var filePath = Path.Combine(uploadsDir, fileName);
 
         using (var stream = new FileStream(filePath, FileMode.Create))
