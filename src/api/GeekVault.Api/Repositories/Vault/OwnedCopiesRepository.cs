@@ -13,6 +13,8 @@ public class OwnedCopiesRepository : IOwnedCopiesRepository
         _db = db;
     }
 
+    public IQueryable<OwnedCopy> Query() => _db.OwnedCopies;
+
     public async Task<List<OwnedCopy>> GetByCatalogItemIdAsync(int catalogItemId)
     {
         return await _db.OwnedCopies

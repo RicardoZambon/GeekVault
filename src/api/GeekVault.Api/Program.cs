@@ -16,6 +16,7 @@ using Microsoft.IdentityModel.Tokens;
 using GeekVault.Api.Repositories.Security;
 using GeekVault.Api.Repositories.Vault;
 using GeekVault.Api.Services.Security;
+using GeekVault.Api.Services.Vault;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -61,6 +62,14 @@ builder.Services.AddScoped<IWishlistRepository, WishlistRepository>();
 
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IProfileService, ProfileService>();
+
+builder.Services.AddScoped<ICollectionTypesService, CollectionTypesService>();
+builder.Services.AddScoped<ICollectionsService, CollectionsService>();
+builder.Services.AddScoped<ICatalogItemsService, CatalogItemsService>();
+builder.Services.AddScoped<IOwnedCopiesService, OwnedCopiesService>();
+builder.Services.AddScoped<ISetsService, SetsService>();
+builder.Services.AddScoped<IWishlistService, WishlistService>();
+builder.Services.AddScoped<IDashboardService, DashboardService>();
 
 builder.Services.AddAuthorization();
 

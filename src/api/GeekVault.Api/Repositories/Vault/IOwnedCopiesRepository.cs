@@ -4,6 +4,7 @@ namespace GeekVault.Api.Repositories.Vault;
 
 public interface IOwnedCopiesRepository
 {
+    IQueryable<OwnedCopy> Query();
     Task<List<OwnedCopy>> GetByCatalogItemIdAsync(int catalogItemId);
     Task<OwnedCopy?> GetByIdAndCatalogItemIdAsync(int id, int catalogItemId);
     Task<CatalogItem?> GetCatalogItemWithCollectionAsync(int catalogItemId, string userId);

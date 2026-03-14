@@ -13,6 +13,8 @@ public class CatalogItemsRepository : ICatalogItemsRepository
         _db = db;
     }
 
+    public IQueryable<CatalogItem> Query() => _db.CatalogItems;
+
     public async Task<CatalogItem?> GetByIdAndCollectionIdAsync(int id, int collectionId)
     {
         return await _db.CatalogItems.FirstOrDefaultAsync(i => i.Id == id && i.CollectionId == collectionId);

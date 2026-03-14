@@ -4,6 +4,7 @@ namespace GeekVault.Api.Repositories.Vault;
 
 public interface ICatalogItemsRepository
 {
+    IQueryable<CatalogItem> Query();
     Task<CatalogItem?> GetByIdAndCollectionIdAsync(int id, int collectionId);
     IQueryable<CatalogItem> GetByCollectionId(int collectionId);
     Task<List<CatalogItem>> GetByCollectionIdWithFieldsAsync(int collectionId);
