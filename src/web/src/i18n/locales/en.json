@@ -231,6 +231,8 @@
     "condition": "Condition",
     "sourcePlaceholder": "e.g., eBay, local store",
     "notesPlaceholder": "Any additional notes",
+    "imagesLabel": "Images",
+    "imageAlt": "Copy image",
     "saveFailed": "Failed to save owned copy",
     "deleteTitle": "Delete Owned Copy",
     "deleteConfirm": "Are you sure you want to delete this owned copy?",

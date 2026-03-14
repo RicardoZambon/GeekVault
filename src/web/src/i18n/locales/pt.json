@@ -231,6 +231,8 @@
     "condition": "Condição",
     "sourcePlaceholder": "ex.: eBay, loja local",
     "notesPlaceholder": "Notas adicionais",
+    "imagesLabel": "Imagens",
+    "imageAlt": "Imagem da cópia",
     "saveFailed": "Falha ao salvar cópia possuída",
     "deleteTitle": "Excluir Cópia Possuída",
     "deleteConfirm": "Tem certeza de que deseja excluir esta cópia possuída?",

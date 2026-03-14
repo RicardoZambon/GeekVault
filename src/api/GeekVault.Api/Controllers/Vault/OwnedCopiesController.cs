@@ -75,6 +75,36 @@ public static class OwnedCopiesController
         .WithName("DeleteOwnedCopy")
         .WithOpenApi();
 
+        app.MapPost("/api/items/{catalogItemId:int}/copies/{id:int}/images", async (
+            int catalogItemId,
+            int id,
+            HttpRequest httpRequest,
+            ClaimsPrincipal principal,
+            IOwnedCopiesService service,
+            IWebHostEnvironment env) =>
+        {
+            var userId = principal.FindFirstValue(ClaimTypes.NameIdentifier)!;
+
+            if (!httpRequest.HasFormContentType)
+                return Results.BadRequest(new { error = "Expected multipart form data" });
+
+            var form = await httpRequest.ReadFormAsync();
+            var file = form.Files.GetFile("image");
+            if (file == null || file.Length == 0)
+                return Results.BadRequest(new { error = "No image file provided" });
+
+            var webRootPath = env.WebRootPath ?? Path.Combine(env.ContentRootPath, "wwwroot");
+            var (response, notFound, error) = await service.UploadImageAsync(catalogItemId, id, userId, file, webRootPath);
+            if (notFound) return Results.NotFound();
+            if (error != null) return Results.BadRequest(new { error });
+
+            return Results.Ok(response);
+        })
+        .RequireAuthorization()
+        .WithName("UploadOwnedCopyImage")
+        .WithOpenApi()
+        .DisableAntiforgery();
+
         return app;
     }
 }

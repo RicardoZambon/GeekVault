@@ -108,6 +108,7 @@ export default function CatalogItemDetail() {
   const [copyAcquisitionDate, setCopyAcquisitionDate] = useState("")
   const [copyAcquisitionSource, setCopyAcquisitionSource] = useState("")
   const [copyNotes, setCopyNotes] = useState("")
+  const [copyImageFiles, setCopyImageFiles] = useState<File[]>([])
   const [copyError, setCopyError] = useState("")
   const [copySubmitting, setCopySubmitting] = useState(false)
 
@@ -281,6 +282,7 @@ export default function CatalogItemDetail() {
     setCopyAcquisitionDate("")
     setCopyAcquisitionSource("")
     setCopyNotes("")
+    setCopyImageFiles([])
     setCopyError("")
     setCopyDialogOpen(true)
   }
@@ -293,6 +295,7 @@ export default function CatalogItemDetail() {
     setCopyAcquisitionDate(copy.acquisitionDate ?? "")
     setCopyAcquisitionSource(copy.acquisitionSource ?? "")
     setCopyNotes(copy.notes ?? "")
+    setCopyImageFiles([])
     setCopyError("")
     setCopyDialogOpen(true)
   }
@@ -321,6 +324,20 @@ export default function CatalogItemDetail() {
       if (!res.ok) {
         const data = await res.json().catch(() => null)
         throw new Error(data?.message ?? t("ownedCopy.saveFailed"))
+      }
+
+      const saved = await res.json()
+      const copyId = editingCopy?.id ?? saved.id
+
+      // Upload images
+      for (const file of copyImageFiles) {
+        const formData = new FormData()
+        formData.append("image", file)
+        await fetch(`/api/items/${itemId}/copies/${copyId}/images`, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${token}` },
+          body: formData,
+        })
       }
 
       setCopyDialogOpen(false)
@@ -554,6 +571,18 @@ export default function CatalogItemDetail() {
                       <div className="mt-2">
                         <span className="text-xs font-medium text-muted-foreground">{t("itemDetail.notes")}</span>
                         <p className="text-sm">{copy.notes}</p>
+                      </div>
+                    )}
+                    {copy.images.length > 0 && (
+                      <div className="mt-3 flex gap-2 flex-wrap">
+                        {copy.images.map((img, idx) => (
+                          <img
+                            key={idx}
+                            src={img}
+                            alt={`${t("ownedCopy.imageAlt")} ${idx + 1}`}
+                            className="h-20 w-20 rounded border object-cover"
+                          />
+                        ))}
                       </div>
                     )}
                   </div>
@@ -854,6 +883,32 @@ export default function CatalogItemDetail() {
                 disabled={copySubmitting}
                 placeholder={t("ownedCopy.notesPlaceholder")}
               />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="copy-images">{t("ownedCopy.imagesLabel")}</Label>
+              <Input
+                id="copy-images"
+                type="file"
+                accept="image/*"
+                multiple
+                onChange={(e) =>
+                  setCopyImageFiles(e.target.files ? Array.from(e.target.files) : [])
+                }
+                disabled={copySubmitting}
+              />
+              {editingCopy && editingCopy.images.length > 0 && (
+                <div className="flex gap-2 flex-wrap mt-2">
+                  {editingCopy.images.map((img, idx) => (
+                    <img
+                      key={idx}
+                      src={img}
+                      alt={`${t("ownedCopy.imageAlt")} ${idx + 1}`}
+                      className="h-16 w-16 rounded border object-cover"
+                    />
+                  ))}
+                </div>
+              )}
             </div>
 
             <div className="flex justify-end gap-2 pt-2">

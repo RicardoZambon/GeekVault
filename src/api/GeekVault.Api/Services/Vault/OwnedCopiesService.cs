@@ -40,7 +40,6 @@ public class OwnedCopiesService : IOwnedCopiesService
             AcquisitionDate = request.AcquisitionDate,
             AcquisitionSource = request.AcquisitionSource,
             Notes = request.Notes,
-            Images = request.Images?.Select(url => new OwnedCopyImage { Url = url }).ToList() ?? new()
         };
 
         await _ownedCopiesRepository.AddAsync(copy);
@@ -70,8 +69,6 @@ public class OwnedCopiesService : IOwnedCopiesService
         copy.AcquisitionDate = request.AcquisitionDate;
         copy.AcquisitionSource = request.AcquisitionSource;
         copy.Notes = request.Notes;
-        if (request.Images != null)
-            copy.Images = request.Images.Select(url => new OwnedCopyImage { Url = url }).ToList();
 
         await _ownedCopiesRepository.SaveChangesAsync();
 
@@ -89,6 +86,36 @@ public class OwnedCopiesService : IOwnedCopiesService
         _ownedCopiesRepository.Remove(copy);
         await _ownedCopiesRepository.SaveChangesAsync();
         return true;
+    }
+
+    public async Task<(OwnedCopyResponse? Response, bool NotFound, string? Error)> UploadImageAsync(
+        int catalogItemId, int copyId, string userId, IFormFile file, string webRootPath)
+    {
+        var item = await _ownedCopiesRepository.GetCatalogItemWithCollectionAsync(catalogItemId, userId);
+        if (item == null) return (null, true, null);
+
+        var copy = await _ownedCopiesRepository.GetByIdAndCatalogItemIdAsync(copyId, catalogItemId);
+        if (copy == null) return (null, true, null);
+
+        if (file.Length == 0)
+            return (null, false, "No image file provided");
+
+        var uploadsDir = Path.Combine(webRootPath, "uploads");
+        Directory.CreateDirectory(uploadsDir);
+
+        var extension = Path.GetExtension(file.FileName);
+        var fileName = $"ownedcopy-{copyId}-{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}{extension}";
+        var filePath = Path.Combine(uploadsDir, fileName);
+
+        using (var stream = new FileStream(filePath, FileMode.Create))
+        {
+            await file.CopyToAsync(stream);
+        }
+
+        copy.Images.Add(new OwnedCopyImage { Url = $"/uploads/{fileName}" });
+        await _ownedCopiesRepository.SaveChangesAsync();
+
+        return (MapToResponse(copy), false, null);
     }
 
     private static OwnedCopyResponse MapToResponse(OwnedCopy oc) =>
