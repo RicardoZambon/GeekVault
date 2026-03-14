@@ -25,6 +25,11 @@ public class ApplicationDbContext : IdentityUserContext<User>
     {
         base.OnModelCreating(modelBuilder);
 
+        // Exclude unused Identity tables (claims, logins, tokens)
+        modelBuilder.Entity<IdentityUserClaim<string>>().ToTable(t => t.ExcludeFromMigrations());
+        modelBuilder.Entity<IdentityUserLogin<string>>().ToTable(t => t.ExcludeFromMigrations());
+        modelBuilder.Entity<IdentityUserToken<string>>().ToTable(t => t.ExcludeFromMigrations());
+
         // Configure Users table under Security schema
         modelBuilder.Entity<User>(entity =>
         {

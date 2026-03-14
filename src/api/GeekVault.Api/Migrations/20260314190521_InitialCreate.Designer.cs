@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace GeekVault.Api.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260313131938_AddWishlistItem")]
-    partial class AddWishlistItem
+    [Migration("20260314190521_InitialCreate")]
+    partial class InitialCreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -25,7 +25,7 @@ namespace GeekVault.Api.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
-            modelBuilder.Entity("GeekVault.Api.Models.ApplicationUser", b =>
+            modelBuilder.Entity("GeekVault.Api.Entities.Security.User", b =>
                 {
                     b.Property<string>("Id")
                         .HasColumnType("nvarchar(450)");
@@ -102,10 +102,10 @@ namespace GeekVault.Api.Migrations
                         .HasDatabaseName("UserNameIndex")
                         .HasFilter("[NormalizedUserName] IS NOT NULL");
 
-                    b.ToTable("AspNetUsers", (string)null);
+                    b.ToTable("Users", "Security");
                 });
 
-            modelBuilder.Entity("GeekVault.Api.Models.CatalogItem", b =>
+            modelBuilder.Entity("GeekVault.Api.Entities.Vault.CatalogItem", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -153,10 +153,10 @@ namespace GeekVault.Api.Migrations
 
                     b.HasIndex("CollectionId");
 
-                    b.ToTable("CatalogItems");
+                    b.ToTable("CatalogItems", "Vault");
                 });
 
-            modelBuilder.Entity("GeekVault.Api.Models.Collection", b =>
+            modelBuilder.Entity("GeekVault.Api.Entities.Vault.Collection", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -195,10 +195,10 @@ namespace GeekVault.Api.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("Collections");
+                    b.ToTable("Collections", "Vault");
                 });
 
-            modelBuilder.Entity("GeekVault.Api.Models.CollectionType", b =>
+            modelBuilder.Entity("GeekVault.Api.Entities.Vault.CollectionType", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -219,12 +219,18 @@ namespace GeekVault.Api.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
 
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
                     b.HasKey("Id");
 
-                    b.ToTable("CollectionTypes");
+                    b.HasIndex("UserId");
+
+                    b.ToTable("CollectionTypes", "Vault");
                 });
 
-            modelBuilder.Entity("GeekVault.Api.Models.OwnedCopy", b =>
+            modelBuilder.Entity("GeekVault.Api.Entities.Vault.OwnedCopy", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -261,10 +267,10 @@ namespace GeekVault.Api.Migrations
 
                     b.HasIndex("CatalogItemId");
 
-                    b.ToTable("OwnedCopies");
+                    b.ToTable("OwnedCopies", "Vault");
                 });
 
-            modelBuilder.Entity("GeekVault.Api.Models.Set", b =>
+            modelBuilder.Entity("GeekVault.Api.Entities.Vault.Set", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -287,10 +293,10 @@ namespace GeekVault.Api.Migrations
 
                     b.HasIndex("CollectionId");
 
-                    b.ToTable("Sets");
+                    b.ToTable("Sets", "Vault");
                 });
 
-            modelBuilder.Entity("GeekVault.Api.Models.SetItem", b =>
+            modelBuilder.Entity("GeekVault.Api.Entities.Vault.SetItem", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -318,10 +324,10 @@ namespace GeekVault.Api.Migrations
 
                     b.HasIndex("SetId");
 
-                    b.ToTable("SetItems");
+                    b.ToTable("SetItems", "Vault");
                 });
 
-            modelBuilder.Entity("GeekVault.Api.Models.WishlistItem", b =>
+            modelBuilder.Entity("GeekVault.Api.Entities.Vault.WishlistItem", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -356,59 +362,7 @@ namespace GeekVault.Api.Migrations
 
                     b.HasIndex("CollectionId");
 
-                    b.ToTable("WishlistItems");
-                });
-
-            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole", b =>
-                {
-                    b.Property<string>("Id")
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<string>("ConcurrencyStamp")
-                        .IsConcurrencyToken()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Name")
-                        .HasMaxLength(256)
-                        .HasColumnType("nvarchar(256)");
-
-                    b.Property<string>("NormalizedName")
-                        .HasMaxLength(256)
-                        .HasColumnType("nvarchar(256)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("NormalizedName")
-                        .IsUnique()
-                        .HasDatabaseName("RoleNameIndex")
-                        .HasFilter("[NormalizedName] IS NOT NULL");
-
-                    b.ToTable("AspNetRoles", (string)null);
-                });
-
-            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("ClaimType")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("ClaimValue")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("RoleId")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(450)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("RoleId");
-
-                    b.ToTable("AspNetRoleClaims", (string)null);
+                    b.ToTable("WishlistItems", "Vault");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserClaim<string>", b =>
@@ -433,7 +387,10 @@ namespace GeekVault.Api.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("AspNetUserClaims", (string)null);
+                    b.ToTable("AspNetUserClaims", null, t =>
+                        {
+                            t.ExcludeFromMigrations();
+                        });
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserLogin<string>", b =>
@@ -455,22 +412,10 @@ namespace GeekVault.Api.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("AspNetUserLogins", (string)null);
-                });
-
-            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserRole<string>", b =>
-                {
-                    b.Property<string>("UserId")
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<string>("RoleId")
-                        .HasColumnType("nvarchar(450)");
-
-                    b.HasKey("UserId", "RoleId");
-
-                    b.HasIndex("RoleId");
-
-                    b.ToTable("AspNetUserRoles", (string)null);
+                    b.ToTable("AspNetUserLogins", null, t =>
+                        {
+                            t.ExcludeFromMigrations();
+                        });
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserToken<string>", b =>
@@ -489,18 +434,21 @@ namespace GeekVault.Api.Migrations
 
                     b.HasKey("UserId", "LoginProvider", "Name");
 
-                    b.ToTable("AspNetUserTokens", (string)null);
+                    b.ToTable("AspNetUserTokens", null, t =>
+                        {
+                            t.ExcludeFromMigrations();
+                        });
                 });
 
-            modelBuilder.Entity("GeekVault.Api.Models.CatalogItem", b =>
+            modelBuilder.Entity("GeekVault.Api.Entities.Vault.CatalogItem", b =>
                 {
-                    b.HasOne("GeekVault.Api.Models.Collection", "Collection")
+                    b.HasOne("GeekVault.Api.Entities.Vault.Collection", "Collection")
                         .WithMany()
                         .HasForeignKey("CollectionId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.OwnsMany("GeekVault.Api.Models.CustomFieldValue", "CustomFieldValues", b1 =>
+                    b.OwnsMany("GeekVault.Api.Entities.Vault.CustomFieldValue", "CustomFieldValues", b1 =>
                         {
                             b1.Property<int>("CatalogItemId")
                                 .HasColumnType("int");
@@ -519,7 +467,7 @@ namespace GeekVault.Api.Migrations
 
                             b1.HasKey("CatalogItemId", "Id");
 
-                            b1.ToTable("CatalogItems");
+                            b1.ToTable("CatalogItems", "Vault");
 
                             b1.ToJson("CustomFieldValues");
 
@@ -532,15 +480,15 @@ namespace GeekVault.Api.Migrations
                     b.Navigation("CustomFieldValues");
                 });
 
-            modelBuilder.Entity("GeekVault.Api.Models.Collection", b =>
+            modelBuilder.Entity("GeekVault.Api.Entities.Vault.Collection", b =>
                 {
-                    b.HasOne("GeekVault.Api.Models.CollectionType", "CollectionType")
+                    b.HasOne("GeekVault.Api.Entities.Vault.CollectionType", "CollectionType")
                         .WithMany()
                         .HasForeignKey("CollectionTypeId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("GeekVault.Api.Models.ApplicationUser", "User")
+                    b.HasOne("GeekVault.Api.Entities.Security.User", "User")
                         .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -551,9 +499,15 @@ namespace GeekVault.Api.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("GeekVault.Api.Models.CollectionType", b =>
+            modelBuilder.Entity("GeekVault.Api.Entities.Vault.CollectionType", b =>
                 {
-                    b.OwnsMany("GeekVault.Api.Models.CustomFieldDefinition", "CustomFieldSchema", b1 =>
+                    b.HasOne("GeekVault.Api.Entities.Security.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.OwnsMany("GeekVault.Api.Entities.Vault.CustomFieldDefinition", "CustomFieldSchema", b1 =>
                         {
                             b1.Property<int>("CollectionTypeId")
                                 .HasColumnType("int");
@@ -578,7 +532,7 @@ namespace GeekVault.Api.Migrations
 
                             b1.HasKey("CollectionTypeId", "Id");
 
-                            b1.ToTable("CollectionTypes");
+                            b1.ToTable("CollectionTypes", "Vault");
 
                             b1.ToJson("CustomFieldSchema");
 
@@ -587,17 +541,19 @@ namespace GeekVault.Api.Migrations
                         });
 
                     b.Navigation("CustomFieldSchema");
+
+                    b.Navigation("User");
                 });
 
-            modelBuilder.Entity("GeekVault.Api.Models.OwnedCopy", b =>
+            modelBuilder.Entity("GeekVault.Api.Entities.Vault.OwnedCopy", b =>
                 {
-                    b.HasOne("GeekVault.Api.Models.CatalogItem", "CatalogItem")
+                    b.HasOne("GeekVault.Api.Entities.Vault.CatalogItem", "CatalogItem")
                         .WithMany()
                         .HasForeignKey("CatalogItemId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.OwnsMany("GeekVault.Api.Models.OwnedCopyImage", "Images", b1 =>
+                    b.OwnsMany("GeekVault.Api.Entities.Vault.OwnedCopyImage", "Images", b1 =>
                         {
                             b1.Property<int>("OwnedCopyId")
                                 .HasColumnType("int");
@@ -612,7 +568,7 @@ namespace GeekVault.Api.Migrations
 
                             b1.HasKey("OwnedCopyId", "Id");
 
-                            b1.ToTable("OwnedCopies");
+                            b1.ToTable("OwnedCopies", "Vault");
 
                             b1.ToJson("Images");
 
@@ -625,9 +581,9 @@ namespace GeekVault.Api.Migrations
                     b.Navigation("Images");
                 });
 
-            modelBuilder.Entity("GeekVault.Api.Models.Set", b =>
+            modelBuilder.Entity("GeekVault.Api.Entities.Vault.Set", b =>
                 {
-                    b.HasOne("GeekVault.Api.Models.Collection", "Collection")
+                    b.HasOne("GeekVault.Api.Entities.Vault.Collection", "Collection")
                         .WithMany()
                         .HasForeignKey("CollectionId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -636,14 +592,14 @@ namespace GeekVault.Api.Migrations
                     b.Navigation("Collection");
                 });
 
-            modelBuilder.Entity("GeekVault.Api.Models.SetItem", b =>
+            modelBuilder.Entity("GeekVault.Api.Entities.Vault.SetItem", b =>
                 {
-                    b.HasOne("GeekVault.Api.Models.CatalogItem", "CatalogItem")
+                    b.HasOne("GeekVault.Api.Entities.Vault.CatalogItem", "CatalogItem")
                         .WithMany()
                         .HasForeignKey("CatalogItemId")
                         .OnDelete(DeleteBehavior.Restrict);
 
-                    b.HasOne("GeekVault.Api.Models.Set", "Set")
+                    b.HasOne("GeekVault.Api.Entities.Vault.Set", "Set")
                         .WithMany()
                         .HasForeignKey("SetId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -654,14 +610,14 @@ namespace GeekVault.Api.Migrations
                     b.Navigation("Set");
                 });
 
-            modelBuilder.Entity("GeekVault.Api.Models.WishlistItem", b =>
+            modelBuilder.Entity("GeekVault.Api.Entities.Vault.WishlistItem", b =>
                 {
-                    b.HasOne("GeekVault.Api.Models.CatalogItem", "CatalogItem")
+                    b.HasOne("GeekVault.Api.Entities.Vault.CatalogItem", "CatalogItem")
                         .WithMany()
                         .HasForeignKey("CatalogItemId")
                         .OnDelete(DeleteBehavior.Restrict);
 
-                    b.HasOne("GeekVault.Api.Models.Collection", "Collection")
+                    b.HasOne("GeekVault.Api.Entities.Vault.Collection", "Collection")
                         .WithMany()
                         .HasForeignKey("CollectionId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -672,18 +628,9 @@ namespace GeekVault.Api.Migrations
                     b.Navigation("Collection");
                 });
 
-            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
-                {
-                    b.HasOne("Microsoft.AspNetCore.Identity.IdentityRole", null)
-                        .WithMany()
-                        .HasForeignKey("RoleId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserClaim<string>", b =>
                 {
-                    b.HasOne("GeekVault.Api.Models.ApplicationUser", null)
+                    b.HasOne("GeekVault.Api.Entities.Security.User", null)
                         .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -692,22 +639,7 @@ namespace GeekVault.Api.Migrations
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserLogin<string>", b =>
                 {
-                    b.HasOne("GeekVault.Api.Models.ApplicationUser", null)
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserRole<string>", b =>
-                {
-                    b.HasOne("Microsoft.AspNetCore.Identity.IdentityRole", null)
-                        .WithMany()
-                        .HasForeignKey("RoleId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("GeekVault.Api.Models.ApplicationUser", null)
+                    b.HasOne("GeekVault.Api.Entities.Security.User", null)
                         .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -716,7 +648,7 @@ namespace GeekVault.Api.Migrations
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserToken<string>", b =>
                 {
-                    b.HasOne("GeekVault.Api.Models.ApplicationUser", null)
+                    b.HasOne("GeekVault.Api.Entities.Security.User", null)
                         .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
