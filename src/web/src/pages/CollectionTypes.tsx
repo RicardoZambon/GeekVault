@@ -67,7 +67,10 @@ export default function CollectionTypes() {
       const res = await fetch("/api/collection-types", { headers })
       if (!res.ok) throw new Error("Failed to fetch")
       const data = await res.json()
-      setCollectionTypes(data)
+      setCollectionTypes(data.map((ct: CollectionType) => ({
+        ...ct,
+        customFieldSchema: ct.customFieldSchema ?? [],
+      })))
     } catch {
       setError(t("collectionTypes.fetchError"))
     } finally {
@@ -94,7 +97,7 @@ export default function CollectionTypes() {
     setFormName(ct.name)
     setFormDescription(ct.description)
     setFormIcon(ct.icon)
-    setFormFields(ct.customFieldSchema.map((f) => ({ ...f, options: [...f.options] })))
+    setFormFields((ct.customFieldSchema ?? []).map((f) => ({ ...f, options: [...(f.options ?? [])] })))
     setFormError("")
     setDialogOpen(true)
   }
@@ -282,7 +285,7 @@ export default function CollectionTypes() {
                   {ct.description}
                 </p>
               )}
-              {ct.customFieldSchema.length > 0 && (
+              {(ct.customFieldSchema ?? []).length > 0 && (
                 <div className="mt-3 flex flex-wrap gap-1">
                   {ct.customFieldSchema.map((f) => (
                     <span
