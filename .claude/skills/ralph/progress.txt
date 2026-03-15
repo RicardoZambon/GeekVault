@@ -128,3 +128,14 @@
 - Integrated into `app-layout.tsx` between Header and main content
 - Files changed: `src/web/src/components/layout/top-toolbar.tsx` (new), `src/web/src/components/layout/app-layout.tsx`
 ---
+
+## 2026-03-15 - US-012
+- Added search trigger button to top toolbar left side
+- 280px wide, rounded with search icon, placeholder text from i18n, kbd shortcut hint
+- Opens command palette by dispatching Ctrl+K keyboard event
+- Detects Mac vs other platform for shortcut display (⌘K vs Ctrl+K)
+- Files changed: `src/web/src/components/layout/top-toolbar.tsx`
+- **Learnings for future iterations:**
+  - Command palette opens via dispatching `new KeyboardEvent("keydown", { key: "k", metaKey: true })` on document
+  - Use `navigator.platform` to detect Mac for keyboard shortcut display
+---
