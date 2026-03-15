@@ -43,3 +43,5 @@ export type { PageTransitionProps, FadeInProps, StaggerChildrenProps, ScaleInPro
 export { AnimatedNumber } from "./animated-number"
 export type { AnimatedNumberProps } from "./animated-number"
 export { Toaster, toast } from "./toaster"
+export { SortableList } from "./sortable-list"
+export type { SortableListProps } from "./sortable-list"
