@@ -458,3 +458,25 @@ Started: Sun Mar 15 02:52:16 AM UTC 2026
   - `useMemo` for filtered/sorted groups keeps filtering logic clean and avoids recomputation on unrelated state changes
   - No browser testing tools available — manual verification needed
 ---
+
+## 2026-03-15 - US-028
+- Redesigned collection types page with branded DS components: PageHeader, Card, Badge, DropdownMenu, StaggerChildren, Tabs, Select, SortableList, toast
+- Type cards: large emoji icon in rounded bg, bold font-display name, 2-line truncated description, custom fields as Badge tags (field name + type), overflow menu (Edit/Delete) with group-hover reveal
+- Grid layout: 1 col mobile, 2 col tablet, 3 col desktop with StaggerChildren animation
+- Create/Edit dialog with DS Tabs: "General" tab (name, icon, description) + "Custom Fields" tab with field count badge
+- Custom field builder: SortableList with drag handle (GripVertical) for reorder, field name Input, type DS Select, required checkbox, delete button
+- Enum type: inline tag editor — type text + Enter to add as Badge tag, X button to remove tag (replaces individual option Input rows)
+- Field count indicator shows "X of 10 fields used"
+- Skeleton loading state with card placeholders
+- Delete uses ConfirmDialog with destructive styling (replaces manual Dialog)
+- Replaced all inline error/success messages with toast notifications
+- Loading spinner (Loader2) on submit button
+- Added i18n keys: tabGeneral, tabCustomFields, enumTagPlaceholder, saveSuccess, createSuccess, deleteSuccess to both en.json and pt.json
+- Files changed: collection-types-page.tsx, en.json, pt.json
+- **Learnings for future iterations:**
+  - SortableList with mapped items needs `_index` field to track original indices for updateField/removeField callbacks
+  - Enum tag editor pattern: enumInputs state (Record<number, string>) + onKeyDown Enter handler + Badge display with X remove button — much cleaner than individual option Input rows
+  - DS Tabs work well inside Dialog for organizing form sections — use TabsTrigger badge to show field count
+  - ConfirmDialog from `@/components/ui/confirm-dialog` is cleaner than manual Dialog for delete confirmations — use consistently across all pages
+  - No browser testing tools available — manual verification needed
+---
