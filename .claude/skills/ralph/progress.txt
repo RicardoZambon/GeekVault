@@ -38,3 +38,15 @@
   - Each group has a `labelKey` (i18n) and `items` array
   - Both desktop and mobile sidebar components consume the same data structure
 ---
+
+## 2026-03-15 - US-004
+- Rebuilt sidebar header to show vault icon + "GeekVault" title (font-display) + tagline subtitle (i18n `app.tagline`)
+- Header height changed from h-14 to h-[72px] with proper vertical centering
+- Collapsed mode shows only vault icon centered; expanded shows icon + text block with gap-3
+- Removed logoFull image usage from desktop sidebar (still used by MobileSidebarContent)
+- Files changed: `src/web/src/components/layout/sidebar.tsx`
+- **Learnings for future iterations:**
+  - `font-display` maps to Nunito font (defined in index.css as `--font-display`)
+  - `vaultIcon` asset is the small square icon, `logoFull` is the full horizontal logo image
+  - Sidebar header and top toolbar should both be h-[72px] for visual alignment
+---

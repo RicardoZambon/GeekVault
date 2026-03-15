@@ -105,14 +105,20 @@ export function Sidebar() {
       {/* Logo */}
       <div
         className={cn(
-          "flex h-14 items-center border-b border-sidebar-border",
-          collapsed ? "justify-center px-2" : "px-4"
+          "flex h-[72px] items-center border-b border-sidebar-border",
+          collapsed ? "justify-center px-2" : "gap-3 px-4"
         )}
       >
-        {collapsed ? (
-          <img src={vaultIcon} alt="GeekVault" className="h-8 w-8 object-contain" />
-        ) : (
-          <img src={logoFull} alt="GeekVault" className="h-8 object-contain" />
+        <img src={vaultIcon} alt="GeekVault" className="h-8 w-8 shrink-0 object-contain" />
+        {!collapsed && (
+          <div className="flex flex-col">
+            <span className="font-display text-base font-bold text-sidebar-foreground">
+              GeekVault
+            </span>
+            <span className="text-xs text-sidebar-foreground/50">
+              {t("app.tagline")}
+            </span>
+          </div>
         )}
       </div>
 
