@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest"
 import { render, screen, fireEvent, waitFor } from "@testing-library/react"
 import { MemoryRouter } from "react-router-dom"
-import Dashboard from "./Dashboard"
+import Dashboard from "./dashboard-page"
 
 const mockNavigate = vi.fn()
 

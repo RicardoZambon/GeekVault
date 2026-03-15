@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest"
 import { render, screen, fireEvent, waitFor } from "@testing-library/react"
 import { MemoryRouter } from "react-router-dom"
-import CollectionTypes from "./CollectionTypes"
+import CollectionTypes from "./collection-types-page"
 
 vi.mock("@/components/auth-provider", () => ({
   useAuth: () => ({ token: "tok", user: null, isLoading: false, login: vi.fn(), register: vi.fn(), logout: vi.fn() }),

@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest"
 import { render, screen, fireEvent, waitFor } from "@testing-library/react"
 import { MemoryRouter, Route, Routes } from "react-router-dom"
-import CollectionDetail from "./CollectionDetail"
+import CollectionDetail from "./collection-detail-page"
 
 const mockNavigate = vi.fn()
 
