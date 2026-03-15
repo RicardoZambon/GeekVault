@@ -22,7 +22,8 @@
       "Bash(cd /workspaces/GeekVault/src/api && find GeekVault.Api -name \"*.cs\" ! -path \"*/Migrations/*\" -exec wc -l {} + | tail -1)",
       "Bash(cd /workspaces/GeekVault/src/api/GeekVault.Api.Tests && dotnet test -c Release /p:CollectCoverage=true /p:CoverletOutputFormat=cobertura /p:CoverletOutput=./coverage/ '/p:ExcludeByFile=**/Migrations/*.cs' 2>&1 | grep -E \"\\(Module|GeekVault\\\\.Api |Total|Average|\\\\+---\\)\" | head -15)",
       "Bash(dotnet test:*)",
-      "Bash(cd /workspaces/GeekVault/src/api/GeekVault.Api && dotnet build 2>&1)"
+      "Bash(cd /workspaces/GeekVault/src/api/GeekVault.Api && dotnet build 2>&1)",
+      "Bash(cd /workspaces/GeekVault/src/web && npx tsc -b --noEmit 2>&1 | head -20)"
     ]
   }
 }

@@ -186,6 +186,7 @@
     "ownedAll": "All",
     "ownedOwned": "Owned",
     "ownedUnowned": "Unowned",
+    "sortCustom": "Custom",
     "sortName": "Name",
     "sortPrice": "Price",
     "sortValue": "Value",

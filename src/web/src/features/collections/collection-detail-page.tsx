@@ -146,7 +146,7 @@ export default function CollectionDetail() {
   const searchQuery = searchParams.get("search") ?? ""
   const conditionFilter = searchParams.get("condition") ?? ""
   const ownedFilter = searchParams.get("ownedStatus") ?? "all"
-  const sortBy = searchParams.get("sortBy") ?? "name"
+  const sortBy = searchParams.get("sortBy") ?? "custom"
   const sortDir = searchParams.get("sortDir") ?? "asc"
 
   function updateParam(key: string, value: string) {
@@ -156,7 +156,7 @@ export default function CollectionDetail() {
         !value ||
         (key === "ownedStatus" && value === "all") ||
         (key === "condition" && (value === "" || value === "all")) ||
-        (key === "sortBy" && value === "name") ||
+        (key === "sortBy" && value === "custom") ||
         (key === "sortDir" && value === "asc")
       if (shouldDelete) {
         next.delete(key)
@@ -905,6 +905,7 @@ export default function CollectionDetail() {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
+                <SelectItem value="custom">{t("collectionDetail.sortCustom")}</SelectItem>
                 <SelectItem value="name">{t("collectionDetail.sortName")}</SelectItem>
                 <SelectItem value="price">{t("collectionDetail.sortPrice")}</SelectItem>
                 <SelectItem value="value">{t("collectionDetail.sortValue")}</SelectItem>
