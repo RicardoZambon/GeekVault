@@ -139,3 +139,13 @@
   - Command palette opens via dispatching `new KeyboardEvent("keydown", { key: "k", metaKey: true })` on document
   - Use `navigator.platform` to detect Mac for keyboard shortcut display
 ---
+
+## 2026-03-15 - US-013
+- Added right-side toolbar icons: Help (tooltip), Notifications (dropdown), Language toggle, Theme toggle, User avatar menu
+- Layout order: Help | Notifications | Language | Theme | User
+- Reuses shared UserMenu component from US-010
+- Help shows "Coming soon" tooltip, Notifications shows "No notifications" dropdown
+- Language/theme toggles follow same pattern as mobile header
+- All buttons use ghost variant with size="icon"
+- Files changed: `src/web/src/components/layout/top-toolbar.tsx`
+---

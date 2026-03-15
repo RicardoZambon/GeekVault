@@ -228,7 +228,7 @@
         "Verify in browser using dev-browser skill"
       ],
       "priority": 13,
-      "passes": false,
+      "passes": true,
       "notes": "Move theme/language toggle from mobile-only header to the desktop toolbar. The layout order should be: Help | Notifications | Language | Theme | User."
     },
     {
