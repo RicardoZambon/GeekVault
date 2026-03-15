@@ -1,8 +1,25 @@
 import { useState, useEffect, useCallback, type FormEvent } from "react"
 import { useParams, useNavigate, useSearchParams } from "react-router-dom"
 import { useTranslation } from "react-i18next"
-import { Plus, ArrowLeft, Image, Package, Check, Trash2, Pencil, Search, CheckCircle2, Circle, ArrowUp, ArrowDown, Download, Upload, AlertCircle, CheckCircle } from "lucide-react"
-import { EmptyState } from "@/components/ds"
+import { motion } from "framer-motion"
+import { Plus, ArrowLeft, Image, Package, Check, Trash2, Pencil, Search, CheckCircle2, Circle, ArrowUp, ArrowDown, Download, Upload, AlertCircle, CheckCircle, LayoutGrid, List } from "lucide-react"
+import {
+  EmptyState,
+  PageHeader,
+  Badge,
+  Card,
+  CardContent,
+  DataTable,
+  StaggerChildren,
+  staggerItemVariants,
+  SkeletonRect,
+  Select,
+  SelectTrigger,
+  SelectContent,
+  SelectItem,
+  SelectValue,
+} from "@/components/ds"
+import type { DataTableColumn } from "@/components/ds"
 import { useAuth } from "@/components/auth-provider"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -113,6 +130,17 @@ export default function CollectionDetail() {
   // Tab state
   const [activeTab, setActiveTab] = useState<"items" | "sets">("items")
 
+  // View toggle state (grid/table), persisted per collection
+  const viewKey = `geekvault-view-${id}`
+  const [viewMode, setViewMode] = useState<"grid" | "table">(() => {
+    const stored = localStorage.getItem(viewKey)
+    return stored === "table" ? "table" : "grid"
+  })
+  function changeViewMode(mode: "grid" | "table") {
+    setViewMode(mode)
+    localStorage.setItem(viewKey, mode)
+  }
+
   // Search, filter, sort state from URL params
   const searchQuery = searchParams.get("search") ?? ""
   const conditionFilter = searchParams.get("condition") ?? ""
@@ -126,7 +154,7 @@ export default function CollectionDetail() {
       const shouldDelete =
         !value ||
         (key === "ownedStatus" && value === "all") ||
-        (key === "condition" && value === "") ||
+        (key === "condition" && (value === "" || value === "all")) ||
         (key === "sortBy" && value === "name") ||
         (key === "sortDir" && value === "asc")
       if (shouldDelete) {
@@ -628,10 +656,76 @@ export default function CollectionDetail() {
     return ownedItemIds.has(setItem.catalogItemId)
   }
 
+  // Table view columns
+  const tableColumns: DataTableColumn<CatalogItem>[] = [
+    {
+      header: "",
+      accessor: (row) => (
+        <div className="h-10 w-10 overflow-hidden rounded bg-muted">
+          {row.image ? (
+            <img src={row.image} alt={row.name} className="h-full w-full object-cover" loading="lazy" />
+          ) : (
+            <div className="flex h-full w-full items-center justify-center">
+              <Image className="h-4 w-4 text-muted-foreground/40" />
+            </div>
+          )}
+        </div>
+      ),
+      className: "w-[60px]",
+    },
+    {
+      header: t("collectionDetail.nameLabel"),
+      accessor: "name" as keyof CatalogItem,
+      sortable: true,
+      sortKey: "name",
+    },
+    {
+      header: t("collectionDetail.identifierLabel"),
+      accessor: "identifier" as keyof CatalogItem,
+    },
+    {
+      header: t("collectionDetail.conditionAll").replace("All ", ""),
+      accessor: (row) => {
+        const isOwned = ownedItemIds.has(row.id)
+        return isOwned ? (
+          <Badge variant="success" size="sm">{t("collectionDetail.ownedOwned")}</Badge>
+        ) : (
+          <Badge variant="outline" size="sm">{t("collectionDetail.ownedUnowned")}</Badge>
+        )
+      },
+    },
+    {
+      header: t("collectionDetail.rarityLabel"),
+      accessor: (row) => row.rarity ?? "—",
+    },
+  ]
+
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-12">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+      <div className="space-y-6">
+        <div className="flex items-center gap-3">
+          <SkeletonRect width="32px" height="32px" className="rounded" />
+          <div className="space-y-2">
+            <SkeletonRect width="200px" height="28px" />
+            <SkeletonRect width="120px" height="16px" />
+          </div>
+        </div>
+        <div className="flex gap-2">
+          <SkeletonRect width="100%" height="36px" className="flex-1" />
+          <SkeletonRect width="140px" height="36px" />
+          <SkeletonRect width="140px" height="36px" />
+        </div>
+        <div className="grid gap-4 grid-cols-2 sm:grid-cols-3 md:grid-cols-4">
+          {Array.from({ length: 8 }).map((_, i) => (
+            <div key={i} className="overflow-hidden rounded-lg border bg-card">
+              <SkeletonRect width="100%" height="0" className="aspect-square" style={{ paddingBottom: "100%" }} />
+              <div className="p-3 space-y-2">
+                <SkeletonRect width="80%" height="16px" />
+                <SkeletonRect width="50%" height="12px" />
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     )
   }
@@ -661,38 +755,33 @@ export default function CollectionDetail() {
         {t("collectionDetail.backToCollections")}
       </Button>
 
-      {/* Collection header */}
-      <div className="overflow-hidden rounded-lg border bg-card">
-        {collection.coverImage ? (
-          <div className="relative h-48 sm:h-56">
-            <img
-              src={collection.coverImage}
-              alt={collection.name}
-              className="h-full w-full object-cover"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-            <div className="absolute bottom-0 left-0 p-6 text-white">
-              <h1 className="text-2xl font-bold tracking-tight">{collection.name}</h1>
-              {collection.description && (
-                <p className="mt-1 text-sm text-white/80">{collection.description}</p>
-              )}
-              <p className="mt-2 text-xs text-white/60">
-                {collectionType?.name} · {t("collections.itemCount", { count: totalCount })}
-              </p>
-            </div>
-          </div>
-        ) : (
-          <div className="p-6">
-            <h1 className="text-2xl font-bold tracking-tight">{collection.name}</h1>
-            {collection.description && (
-              <p className="mt-1 text-sm text-muted-foreground">{collection.description}</p>
+      {/* PageHeader with collection name, type badge, and action buttons */}
+      <PageHeader
+        title={collection.name}
+        description={collection.description ?? undefined}
+        actions={
+          <div className="flex items-center gap-2">
+            {collectionType && (
+              <Badge variant="primary" size="sm">{collectionType.name}</Badge>
             )}
-            <p className="mt-2 text-xs text-muted-foreground">
-              {collectionType?.name} · {t("collections.itemCount", { count: totalCount })}
-            </p>
+            <span className="text-sm text-muted-foreground">
+              {t("collections.itemCount", { count: totalCount })}
+            </span>
           </div>
-        )}
-      </div>
+        }
+      />
+
+      {/* Cover image */}
+      {collection.coverImage && (
+        <div className="mt-4 overflow-hidden rounded-lg">
+          <img
+            src={collection.coverImage}
+            alt={collection.name}
+            className="h-48 w-full object-cover sm:h-56"
+            loading="lazy"
+          />
+        </div>
+      )}
 
       {error && (
         <div className="mt-4 rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive-foreground">
@@ -705,7 +794,7 @@ export default function CollectionDetail() {
         <button
           className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
             activeTab === "items"
-              ? "border-primary text-primary"
+              ? "border-accent text-foreground"
               : "border-transparent text-muted-foreground hover:text-foreground"
           }`}
           onClick={() => setActiveTab("items")}
@@ -715,7 +804,7 @@ export default function CollectionDetail() {
         <button
           className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
             activeTab === "sets"
-              ? "border-primary text-primary"
+              ? "border-accent text-foreground"
               : "border-transparent text-muted-foreground hover:text-foreground"
           }`}
           onClick={() => setActiveTab("sets")}
@@ -727,9 +816,35 @@ export default function CollectionDetail() {
       {/* Items Tab */}
       {activeTab === "items" && (
         <>
-          {/* Toolbar */}
-          <div className="mt-4 flex items-center justify-between">
-            <h2 className="text-lg font-semibold">{t("collectionDetail.catalogItems")}</h2>
+          {/* Toolbar: actions row */}
+          <div className="mt-4 flex flex-wrap items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              {/* View toggle */}
+              <div className="flex rounded-md border border-input shadow-sm">
+                <button
+                  className={`flex h-9 w-9 items-center justify-center transition-colors ${
+                    viewMode === "grid"
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-transparent text-muted-foreground hover:text-foreground"
+                  } rounded-l-md`}
+                  onClick={() => changeViewMode("grid")}
+                  title={t("collectionDetail.viewGrid")}
+                >
+                  <LayoutGrid className="h-4 w-4" />
+                </button>
+                <button
+                  className={`flex h-9 w-9 items-center justify-center transition-colors ${
+                    viewMode === "table"
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-transparent text-muted-foreground hover:text-foreground"
+                  } rounded-r-md`}
+                  onClick={() => changeViewMode("table")}
+                  title={t("collectionDetail.viewTable")}
+                >
+                  <List className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
             <div className="flex gap-2">
               <Button variant="outline" size="sm" onClick={() => { setExportError(""); setExportDialogOpen(true) }}>
                 <Download className="h-4 w-4" />
@@ -739,7 +854,7 @@ export default function CollectionDetail() {
                 <Upload className="h-4 w-4" />
                 {t("collectionDetail.import")}
               </Button>
-              <Button onClick={openAddItem}>
+              <Button onClick={openAddItem} className="bg-accent text-accent-foreground hover:bg-accent/90">
                 <Plus className="h-4 w-4" />
                 {t("collectionDetail.addItem")}
               </Button>
@@ -759,20 +874,21 @@ export default function CollectionDetail() {
               />
             </div>
 
-            {/* Condition filter */}
-            <select
-              value={conditionFilter}
-              onChange={(e) => updateParam("condition", e.target.value)}
-              className="h-9 rounded-md border border-input bg-transparent px-3 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-            >
-              <option value="">{t("collectionDetail.conditionAll")}</option>
-              <option value="Mint">{t("collectionDetail.conditionMint")}</option>
-              <option value="NearMint">{t("collectionDetail.conditionNearMint")}</option>
-              <option value="Excellent">{t("collectionDetail.conditionExcellent")}</option>
-              <option value="Good">{t("collectionDetail.conditionGood")}</option>
-              <option value="Fair">{t("collectionDetail.conditionFair")}</option>
-              <option value="Poor">{t("collectionDetail.conditionPoor")}</option>
-            </select>
+            {/* Condition filter - DS Select */}
+            <Select value={conditionFilter || "all"} onValueChange={(v) => updateParam("condition", v)}>
+              <SelectTrigger className="h-9 w-[160px]">
+                <SelectValue placeholder={t("collectionDetail.conditionAll")} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">{t("collectionDetail.conditionAll")}</SelectItem>
+                <SelectItem value="Mint">{t("collectionDetail.conditionMint")}</SelectItem>
+                <SelectItem value="NearMint">{t("collectionDetail.conditionNearMint")}</SelectItem>
+                <SelectItem value="Excellent">{t("collectionDetail.conditionExcellent")}</SelectItem>
+                <SelectItem value="Good">{t("collectionDetail.conditionGood")}</SelectItem>
+                <SelectItem value="Fair">{t("collectionDetail.conditionFair")}</SelectItem>
+                <SelectItem value="Poor">{t("collectionDetail.conditionPoor")}</SelectItem>
+              </SelectContent>
+            </Select>
 
             {/* Owned status toggle */}
             <div className="flex rounded-md border border-input shadow-sm">
@@ -791,18 +907,19 @@ export default function CollectionDetail() {
               ))}
             </div>
 
-            {/* Sort */}
-            <select
-              value={sortBy}
-              onChange={(e) => updateParam("sortBy", e.target.value)}
-              className="h-9 rounded-md border border-input bg-transparent px-3 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-            >
-              <option value="name">{t("collectionDetail.sortName")}</option>
-              <option value="price">{t("collectionDetail.sortPrice")}</option>
-              <option value="value">{t("collectionDetail.sortValue")}</option>
-              <option value="date">{t("collectionDetail.sortDate")}</option>
-              <option value="rarity">{t("collectionDetail.sortRarity")}</option>
-            </select>
+            {/* Sort - DS Select */}
+            <Select value={sortBy} onValueChange={(v) => updateParam("sortBy", v)}>
+              <SelectTrigger className="h-9 w-[120px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="name">{t("collectionDetail.sortName")}</SelectItem>
+                <SelectItem value="price">{t("collectionDetail.sortPrice")}</SelectItem>
+                <SelectItem value="value">{t("collectionDetail.sortValue")}</SelectItem>
+                <SelectItem value="date">{t("collectionDetail.sortDate")}</SelectItem>
+                <SelectItem value="rarity">{t("collectionDetail.sortRarity")}</SelectItem>
+              </SelectContent>
+            </Select>
 
             {/* Sort direction toggle */}
             <button
@@ -818,7 +935,7 @@ export default function CollectionDetail() {
             </button>
           </div>
 
-          {/* Gallery grid */}
+          {/* Content: empty state, grid view, or table view */}
           {items.length === 0 ? (
             <EmptyState
               icon={<Package />}
@@ -827,55 +944,82 @@ export default function CollectionDetail() {
               actionLabel={t("emptyStates.collectionDetail.action")}
               onAction={() => setDialogOpen(true)}
             />
-          ) : (
-            <div className="mt-4 grid gap-4 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+          ) : viewMode === "grid" ? (
+            <StaggerChildren className="mt-4 grid gap-4 grid-cols-2 sm:grid-cols-3 md:grid-cols-4">
               {items.map((item) => {
                 const isOwned = ownedItemIds.has(item.id)
                 return (
-                  <div
-                    key={item.id}
-                    className={`group relative cursor-pointer overflow-hidden rounded-lg border bg-card shadow-sm transition-shadow hover:shadow-md ${
-                      isOwned ? "ring-2 ring-green-500/50" : "opacity-75"
-                    }`}
-                    onClick={() => navigate(`/collections/${id}/items/${item.id}`)}
-                  >
-                    {/* Item image */}
-                    <div className="relative aspect-square bg-muted">
-                      {item.image ? (
-                        <img
-                          src={item.image}
-                          alt={item.name}
-                          loading="lazy"
-                          className="h-full w-full object-cover"
-                        />
-                      ) : (
-                        <div className="flex h-full items-center justify-center">
-                          <Image className="h-8 w-8 text-muted-foreground/40" />
+                  <motion.div key={item.id} variants={staggerItemVariants}>
+                    <Card
+                      className={`group cursor-pointer overflow-hidden transition-all hover:shadow-lg hover:-translate-y-0.5 ${
+                        isOwned ? "ring-2 ring-success/50" : ""
+                      }`}
+                      onClick={() => navigate(`/collections/${id}/items/${item.id}`)}
+                    >
+                      {/* Item image */}
+                      <div className="relative aspect-square bg-muted">
+                        {item.image ? (
+                          <img
+                            src={item.image}
+                            alt={item.name}
+                            loading="lazy"
+                            className="h-full w-full object-cover"
+                          />
+                        ) : (
+                          <div className="flex h-full items-center justify-center bg-gradient-to-br from-primary/5 to-accent/5">
+                            <Image className="h-10 w-10 text-muted-foreground/30" />
+                          </div>
+                        )}
+                        {/* Owned badge */}
+                        {isOwned && (
+                          <div className="absolute top-2 right-2 rounded-full bg-success p-1 text-white shadow-sm">
+                            <Check className="h-3 w-3" />
+                          </div>
+                        )}
+                        {/* Hover overlay with quick action */}
+                        <div className="absolute inset-0 flex items-center justify-center bg-black/0 opacity-0 transition-all group-hover:bg-black/20 group-hover:opacity-100">
+                          <span className="rounded-md bg-white/90 px-3 py-1.5 text-xs font-medium text-foreground shadow">
+                            {t("collections.view")}
+                          </span>
                         </div>
-                      )}
-                      {/* Owned badge */}
-                      {isOwned && (
-                        <div className="absolute top-2 right-2 rounded-full bg-green-500 p-1 text-white shadow-sm">
-                          <Check className="h-3 w-3" />
-                        </div>
-                      )}
-                    </div>
+                      </div>
 
-                    {/* Item info */}
-                    <div className="p-2">
-                      <h3 className="truncate text-sm font-medium">{item.name}</h3>
-                      {item.rarity && (
+                      <CardContent className="p-3">
+                        <h3 className="truncate text-sm font-semibold">{item.name}</h3>
                         <p className="mt-0.5 truncate text-xs text-muted-foreground">
-                          {item.rarity}
+                          {item.identifier}
                         </p>
-                      )}
-                      <p className="mt-0.5 text-xs text-muted-foreground/70">
-                        {item.identifier}
-                      </p>
-                    </div>
-                  </div>
+                        {isOwned && (
+                          <Badge variant="success" size="sm" className="mt-1.5">{t("collectionDetail.ownedOwned")}</Badge>
+                        )}
+                      </CardContent>
+                    </Card>
+                  </motion.div>
                 )
               })}
+            </StaggerChildren>
+          ) : (
+            <div className="mt-4">
+              <DataTable<CatalogItem>
+                columns={tableColumns}
+                data={items}
+                sortKey={sortBy}
+                sortDirection={sortDir as "asc" | "desc"}
+                onSort={(key, dir) => {
+                  updateParam("sortBy", key)
+                  updateParam("sortDir", dir)
+                }}
+                onRowClick={(row) => navigate(`/collections/${id}/items/${row.id}`)}
+                emptyState={
+                  <EmptyState
+                    icon={<Package />}
+                    title={t("emptyStates.collectionDetail.title")}
+                    description={t("emptyStates.collectionDetail.description")}
+                    actionLabel={t("emptyStates.collectionDetail.action")}
+                    onAction={() => setDialogOpen(true)}
+                  />
+                }
+              />
             </div>
           )}
         </>

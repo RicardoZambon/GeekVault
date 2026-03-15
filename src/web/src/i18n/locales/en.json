@@ -185,6 +185,8 @@
     "sortRarity": "Rarity",
     "sortAsc": "Ascending",
     "sortDesc": "Descending",
+    "viewGrid": "Grid view",
+    "viewTable": "Table view",
     "export": "Export",
     "exportTitle": "Export Collection",
     "exportDescription": "Download your collection data as CSV or JSON.",
