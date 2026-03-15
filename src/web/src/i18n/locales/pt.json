@@ -32,7 +32,8 @@
     "helpComingSoon": "Em breve",
     "notifications": "Notificações",
     "noNotifications": "Sem notificações",
-    "shortcut": "{{key}}"
+    "shortcut": "{{key}}",
+    "userMenu": "Abrir menu do usuário"
   },
   "dashboard": {
     "title": "Painel",

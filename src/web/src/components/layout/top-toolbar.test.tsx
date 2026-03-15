@@ -82,7 +82,7 @@ describe("TopToolbar", () => {
     )
     fireEvent.click(screen.getByText("toolbar.search"))
     expect(dispatchSpy).toHaveBeenCalledWith(
-      expect.objectContaining({ key: "k", metaKey: true })
+      expect.objectContaining({ key: "k", ctrlKey: true })
     )
     dispatchSpy.mockRestore()
   })

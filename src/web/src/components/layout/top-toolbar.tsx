@@ -14,9 +14,16 @@ import {
 } from "@/components/ds"
 import { UserMenu } from "./user-menu"
 
+const isMac = navigator.platform.toUpperCase().includes("MAC")
+
 function openCommandPalette() {
   document.dispatchEvent(
-    new KeyboardEvent("keydown", { key: "k", metaKey: true, bubbles: true })
+    new KeyboardEvent("keydown", {
+      key: "k",
+      metaKey: isMac,
+      ctrlKey: !isMac,
+      bubbles: true,
+    })
   )
 }
 
@@ -24,7 +31,6 @@ export function TopToolbar() {
   const { t, i18n } = useTranslation()
   const { theme, setTheme } = useTheme()
   const { user } = useAuth()
-  const isMac = navigator.platform.toUpperCase().includes("MAC")
 
   const toggleLanguage = () => {
     i18n.changeLanguage(i18n.language === "pt" ? "en" : "pt")
@@ -61,7 +67,7 @@ export function TopToolbar() {
         {/* Help */}
         <Tooltip delayDuration={0}>
           <TooltipTrigger asChild>
-            <Button variant="ghost" size="icon">
+            <Button variant="ghost" size="icon" aria-label={t("toolbar.help")}>
               <HelpCircle className="h-4 w-4" />
             </Button>
           </TooltipTrigger>
@@ -71,7 +77,7 @@ export function TopToolbar() {
         {/* Notifications */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon">
+            <Button variant="ghost" size="icon" aria-label={t("toolbar.notifications")}>
               <Bell className="h-4 w-4" />
             </Button>
           </DropdownMenuTrigger>
@@ -117,7 +123,7 @@ export function TopToolbar() {
 
         {/* User menu */}
         <UserMenu side="bottom" align="end">
-          <Button variant="ghost" size="icon" className="ml-1">
+          <Button variant="ghost" size="icon" className="ml-1" aria-label={t("toolbar.userMenu")}>
             {user?.avatar ? (
               <img src={user.avatar} alt="" className="h-7 w-7 rounded-full object-cover" />
             ) : (

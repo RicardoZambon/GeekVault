@@ -32,7 +32,8 @@
     "helpComingSoon": "Coming soon",
     "notifications": "Notifications",
     "noNotifications": "No notifications",
-    "shortcut": "{{key}}"
+    "shortcut": "{{key}}",
+    "userMenu": "Open user menu"
   },
   "dashboard": {
     "title": "Dashboard",

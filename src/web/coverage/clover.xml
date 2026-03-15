@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<coverage generated="1773600610363" clover="3.2.0">
-  <project timestamp="1773600610364" name="All files">
+<coverage generated="1773604436237" clover="3.2.0">
+  <project timestamp="1773604436238" name="All files">
     <metrics statements="1610" coveredstatements="1587" conditionals="1094" coveredconditionals="991" methods="472" coveredmethods="453" elements="3176" coveredelements="3031" complexity="0" loc="1610" ncloc="1610" packages="17" files="54" classes="54"/>
     <package name="src">
       <metrics statements="13" coveredstatements="13" conditionals="8" coveredconditionals="8" methods="3" coveredmethods="3"/>
@@ -27,14 +27,14 @@
         <metrics statements="46" coveredstatements="46" conditionals="21" coveredconditionals="21" methods="15" coveredmethods="14"/>
         <line num="19" count="1" type="stmt"/>
         <line num="21" count="1" type="stmt"/>
-        <line num="24" count="31" type="stmt"/>
-        <line num="25" count="31" type="stmt"/>
-        <line num="26" count="31" type="stmt"/>
-        <line num="28" count="31" type="stmt"/>
+        <line num="24" count="32" type="stmt"/>
+        <line num="25" count="32" type="stmt"/>
+        <line num="26" count="32" type="stmt"/>
+        <line num="28" count="32" type="stmt"/>
         <line num="29" count="3" type="stmt"/>
         <line num="30" count="3" type="stmt"/>
         <line num="31" count="3" type="stmt"/>
-        <line num="34" count="31" type="stmt"/>
+        <line num="34" count="32" type="stmt"/>
         <line num="35" count="16" type="cond" truecount="2" falsecount="0"/>
         <line num="36" count="10" type="stmt"/>
         <line num="37" count="10" type="stmt"/>
@@ -44,7 +44,7 @@
         <line num="48" count="5" type="cond" truecount="4" falsecount="0"/>
         <line num="51" count="1" type="stmt"/>
         <line num="54" count="6" type="stmt"/>
-        <line num="58" count="31" type="stmt"/>
+        <line num="58" count="32" type="stmt"/>
         <line num="59" count="3" type="stmt"/>
         <line num="65" count="3" type="cond" truecount="2" falsecount="0"/>
         <line num="66" count="2" type="stmt"/>
@@ -53,7 +53,7 @@
         <line num="71" count="1" type="stmt"/>
         <line num="72" count="1" type="stmt"/>
         <line num="73" count="1" type="stmt"/>
-        <line num="76" count="31" type="stmt"/>
+        <line num="76" count="32" type="stmt"/>
         <line num="77" count="3" type="stmt"/>
         <line num="83" count="3" type="cond" truecount="2" falsecount="0"/>
         <line num="84" count="2" type="stmt"/>
@@ -62,11 +62,11 @@
         <line num="89" count="1" type="stmt"/>
         <line num="90" count="1" type="stmt"/>
         <line num="91" count="1" type="stmt"/>
-        <line num="94" count="31" type="stmt"/>
+        <line num="94" count="32" type="stmt"/>
         <line num="95" count="2" type="cond" truecount="2" falsecount="0"/>
         <line num="96" count="1" type="stmt"/>
         <line num="101" count="2" type="stmt"/>
-        <line num="104" count="31" type="stmt"/>
+        <line num="104" count="32" type="stmt"/>
         <line num="112" count="32" type="stmt"/>
         <line num="113" count="32" type="cond" truecount="2" falsecount="0"/>
         <line num="114" count="2" type="stmt"/>
@@ -381,17 +381,17 @@
       </file>
       <file name="top-toolbar.tsx" path="/workspaces/GeekVault/src/web/src/components/layout/top-toolbar.tsx">
         <metrics statements="11" coveredstatements="11" conditionals="14" coveredconditionals="13" methods="5" coveredmethods="5"/>
-        <line num="18" count="1" type="stmt"/>
-        <line num="24" count="11" type="stmt"/>
-        <line num="25" count="11" type="stmt"/>
-        <line num="26" count="11" type="stmt"/>
-        <line num="27" count="11" type="stmt"/>
-        <line num="29" count="11" type="stmt"/>
-        <line num="30" count="2" type="cond" truecount="2" falsecount="0"/>
-        <line num="33" count="11" type="cond" truecount="2" falsecount="0"/>
-        <line num="36" count="20" type="stmt"/>
-        <line num="42" count="11" type="stmt"/>
-        <line num="108" count="2" type="cond" truecount="2" falsecount="0"/>
+        <line num="17" count="1" type="stmt"/>
+        <line num="20" count="1" type="stmt"/>
+        <line num="31" count="11" type="stmt"/>
+        <line num="32" count="11" type="stmt"/>
+        <line num="33" count="11" type="stmt"/>
+        <line num="35" count="11" type="stmt"/>
+        <line num="36" count="2" type="cond" truecount="2" falsecount="0"/>
+        <line num="39" count="11" type="cond" truecount="2" falsecount="0"/>
+        <line num="42" count="20" type="stmt"/>
+        <line num="48" count="11" type="stmt"/>
+        <line num="114" count="2" type="cond" truecount="2" falsecount="0"/>
       </file>
       <file name="user-menu.tsx" path="/workspaces/GeekVault/src/web/src/components/layout/user-menu.tsx">
         <metrics statements="8" coveredstatements="8" conditionals="2" coveredconditionals="2" methods="3" coveredmethods="3"/>
