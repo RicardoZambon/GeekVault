@@ -1229,8 +1229,8 @@ describe("CollectionDetail", () => {
 
     // Find the sort select - it's a mocked Radix Select rendered as native <select>
     const selects = document.querySelectorAll("select")
-    // Find the one with "name" value (sort by)
-    const sortSelect = Array.from(selects).find((s) => s.value === "name")
+    // Find the one with "custom" value (sort by, default is "custom")
+    const sortSelect = Array.from(selects).find((s) => s.value === "custom")
     expect(sortSelect).toBeTruthy()
     fireEvent.change(sortSelect!, { target: { value: "price" } })
     expect(sortSelect!).toHaveValue("price")
