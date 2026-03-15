@@ -146,12 +146,16 @@ export function Sidebar() {
                       )
                     }
                   >
-                    {({ isActive }) => (
-                      <>
-                        <item.icon className={cn("shrink-0", collapsed ? "h-6 w-6" : "h-5 w-5", isActive && "text-sidebar-primary")} />
-                        {!collapsed && <span>{t(item.labelKey)}</span>}
-                      </>
-                    )}
+                    {({ isActive }) =>
+                      collapsed ? (
+                        <item.icon className={cn("h-6 w-6", isActive && "text-sidebar-primary")} />
+                      ) : (
+                        <>
+                          <item.icon className={cn("h-5 w-5 shrink-0", isActive && "text-sidebar-primary")} />
+                          <span>{t(item.labelKey)}</span>
+                        </>
+                      )
+                    }
                   </NavLink>
                 )
 
