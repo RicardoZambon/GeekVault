@@ -121,3 +121,10 @@
   - Uses `children` as trigger via DropdownMenuTrigger asChild
   - Settings and Help items are disabled with opacity-50 and cursor-not-allowed
 ---
+
+## 2026-03-15 - US-011
+- Created `TopToolbar` component at `components/layout/top-toolbar.tsx`
+- Empty shell: 72px height, bottom border, hidden on mobile (md:flex), horizontal padding
+- Integrated into `app-layout.tsx` between Header and main content
+- Files changed: `src/web/src/components/layout/top-toolbar.tsx` (new), `src/web/src/components/layout/app-layout.tsx`
+---
