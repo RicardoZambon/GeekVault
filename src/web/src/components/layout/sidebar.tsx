@@ -139,7 +139,7 @@ export function Sidebar() {
                     className={({ isActive }) =>
                       cn(
                         "rounded-lg font-medium transition-colors relative border-l-[3px]",
-                        collapsed ? "grid place-items-center h-[48px] text-base" : "flex items-center gap-3 px-3 min-h-[44px] text-sm",
+                        collapsed ? "flex items-center justify-center w-full h-[48px] text-base" : "flex items-center gap-3 px-3 min-h-[44px] text-sm",
                         isActive
                           ? "bg-sidebar-accent text-sidebar-accent-foreground border-sidebar-primary"
                           : "border-transparent text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground"
