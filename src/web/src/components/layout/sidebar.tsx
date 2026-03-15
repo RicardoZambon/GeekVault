@@ -138,8 +138,8 @@ export function Sidebar() {
                     end={item.to === "/"}
                     className={({ isActive }) =>
                       cn(
-                        "flex items-center rounded-lg font-medium transition-colors relative border-l-[3px]",
-                        collapsed ? "justify-center px-0 min-h-[48px] text-base" : "gap-3 px-3 min-h-[44px] text-sm",
+                        "rounded-lg font-medium transition-colors relative border-l-[3px]",
+                        collapsed ? "grid place-items-center h-[48px] text-base" : "flex items-center gap-3 px-3 min-h-[44px] text-sm",
                         isActive
                           ? "bg-sidebar-accent text-sidebar-accent-foreground border-sidebar-primary"
                           : "border-transparent text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground"
