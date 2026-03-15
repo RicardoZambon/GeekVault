@@ -498,3 +498,17 @@ Started: Sun Mar 15 02:52:16 AM UTC 2026
   - DS Select works as drop-in replacement for native `<select>` — just change to `Select > SelectTrigger > SelectValue` + `SelectContent > SelectItem`
   - No browser testing tools available — manual verification needed
 ---
+
+## 2026-03-15 - US-030
+- Created `AnimatedOutlet` component wrapping `useOutlet` + `useLocation` with `AnimatePresence` + `PageTransition`
+- Replaced `<Outlet />` with `<AnimatedOutlet />` in app-layout.tsx (authenticated routes) and GuestOnly wrapper (login/register)
+- Dialogs already have scale-in animation via Radix's `zoom-in-95`/`zoom-out-95` CSS classes — no changes needed
+- `PageTransition` from DS motion.tsx already respects `prefers-reduced-motion` (returns noop variants)
+- `AnimatePresence mode="wait"` ensures outgoing page exits before incoming page enters — no layout jump
+- Files changed: animated-outlet.tsx (new), app-layout.tsx, App.tsx
+- **Learnings for future iterations:**
+  - `AnimatedOutlet` pattern: `useOutlet()` captures the current outlet element, keyed by `location.pathname` inside `AnimatePresence mode="wait"` + `PageTransition`
+  - `RequireAuth` outlet renders `AppLayout` (not pages directly), so it should use plain `<Outlet />` — only the innermost outlet that renders page components needs animation
+  - Radix Dialog already has built-in `zoom-in-95`/`zoom-out-95` + `fade-in`/`fade-out` animations — no need for separate ScaleIn wrapper
+  - No browser testing tools available — manual verification needed
+---
