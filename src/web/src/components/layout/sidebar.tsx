@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react"
-import { NavLink, useNavigate } from "react-router-dom"
+import { NavLink } from "react-router-dom"
 import { useTranslation } from "react-i18next"
 import {
   LayoutDashboard,
@@ -7,7 +7,6 @@ import {
   Layers,
   Heart,
   User,
-  LogOut,
   ChevronLeft,
   ChevronRight,
 } from "lucide-react"
@@ -63,8 +62,7 @@ function getDefaultCollapsed(isDesktop: boolean): boolean {
 
 export function Sidebar() {
   const { t } = useTranslation()
-  const { user, logout } = useAuth()
-  const navigate = useNavigate()
+  const { user } = useAuth()
   const isDesktop = useMediaQuery("(min-width: 1024px)")
   const [collapsed, setCollapsed] = useState(() => getDefaultCollapsed(isDesktop))
 
@@ -77,11 +75,6 @@ export function Sidebar() {
     window.addEventListener("toggle-sidebar", handler)
     return () => window.removeEventListener("toggle-sidebar", handler)
   }, [])
-
-  const handleLogout = () => {
-    logout()
-    navigate("/login", { replace: true })
-  }
 
   const toggleCollapsed = () => setCollapsed((prev) => !prev)
 
@@ -98,7 +91,7 @@ export function Sidebar() {
   return (
     <aside
       className={cn(
-        "hidden shrink-0 bg-sidebar-background md:flex flex-col transition-all duration-250 ease-in-out",
+        "group/sidebar relative hidden shrink-0 bg-sidebar-background md:flex flex-col transition-all duration-250 ease-in-out",
         collapsed ? "w-[72px]" : "w-[260px]"
       )}
     >
@@ -204,43 +197,20 @@ export function Sidebar() {
             </div>
           </div>
         )}
-
-        {/* Logout button */}
-        {collapsed ? (
-          <Tooltip delayDuration={0}>
-            <TooltipTrigger asChild>
-              <button
-                onClick={handleLogout}
-                className="mt-1 flex w-full items-center justify-center rounded-lg px-2 py-2.5 text-sidebar-foreground/70 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-              >
-                <LogOut className="h-4 w-4" />
-              </button>
-            </TooltipTrigger>
-            <TooltipContent side="right">{t("nav.logout")}</TooltipContent>
-          </Tooltip>
-        ) : (
-          <button
-            onClick={handleLogout}
-            className="mt-1 flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-sidebar-foreground/70 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-          >
-            <LogOut className="h-4 w-4" />
-            {t("nav.logout")}
-          </button>
-        )}
-
-        {/* Toggle button */}
-        <button
-          onClick={toggleCollapsed}
-          className="mt-2 flex w-full items-center justify-center rounded-lg py-1.5 text-sidebar-foreground/50 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-          aria-label={collapsed ? t("nav.expandSidebar") : t("nav.collapseSidebar")}
-        >
-          {collapsed ? (
-            <ChevronRight className="h-4 w-4" />
-          ) : (
-            <ChevronLeft className="h-4 w-4" />
-          )}
-        </button>
       </div>
+
+      {/* Edge collapse toggle */}
+      <button
+        onClick={toggleCollapsed}
+        className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2 z-10 flex h-6 w-6 items-center justify-center rounded-full border border-sidebar-border bg-sidebar-background text-sidebar-foreground/50 opacity-0 transition-opacity hover:text-sidebar-foreground group-hover/sidebar:opacity-100"
+        aria-label={collapsed ? t("nav.expandSidebar") : t("nav.collapseSidebar")}
+      >
+        {collapsed ? (
+          <ChevronRight className="h-3 w-3" />
+        ) : (
+          <ChevronLeft className="h-3 w-3" />
+        )}
+      </button>
     </aside>
   )
 }
@@ -248,14 +218,7 @@ export function Sidebar() {
 /** Mobile sidebar content — always expanded, used inside Sheet */
 export function MobileSidebarContent({ onClose }: { onClose: () => void }) {
   const { t } = useTranslation()
-  const { user, logout } = useAuth()
-  const navigate = useNavigate()
-
-  const handleLogout = () => {
-    logout()
-    navigate("/login", { replace: true })
-    onClose()
-  }
+  const { user } = useAuth()
 
   const initials = user?.displayName
     ? user.displayName
@@ -311,7 +274,7 @@ export function MobileSidebarContent({ onClose }: { onClose: () => void }) {
 
       {/* User section */}
       <div className="border-t border-sidebar-border p-4">
-        <div className="flex items-center gap-3 px-2 py-1 mb-2">
+        <div className="flex items-center gap-3 px-2 py-1">
           <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-sidebar-primary text-sidebar-primary-foreground text-xs font-bold">
             {initials}
           </div>
@@ -321,13 +284,6 @@ export function MobileSidebarContent({ onClose }: { onClose: () => void }) {
             </p>
           </div>
         </div>
-        <button
-          onClick={handleLogout}
-          className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-sidebar-foreground/70 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-        >
-          <LogOut className="h-4 w-4" />
-          {t("nav.logout")}
-        </button>
       </div>
     </div>
   )

@@ -71,6 +71,8 @@
 - **Learnings for future iterations:**
   - Collapsed mode uses border-t separators between groups instead of text labels
   - Group labels use `font-semibold uppercase text-sidebar-foreground/50`
+- Edge collapse toggle uses `group/sidebar` on aside + `group-hover/sidebar:opacity-100` pattern for hover-reveal
+
 ---
 
 ## 2026-03-15 - US-007
@@ -90,4 +92,17 @@
 - Collapsed width 72px, centered icons h-5 w-5, tooltips on right, active state with bg + 3px border + colored icon, group separators
 - No code changes needed
 - Files changed: none (just PRD update)
+---
+
+## 2026-03-15 - US-009
+- Removed logout button from both desktop Sidebar and MobileSidebarContent
+- Removed bottom collapse/expand chevron button
+- Added hover-reveal chevron at sidebar right edge, vertically centered (absolute positioning)
+- Used `group/sidebar` + `group-hover/sidebar:opacity-100` for hover reveal
+- Removed unused imports: LogOut, useNavigate; removed handleLogout from both components
+- Files changed: `src/web/src/components/layout/sidebar.tsx`
+- **Learnings for future iterations:**
+  - Logout will be in the user profile dropdown (US-010)
+  - The edge toggle uses absolute positioning with translate-x-1/2 to sit on the sidebar edge
+  - `group/sidebar` is a named Tailwind group for scoped hover
 ---
