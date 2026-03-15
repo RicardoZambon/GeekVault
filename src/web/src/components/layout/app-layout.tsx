@@ -1,7 +1,7 @@
-import { Outlet } from "react-router-dom"
 import { Sidebar } from "./sidebar"
 import { Header } from "./header"
 import { CommandPalette } from "./command-palette"
+import { AnimatedOutlet } from "./animated-outlet"
 
 export default function AppLayout() {
   return (
@@ -16,7 +16,7 @@ export default function AppLayout() {
 
         {/* Page content */}
         <main className="flex-1 overflow-y-auto p-6">
-          <Outlet />
+          <AnimatedOutlet />
         </main>
       </div>
 

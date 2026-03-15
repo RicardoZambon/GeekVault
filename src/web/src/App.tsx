@@ -1,5 +1,6 @@
 import { Routes, Route, Navigate, Outlet } from 'react-router-dom'
 import { useAuth } from './components/auth-provider'
+import { AnimatedOutlet } from './components/layout/animated-outlet'
 import AppLayout from './components/layout/app-layout'
 import Dashboard from './features/dashboard/dashboard-page'
 import Collections from './features/collections/collections-page'
@@ -44,7 +45,7 @@ function GuestOnly() {
     return <Navigate to="/" replace />
   }
 
-  return <Outlet />
+  return <AnimatedOutlet />
 }
 
 function App() {
