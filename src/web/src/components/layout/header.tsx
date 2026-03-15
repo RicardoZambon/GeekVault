@@ -23,7 +23,7 @@ export function Header() {
         <SheetTrigger asChild>
           <Button variant="ghost" size="icon">
             <Menu className="h-5 w-5" />
-            <span className="sr-only">Toggle menu</span>
+            <span className="sr-only">{t("nav.toggleMenu")}</span>
           </Button>
         </SheetTrigger>
         <SheetContent side="left" className="w-[75vw] max-w-72 p-0 bg-sidebar-background border-sidebar-border [&>button]:text-sidebar-foreground">

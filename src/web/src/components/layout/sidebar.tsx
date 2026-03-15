@@ -183,7 +183,7 @@ export function Sidebar() {
         <button
           onClick={toggleCollapsed}
           className="mt-2 flex w-full items-center justify-center rounded-lg py-1.5 text-sidebar-foreground/50 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-          aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+          aria-label={collapsed ? t("nav.expandSidebar") : t("nav.collapseSidebar")}
         >
           {collapsed ? (
             <ChevronRight className="h-4 w-4" />

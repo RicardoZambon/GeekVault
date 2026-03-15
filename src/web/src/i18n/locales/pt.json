@@ -10,7 +10,9 @@
     "profile": "Perfil",
     "toggleMenu": "Alternar menu",
     "toggleTheme": "Alternar tema",
-    "logout": "Sair"
+    "logout": "Sair",
+    "expandSidebar": "Expandir barra lateral",
+    "collapseSidebar": "Recolher barra lateral"
   },
   "dashboard": {
     "title": "Painel",
@@ -378,6 +380,15 @@
     "bioPlaceholder": "Conte-nos sobre você",
     "languageLabel": "Idioma Preferido",
     "currencyLabel": "Moeda Preferida",
+    "currencies": {
+      "USD": "USD - Dólar Americano",
+      "EUR": "EUR - Euro",
+      "GBP": "GBP - Libra Esterlina",
+      "BRL": "BRL - Real Brasileiro",
+      "JPY": "JPY - Iene Japonês",
+      "CAD": "CAD - Dólar Canadense",
+      "AUD": "AUD - Dólar Australiano"
+    },
     "avatarLabel": "Avatar",
     "uploadAvatar": "Enviar Avatar",
     "avatarFailed": "Falha ao enviar avatar",
@@ -445,6 +456,9 @@
       "description": "Adicione uma cópia para rastrear sua condição, preço de compra e valor.",
       "action": "Adicionar Cópia"
     }
+  },
+  "home": {
+    "tagline": "Catalogue, rastreie e navegue pelos seus colecionáveis."
   },
   "auth": {
     "login": "Entrar",

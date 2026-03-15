@@ -313,13 +313,13 @@ export default function Profile() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="USD">USD - US Dollar</SelectItem>
-                    <SelectItem value="EUR">EUR - Euro</SelectItem>
-                    <SelectItem value="GBP">GBP - British Pound</SelectItem>
-                    <SelectItem value="BRL">BRL - Real Brasileiro</SelectItem>
-                    <SelectItem value="JPY">JPY - Japanese Yen</SelectItem>
-                    <SelectItem value="CAD">CAD - Canadian Dollar</SelectItem>
-                    <SelectItem value="AUD">AUD - Australian Dollar</SelectItem>
+                    <SelectItem value="USD">{t("profile.currencies.USD")}</SelectItem>
+                    <SelectItem value="EUR">{t("profile.currencies.EUR")}</SelectItem>
+                    <SelectItem value="GBP">{t("profile.currencies.GBP")}</SelectItem>
+                    <SelectItem value="BRL">{t("profile.currencies.BRL")}</SelectItem>
+                    <SelectItem value="JPY">{t("profile.currencies.JPY")}</SelectItem>
+                    <SelectItem value="CAD">{t("profile.currencies.CAD")}</SelectItem>
+                    <SelectItem value="AUD">{t("profile.currencies.AUD")}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

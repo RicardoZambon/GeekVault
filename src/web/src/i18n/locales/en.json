@@ -10,7 +10,9 @@
     "profile": "Profile",
     "toggleMenu": "Toggle menu",
     "toggleTheme": "Toggle theme",
-    "logout": "Logout"
+    "logout": "Logout",
+    "expandSidebar": "Expand sidebar",
+    "collapseSidebar": "Collapse sidebar"
   },
   "dashboard": {
     "title": "Dashboard",
@@ -378,6 +380,15 @@
     "bioPlaceholder": "Tell us about yourself",
     "languageLabel": "Preferred Language",
     "currencyLabel": "Preferred Currency",
+    "currencies": {
+      "USD": "USD - US Dollar",
+      "EUR": "EUR - Euro",
+      "GBP": "GBP - British Pound",
+      "BRL": "BRL - Real Brasileiro",
+      "JPY": "JPY - Japanese Yen",
+      "CAD": "CAD - Canadian Dollar",
+      "AUD": "AUD - Australian Dollar"
+    },
     "avatarLabel": "Avatar",
     "uploadAvatar": "Upload Avatar",
     "avatarFailed": "Failed to upload avatar",
@@ -445,6 +456,9 @@
       "description": "Add a copy to track its condition, purchase price, and value.",
       "action": "Add Copy"
     }
+  },
+  "home": {
+    "tagline": "Catalog, track, and browse your collectibles."
   },
   "auth": {
     "login": "Sign in",
