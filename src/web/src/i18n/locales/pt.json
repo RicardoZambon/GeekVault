@@ -1,6 +1,7 @@
 {
   "app": {
-    "name": "GeekVault"
+    "name": "GeekVault",
+    "tagline": "Gerenciador de Coleções"
   },
   "nav": {
     "dashboard": "Painel",
@@ -12,7 +13,26 @@
     "toggleTheme": "Alternar tema",
     "logout": "Sair",
     "expandSidebar": "Expandir barra lateral",
-    "collapseSidebar": "Recolher barra lateral"
+    "collapseSidebar": "Recolher barra lateral",
+    "groups": {
+      "overview": "Visão Geral",
+      "collections": "Coleções",
+      "account": "Conta"
+    },
+    "userMenu": {
+      "settings": "Configurações",
+      "help": "Ajuda",
+      "profile": "Perfil",
+      "logout": "Sair"
+    }
+  },
+  "toolbar": {
+    "search": "Buscar coleções...",
+    "help": "Ajuda",
+    "helpComingSoon": "Em breve",
+    "notifications": "Notificações",
+    "noNotifications": "Sem notificações",
+    "shortcut": "{{key}}"
   },
   "dashboard": {
     "title": "Painel",
