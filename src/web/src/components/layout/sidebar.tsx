@@ -138,8 +138,8 @@ export function Sidebar() {
                     end={item.to === "/"}
                     className={({ isActive }) =>
                       cn(
-                        "font-medium transition-colors relative border-l-[3px] block",
-                        collapsed ? "rounded-md" : "rounded-lg",
+                        "font-medium transition-colors relative block rounded-md",
+                        !collapsed && "rounded-lg",
                         isActive
                           ? "bg-sidebar-accent text-sidebar-accent-foreground border-sidebar-primary"
                           : "border-transparent text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground"
