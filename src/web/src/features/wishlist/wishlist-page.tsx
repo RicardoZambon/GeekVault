@@ -1,6 +1,7 @@
 import { useState, useEffect, type FormEvent } from "react"
 import { useTranslation } from "react-i18next"
 import { Plus, Pencil, Trash2, Heart, Link } from "lucide-react"
+import { EmptyState } from "@/components/ds"
 import { useAuth } from "@/components/auth-provider"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -267,10 +268,13 @@ export default function Wishlist() {
       )}
 
       {totalItems === 0 ? (
-        <div className="mt-12 text-center text-muted-foreground">
-          <Heart className="mx-auto mb-4 h-12 w-12 text-muted-foreground/40" />
-          {t("wishlist.empty")}
-        </div>
+        <EmptyState
+          icon={<Heart />}
+          title={t("emptyStates.wishlist.title")}
+          description={t("emptyStates.wishlist.description")}
+          actionLabel={t("emptyStates.wishlist.action")}
+          onAction={() => setDialogOpen(true)}
+        />
       ) : (
         <div className="mt-6 space-y-8">
           {groups.map((group) => (

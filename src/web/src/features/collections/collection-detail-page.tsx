@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, type FormEvent } from "react"
 import { useParams, useNavigate, useSearchParams } from "react-router-dom"
 import { useTranslation } from "react-i18next"
 import { Plus, ArrowLeft, Image, Package, Check, Trash2, Pencil, Search, CheckCircle2, Circle, ArrowUp, ArrowDown, Download, Upload, AlertCircle, CheckCircle } from "lucide-react"
+import { EmptyState } from "@/components/ds"
 import { useAuth } from "@/components/auth-provider"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -819,10 +820,13 @@ export default function CollectionDetail() {
 
           {/* Gallery grid */}
           {items.length === 0 ? (
-            <div className="mt-12 text-center text-muted-foreground">
-              <Package className="mx-auto h-12 w-12 text-muted-foreground/40" />
-              <p className="mt-3">{t("collectionDetail.emptyItems")}</p>
-            </div>
+            <EmptyState
+              icon={<Package />}
+              title={t("emptyStates.collectionDetail.title")}
+              description={t("emptyStates.collectionDetail.description")}
+              actionLabel={t("emptyStates.collectionDetail.action")}
+              onAction={() => setDialogOpen(true)}
+            />
           ) : (
             <div className="mt-4 grid gap-4 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
               {items.map((item) => {

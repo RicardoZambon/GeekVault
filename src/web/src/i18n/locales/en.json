@@ -371,6 +371,21 @@
       "title": "No collections yet",
       "description": "Collections organize your items by type — comics, cards, figures, and more.",
       "action": "Create Your First Collection"
+    },
+    "collectionDetail": {
+      "title": "No items in this collection",
+      "description": "Add your first catalog item to start tracking what you own.",
+      "action": "Add Item"
+    },
+    "wishlist": {
+      "title": "Your wishlist is empty",
+      "description": "Save items you are looking for and track target prices.",
+      "action": "Add to Wishlist"
+    },
+    "collectionTypes": {
+      "title": "No collection types defined",
+      "description": "Collection types let you customize fields for different kinds of collectibles.",
+      "action": "Create Collection Type"
     }
   },
   "auth": {

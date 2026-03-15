@@ -371,6 +371,21 @@
       "title": "Nenhuma coleção ainda",
       "description": "Coleções organizam seus itens por tipo — quadrinhos, cartas, figuras e mais.",
       "action": "Crie Sua Primeira Coleção"
+    },
+    "collectionDetail": {
+      "title": "Nenhum item nesta coleção",
+      "description": "Adicione seu primeiro item de catálogo para começar a rastrear o que você possui.",
+      "action": "Adicionar Item"
+    },
+    "wishlist": {
+      "title": "Sua lista de desejos está vazia",
+      "description": "Salve itens que você está procurando e acompanhe preços-alvo.",
+      "action": "Adicionar à Lista de Desejos"
+    },
+    "collectionTypes": {
+      "title": "Nenhum tipo de coleção definido",
+      "description": "Tipos de coleção permitem personalizar campos para diferentes tipos de colecionáveis.",
+      "action": "Criar Tipo de Coleção"
     }
   },
   "auth": {

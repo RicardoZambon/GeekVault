@@ -1,6 +1,7 @@
 import { useState, useEffect, type FormEvent } from "react"
 import { useTranslation } from "react-i18next"
-import { Plus, Pencil, Trash2, X, GripVertical } from "lucide-react"
+import { Plus, Pencil, Trash2, X, GripVertical, Layers } from "lucide-react"
+import { EmptyState } from "@/components/ds"
 import { useAuth } from "@/components/auth-provider"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -246,9 +247,13 @@ export default function CollectionTypes() {
       )}
 
       {collectionTypes.length === 0 ? (
-        <div className="mt-12 text-center text-muted-foreground">
-          {t("collectionTypes.empty")}
-        </div>
+        <EmptyState
+          icon={<Layers />}
+          title={t("emptyStates.collectionTypes.title")}
+          description={t("emptyStates.collectionTypes.description")}
+          actionLabel={t("emptyStates.collectionTypes.action")}
+          onAction={() => setDialogOpen(true)}
+        />
       ) : (
         <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {collectionTypes.map((ct) => (
