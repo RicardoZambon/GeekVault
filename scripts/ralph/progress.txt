@@ -47,6 +47,8 @@ Started: Sun Mar 15 02:52:16 AM UTC 2026
 - Multi-step wizard: numeric `step` state + step config array `[{ num, label }]` for rendering step indicator with numbered circles and connector lines
 - `ConfirmDialog` from `@/components/ui/confirm-dialog` requires `cancelLabel` prop — use for all delete confirmations instead of building from scratch
 - Priority badge mapping: 1=High (destructive), 2=Medium (accent), >=3=Low (default) — use with DS Badge variants
+- Reorder endpoints pattern: POST `/api/.../reorder` with `{ itemIds: int[] }`, updates SortOrder = array index, returns 204 NoContent
+- New entities with SortOrder: auto-assign `GetMaxSortOrderAsync(parentId) + 1` on create; default sort by SortOrder then Id
 ---
 
 ## 2026-03-15 - US-002
@@ -511,4 +513,24 @@ Started: Sun Mar 15 02:52:16 AM UTC 2026
   - `RequireAuth` outlet renders `AppLayout` (not pages directly), so it should use plain `<Outlet />` — only the innermost outlet that renders page components needs animation
   - Radix Dialog already has built-in `zoom-in-95`/`zoom-out-95` + `fade-in`/`fade-out` animations — no need for separate ScaleIn wrapper
   - No browser testing tools available — manual verification needed
+---
+
+## 2026-03-15 - US-031
+- Added SortOrder (int, default 0) property to CatalogItem entity
+- Generated and applied EF Core migration: AddCatalogItemSortOrder
+- Updated CatalogItemsRepository to order by SortOrder by default in GetByCollectionId and GetByCollectionIdWithFieldsAsync
+- Added GetMaxSortOrderAsync and GetByIdsAndCollectionIdAsync to repository + interface
+- Added POST /api/collections/{collectionId}/items/reorder endpoint accepting { itemIds: int[] }
+- Endpoint verifies collection ownership and validates all item IDs belong to the collection
+- Auto-assigns SortOrder = max + 1 when creating new catalog items
+- Default sort in GetAllAsync changed from OrderBy(Id) to OrderBy(SortOrder).ThenBy(Id)
+- Added ReorderItemsRequest DTO record
+- Added 4 integration tests: reorder updates sort order, wrong collection returns 404, invalid IDs returns 400, requires auth
+- All 125 tests pass, 94.37% line coverage
+- Files changed: CatalogItem.cs, CatalogItemDtos.cs, ICatalogItemsRepository.cs, CatalogItemsRepository.cs, ICatalogItemsService.cs, CatalogItemsService.cs, CatalogItemsController.cs, CatalogItemEndpointsTests.cs, migration files
+- **Learnings for future iterations:**
+  - `GetMaxSortOrderAsync` returns -1 when no items exist, so first item gets SortOrder 0
+  - Reorder endpoint uses `List<int> ItemIds` in DTO (not `int[]`) — C# record with List works with JSON deserialization
+  - Repository's `OrderBy(SortOrder)` is overridden by service-level sort switch — must also update default case in service
+  - In-memory DB for tests doesn't require migration application — EF auto-creates schema
 ---
