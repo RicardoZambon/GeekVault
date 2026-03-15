@@ -2,7 +2,8 @@ import { useState, useEffect, useCallback, type FormEvent } from "react"
 import { useParams, useNavigate, useSearchParams } from "react-router-dom"
 import { useTranslation } from "react-i18next"
 import { motion, AnimatePresence } from "framer-motion"
-import { Plus, ArrowLeft, Image, Package, Check, Trash2, Pencil, Search, CheckCircle2, Circle, ArrowUp, ArrowDown, Download, Upload, AlertCircle, CheckCircle, LayoutGrid, List, ChevronDown } from "lucide-react"
+import { Plus, ArrowLeft, Image, Package, Check, Trash2, Pencil, Search, CheckCircle2, Circle, ArrowUp, ArrowDown, Download, Upload, LayoutGrid, List, ChevronDown } from "lucide-react"
+import { ImportWizard } from "./components/import-wizard"
 import {
   EmptyState,
   PageHeader,
@@ -18,6 +19,7 @@ import {
   SelectContent,
   SelectItem,
   SelectValue,
+  toast,
 } from "@/components/ds"
 import type { DataTableColumn } from "@/components/ds"
 import { useAuth } from "@/components/auth-provider"
@@ -211,13 +213,6 @@ export default function CollectionDetail() {
 
   // Import state
   const [importDialogOpen, setImportDialogOpen] = useState(false)
-  const [importFile, setImportFile] = useState<File | null>(null)
-  const [importStep, setImportStep] = useState<"upload" | "preview" | "done">("upload")
-  const [importPreviewing, setImportPreviewing] = useState(false)
-  const [importConfirming, setImportConfirming] = useState(false)
-  const [importError, setImportError] = useState("")
-  const [importPreviewData, setImportPreviewData] = useState<{ rows: Array<{ rowNumber: number; data: Record<string, string>; errors: string[] }>; validCount: number; errorCount: number } | null>(null)
-  const [importResult, setImportResult] = useState<{ importedCount: number } | null>(null)
 
   const headers: Record<string, string> = {
     Authorization: `Bearer ${token}`,
@@ -604,70 +599,13 @@ export default function CollectionDetail() {
 
   // --- Import ---
   function openImportDialog() {
-    setImportFile(null)
-    setImportStep("upload")
-    setImportPreviewing(false)
-    setImportConfirming(false)
-    setImportError("")
-    setImportPreviewData(null)
-    setImportResult(null)
     setImportDialogOpen(true)
   }
 
-  async function handleImportPreview() {
-    if (!importFile) {
-      setImportError(t("collectionDetail.importNoFile"))
-      return
-    }
-    setImportError("")
-    setImportPreviewing(true)
-    try {
-      const formData = new FormData()
-      formData.append("file", importFile)
-      const res = await fetch(`/api/collections/${id}/import/preview`, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${token}` },
-        body: formData,
-      })
-      if (!res.ok) {
-        const data = await res.json().catch(() => null)
-        throw new Error(data?.message ?? t("collectionDetail.importPreviewFailed"))
-      }
-      const data = await res.json()
-      setImportPreviewData(data)
-      setImportStep("preview")
-    } catch (err) {
-      setImportError(err instanceof Error ? err.message : t("collectionDetail.importPreviewFailed"))
-    } finally {
-      setImportPreviewing(false)
-    }
-  }
-
-  async function handleImportConfirm() {
-    setImportError("")
-    setImportConfirming(true)
-    try {
-      const formData = new FormData()
-      formData.append("file", importFile!)
-      const res = await fetch(`/api/collections/${id}/import/confirm`, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${token}` },
-        body: formData,
-      })
-      if (!res.ok) {
-        const data = await res.json().catch(() => null)
-        throw new Error(data?.message ?? t("collectionDetail.importFailed"))
-      }
-      const data = await res.json()
-      setImportResult(data)
-      setImportStep("done")
-      await fetchItems()
-      await fetchCollection()
-    } catch (err) {
-      setImportError(err instanceof Error ? err.message : t("collectionDetail.importFailed"))
-    } finally {
-      setImportConfirming(false)
-    }
+  async function handleImportComplete() {
+    await fetchItems()
+    await fetchCollection()
+    toast.success(t("collectionDetail.importCompleteToast"))
   }
 
   // Filter catalog items for the search in add-items dialog
@@ -1523,129 +1461,14 @@ export default function CollectionDetail() {
         </DialogContent>
       </Dialog>
 
-      {/* Import Dialog */}
-      <Dialog open={importDialogOpen} onOpenChange={setImportDialogOpen}>
-        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>{t("collectionDetail.importTitle")}</DialogTitle>
-            <DialogDescription>{t("collectionDetail.importDescription")}</DialogDescription>
-          </DialogHeader>
-
-          {importError && (
-            <div className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive-foreground">
-              {importError}
-            </div>
-          )}
-
-          {/* Step 1: Upload */}
-          {importStep === "upload" && (
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="import-file">{t("collectionDetail.importSelectFile")}</Label>
-                <Input
-                  id="import-file"
-                  type="file"
-                  accept=".csv"
-                  onChange={(e) => setImportFile(e.target.files?.[0] ?? null)}
-                  disabled={importPreviewing}
-                />
-              </div>
-              <div className="flex justify-end gap-2">
-                <Button variant="outline" onClick={() => setImportDialogOpen(false)} disabled={importPreviewing}>
-                  {t("collectionDetail.importCancel")}
-                </Button>
-                <Button onClick={handleImportPreview} disabled={importPreviewing || !importFile}>
-                  <Upload className="h-4 w-4" />
-                  {importPreviewing ? t("collectionDetail.importPreviewing") : t("collectionDetail.importPreview")}
-                </Button>
-              </div>
-            </div>
-          )}
-
-          {/* Step 2: Preview */}
-          {importStep === "preview" && importPreviewData && (
-            <div className="space-y-4">
-              {/* Summary */}
-              <div className="flex gap-4">
-                <div className="flex items-center gap-2 text-sm">
-                  <CheckCircle className="h-4 w-4 text-green-500" />
-                  {t("collectionDetail.importValidRows", { count: importPreviewData.validCount })}
-                </div>
-                {importPreviewData.errorCount > 0 && (
-                  <div className="flex items-center gap-2 text-sm text-destructive">
-                    <AlertCircle className="h-4 w-4" />
-                    {t("collectionDetail.importErrorRows", { count: importPreviewData.errorCount })}
-                  </div>
-                )}
-              </div>
-
-              {/* Preview table */}
-              <div className="max-h-60 overflow-auto rounded-md border">
-                <table className="w-full text-sm">
-                  <thead className="sticky top-0 bg-muted">
-                    <tr>
-                      <th className="px-3 py-2 text-left font-medium">{t("collectionDetail.importRow")}</th>
-                      {importPreviewData.rows.length > 0 &&
-                        Object.keys(importPreviewData.rows[0].data).map((key) => (
-                          <th key={key} className="px-3 py-2 text-left font-medium">
-                            {key}
-                          </th>
-                        ))}
-                      <th className="px-3 py-2 text-left font-medium">{t("collectionDetail.importErrors")}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {importPreviewData.rows.map((row) => (
-                      <tr
-                        key={row.rowNumber}
-                        className={row.errors.length > 0 ? "bg-destructive/5" : ""}
-                      >
-                        <td className="px-3 py-1.5">{row.rowNumber}</td>
-                        {Object.values(row.data).map((val, i) => (
-                          <td key={i} className="max-w-[150px] truncate px-3 py-1.5">
-                            {val}
-                          </td>
-                        ))}
-                        <td className="px-3 py-1.5 text-xs text-destructive">
-                          {row.errors.join(", ")}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-
-              <div className="flex justify-end gap-2">
-                <Button
-                  variant="outline"
-                  onClick={() => { setImportStep("upload"); setImportPreviewData(null) }}
-                  disabled={importConfirming}
-                >
-                  {t("collectionDetail.importBack")}
-                </Button>
-                <Button onClick={handleImportConfirm} disabled={importConfirming || importPreviewData.validCount === 0}>
-                  {importConfirming ? t("collectionDetail.importConfirming") : t("collectionDetail.importConfirm")}
-                </Button>
-              </div>
-            </div>
-          )}
-
-          {/* Step 3: Done */}
-          {importStep === "done" && importResult && (
-            <div className="space-y-4">
-              <div className="flex items-center gap-2 rounded-md bg-green-500/10 px-3 py-2 text-sm text-green-700 dark:text-green-400">
-                <CheckCircle className="h-4 w-4" />
-                {t("collectionDetail.importSuccess", { count: importResult.importedCount })}
-              </div>
-              <div className="flex justify-end">
-                <Button onClick={() => setImportDialogOpen(false)}>
-                  OK
-                </Button>
-              </div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
+      {/* Import Wizard */}
+      <ImportWizard
+        open={importDialogOpen}
+        onOpenChange={setImportDialogOpen}
+        collectionId={id!}
+        token={token!}
+        onImportComplete={handleImportComplete}
+      />
 
       {/* Add Items to Set Dialog */}
       <Dialog open={addItemsDialogOpen} onOpenChange={setAddItemsDialogOpen}>

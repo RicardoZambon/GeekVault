@@ -212,7 +212,17 @@
     "importValidRows": "{{count}} valid rows",
     "importErrorRows": "{{count}} rows with errors",
     "importBack": "Back",
-    "importCancel": "Cancel"
+    "importCancel": "Cancel",
+    "importNext": "Next",
+    "importDone": "Done",
+    "importStepUpload": "Upload",
+    "importStepPreview": "Preview",
+    "importStepConfirm": "Confirm",
+    "importDropHere": "Drop CSV file here or click to browse",
+    "importOrBrowse": "Supports .csv files",
+    "importClickToChange": "Click to choose a different file",
+    "importConfirmCount": "Import {{count}} items",
+    "importCompleteToast": "Import completed successfully"
   },
   "itemDetail": {
     "fetchError": "Failed to load item",

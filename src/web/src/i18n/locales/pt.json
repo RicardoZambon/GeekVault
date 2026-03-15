@@ -212,7 +212,17 @@
     "importValidRows": "{{count}} linhas válidas",
     "importErrorRows": "{{count}} linhas com erros",
     "importBack": "Voltar",
-    "importCancel": "Cancelar"
+    "importCancel": "Cancelar",
+    "importNext": "Próximo",
+    "importDone": "Concluído",
+    "importStepUpload": "Upload",
+    "importStepPreview": "Pré-visualizar",
+    "importStepConfirm": "Confirmar",
+    "importDropHere": "Arraste o arquivo CSV aqui ou clique para procurar",
+    "importOrBrowse": "Suporta arquivos .csv",
+    "importClickToChange": "Clique para escolher outro arquivo",
+    "importConfirmCount": "Importar {{count}} itens",
+    "importCompleteToast": "Importação concluída com sucesso"
   },
   "itemDetail": {
     "fetchError": "Falha ao carregar item",
