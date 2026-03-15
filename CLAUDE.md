@@ -94,18 +94,49 @@ src/api/GeekVault.Api.Tests/
 src/web/
 ├── src/
 │   ├── components/
-│   │   ├── app-layout.tsx       # Main layout with sidebar/navigation
+│   │   ├── layout/              # App shell — sidebar, header, command palette
+│   │   │   ├── app-layout.tsx   # Main layout wrapper (sidebar + header + content)
+│   │   │   ├── sidebar.tsx      # Collapsible desktop sidebar, persistent state
+│   │   │   ├── header.tsx       # Mobile header with menu toggle
+│   │   │   ├── command-palette.tsx  # Cmd+K navigation & actions (cmdk)
+│   │   │   └── animated-outlet.tsx  # Page transition wrapper (Framer Motion)
+│   │   ├── ds/                  # Design system — reusable UI components
+│   │   │   ├── motion.tsx       # PageTransition, FadeIn, StaggerChildren, ScaleIn
+│   │   │   ├── animated-number.tsx
+│   │   │   ├── data-table.tsx
+│   │   │   ├── stat-card.tsx, badge.tsx, empty-state.tsx
+│   │   │   ├── card.tsx, page-header.tsx, scroll-area.tsx
+│   │   │   ├── select.tsx, textarea.tsx
+│   │   │   ├── dropdown-menu.tsx, tabs.tsx, tooltip.tsx
+│   │   │   ├── sortable-list.tsx  # Drag-and-drop (@dnd-kit)
+│   │   │   ├── skeleton.tsx, toaster.tsx
+│   │   │   └── index.ts          # Barrel export
+│   │   ├── ui/                  # shadcn/ui primitives (button, dialog, confirm-dialog, input, label, sheet)
 │   │   ├── auth-provider.tsx    # Auth context (JWT token, login/logout)
-│   │   ├── theme-provider.tsx   # Dark/light theme context
-│   │   └── ui/                  # shadcn/ui components (button, dialog, confirm-dialog, input, label, sheet)
-│   ├── pages/             # Page components (Collections, CollectionDetail, CatalogItemDetail, CollectionTypes, Dashboard, Wishlist, Profile, Login, Register, Home)
+│   │   └── theme-provider.tsx   # Dark/light theme context
+│   ├── features/                # Feature-based pages, organized by domain
+│   │   ├── auth/                # login-page, register-page, auth-layout
+│   │   ├── collections/         # collections-page, collection-detail-page, catalog-item-detail-page
+│   │   │   └── components/      # import-wizard
+│   │   ├── dashboard/           # dashboard-page
+│   │   │   └── components/      # stats-row, charts-section, collection-summaries, recent-acquisitions
+│   │   ├── collection-types/    # collection-types-page
+│   │   ├── wishlist/            # wishlist-page
+│   │   └── profile/             # profile-page
+│   ├── hooks/                   # Custom React hooks
+│   │   ├── use-debounce.ts      # Debounce input values
+│   │   └── use-media-query.ts   # Responsive breakpoint detection
 │   ├── i18n/              # i18n config and translation files
 │   │   ├── index.ts       # i18next initialization
 │   │   └── locales/       # en.json, pt.json translation files
-│   ├── lib/utils.ts       # cn() helper for class merging
+│   ├── lib/
+│   │   ├── api.ts         # API client utilities (fetch wrapper, error handling)
+│   │   └── utils.ts       # cn() helper for class merging
 │   ├── App.tsx            # React Router routes
 │   ├── main.tsx           # Entry point with BrowserRouter
-│   └── index.css          # Tailwind CSS + shadcn/ui theme variables
+│   ├── test-utils.tsx     # Render helpers for tests (providers, router)
+│   ├── test-setup.ts      # Vitest global setup
+│   └── index.css          # Tailwind CSS v4 + semantic color tokens (incl. sidebar-specific)
 ├── components.json        # shadcn/ui config
 ├── postcss.config.js      # Tailwind CSS v4 via PostCSS
 ├── vite.config.ts         # Vite config with @/ alias and API proxy
@@ -115,10 +146,18 @@ src/web/
 - React 19 + TypeScript + Vite 8
 - Tailwind CSS v4 via `@tailwindcss/postcss` (not vite plugin — incompatible with Vite 8)
 - shadcn/ui set up manually (CLI incompatible with Node 24)
+- Feature-based folder structure — pages organized by domain in `features/`, with co-located sub-components
+- Design system in `components/ds/` — shared components with barrel export via `index.ts`
+- Sidebar-first responsive layout — collapsible desktop sidebar, mobile sheet via header toggle
+- Animation — Framer Motion for page transitions and micro-interactions
+- Command palette — `cmdk` (Cmd+K) for keyboard-driven navigation
+- Charts — `recharts` for dashboard visualizations
+- Drag-and-drop — `@dnd-kit` for sortable lists
+- Toast notifications — `sonner`
 - Path alias: `@/` maps to `src/`
 - API proxy: `/api` and `/uploads` -> `http://localhost:5099`
 - i18n: `react-i18next` — translations in `src/i18n/locales/{en,pt}.json`, add keys to both files when adding UI strings
-- Testing: Vitest + `@vitest/coverage-v8` + jsdom — `npm test` to run, `npm run test:coverage` for coverage report
+- Testing: Vitest + `@vitest/coverage-v8` + jsdom — `npm test` to run, `npm run test:coverage` for coverage report. Every component has a co-located `.test.tsx` file.
 
 ## Conventional Commits
 
