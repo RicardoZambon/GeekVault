@@ -46,7 +46,7 @@
         "Typecheck passes"
       ],
       "priority": 3,
-      "passes": false,
+      "passes": true,
       "notes": "This is a refactor step. Navigation should still render the same items, just sourced from the new grouped structure."
     },
     {

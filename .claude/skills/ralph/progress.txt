@@ -25,3 +25,16 @@
   - `components/ui/` has lower-level primitives (button, dialog, input, label, sheet)
   - Always check existing components before creating new ones — the PRD notes hint at this
 ---
+
+## 2026-03-15 - US-003
+- Replaced flat `navItems` array with exported `navGroups: NavGroup[]` structure in sidebar.tsx
+- Three groups: Overview (Dashboard), Collections (Collections, Collection Types, Wishlist), Account (Profile)
+- Both `Sidebar` and `MobileSidebarContent` now iterate over `navGroups` instead of `navItems`
+- Added `NavItem` and `NavGroup` interfaces
+- No functional changes — same nav items render in the same order
+- Files changed: `src/web/src/components/layout/sidebar.tsx`
+- **Learnings for future iterations:**
+  - `navGroups` is exported from sidebar.tsx for shared use
+  - Each group has a `labelKey` (i18n) and `items` array
+  - Both desktop and mobile sidebar components consume the same data structure
+---
