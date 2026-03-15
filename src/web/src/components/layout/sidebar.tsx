@@ -145,7 +145,7 @@ export function Sidebar() {
                               "rounded-lg",
                               isActive
                                 ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                                : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground"
+                                : "text-sidebar-foreground/70 hover:text-sidebar-accent-foreground"
                             )
                       )
                     }
