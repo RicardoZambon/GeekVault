@@ -609,3 +609,18 @@ Started: Sun Mar 15 02:52:16 AM UTC 2026
   - Grids should start at grid-cols-1 and use sm: breakpoints for multi-column
   - min-w on flex children can cause overflow — use min-w-0 on mobile
 ---
+
+## 2026-03-15 - US-036
+- Audited all components for hardcoded English strings
+- Added missing i18n keys: home.tagline, nav.expandSidebar, nav.collapseSidebar, profile.currencies.* (7 currency labels)
+- Added Portuguese translations for all new keys
+- Fixed Home.tsx to use t("app.name") and t("home.tagline") instead of hardcoded strings
+- Fixed header.tsx sr-only "Toggle menu" to use t("nav.toggleMenu")
+- Fixed sidebar.tsx aria-labels "Expand/Collapse sidebar" to use t() calls
+- Fixed profile-page.tsx currency labels to use t("profile.currencies.*")
+- Files changed: en.json, pt.json, Home.tsx, header.tsx, sidebar.tsx, profile-page.tsx
+- **Learnings for future iterations:**
+  - Language switcher aria-labels showing native language names (e.g., "Português" when in EN mode) are intentional UX convention — don't translate these
+  - Most required key namespaces (emptyStates.*, commandPalette.*, auth.*, profile.sections.*) were already added in earlier stories
+  - Currency labels are good candidates for i18n since currency names differ between languages
+---
