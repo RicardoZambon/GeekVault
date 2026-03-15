@@ -26,7 +26,7 @@ export function Header() {
             <span className="sr-only">Toggle menu</span>
           </Button>
         </SheetTrigger>
-        <SheetContent side="left" className="w-72 p-0 bg-sidebar-background border-sidebar-border [&>button]:text-sidebar-foreground">
+        <SheetContent side="left" className="w-[75vw] max-w-72 p-0 bg-sidebar-background border-sidebar-border [&>button]:text-sidebar-foreground">
           <MobileSidebarContent onClose={() => setSidebarOpen(false)} />
         </SheetContent>
       </Sheet>

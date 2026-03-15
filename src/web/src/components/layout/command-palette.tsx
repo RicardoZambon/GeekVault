@@ -52,7 +52,7 @@ export function CommandPalette() {
       onOpenChange={setOpen}
       label={t("commandPalette.label")}
       overlayClassName="fixed inset-0 bg-black/50 z-50"
-      contentClassName="fixed left-1/2 top-1/2 z-50 w-full max-w-lg -translate-x-1/2 -translate-y-1/2 rounded-xl border border-border bg-background shadow-2xl"
+      contentClassName="fixed left-1/2 top-1/2 z-50 w-[calc(100%-2rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 rounded-xl border border-border bg-background shadow-2xl sm:w-full"
     >
       <CommandInput
         placeholder={t("commandPalette.placeholder")}
@@ -70,7 +70,7 @@ export function CommandPalette() {
           <CommandItem
             value="dashboard"
             onSelect={() => runCommand(() => navigate("/"))}
-            className="flex cursor-pointer items-center gap-3 rounded-lg px-2 py-2.5 text-sm aria-selected:bg-accent/10 aria-selected:text-accent-foreground"
+            className="flex cursor-pointer items-center gap-3 rounded-lg px-3 py-3 text-sm min-h-[44px] aria-selected:bg-accent/10 aria-selected:text-accent-foreground"
           >
             <LayoutDashboard className="h-4 w-4 text-muted-foreground" />
             {t("nav.dashboard")}
@@ -78,7 +78,7 @@ export function CommandPalette() {
           <CommandItem
             value="collections"
             onSelect={() => runCommand(() => navigate("/collections"))}
-            className="flex cursor-pointer items-center gap-3 rounded-lg px-2 py-2.5 text-sm aria-selected:bg-accent/10 aria-selected:text-accent-foreground"
+            className="flex cursor-pointer items-center gap-3 rounded-lg px-3 py-3 text-sm min-h-[44px] aria-selected:bg-accent/10 aria-selected:text-accent-foreground"
           >
             <Library className="h-4 w-4 text-muted-foreground" />
             {t("nav.collections")}
@@ -86,7 +86,7 @@ export function CommandPalette() {
           <CommandItem
             value="collection-types"
             onSelect={() => runCommand(() => navigate("/collection-types"))}
-            className="flex cursor-pointer items-center gap-3 rounded-lg px-2 py-2.5 text-sm aria-selected:bg-accent/10 aria-selected:text-accent-foreground"
+            className="flex cursor-pointer items-center gap-3 rounded-lg px-3 py-3 text-sm min-h-[44px] aria-selected:bg-accent/10 aria-selected:text-accent-foreground"
           >
             <Layers className="h-4 w-4 text-muted-foreground" />
             {t("nav.collectionTypes")}
@@ -94,7 +94,7 @@ export function CommandPalette() {
           <CommandItem
             value="wishlist"
             onSelect={() => runCommand(() => navigate("/wishlist"))}
-            className="flex cursor-pointer items-center gap-3 rounded-lg px-2 py-2.5 text-sm aria-selected:bg-accent/10 aria-selected:text-accent-foreground"
+            className="flex cursor-pointer items-center gap-3 rounded-lg px-3 py-3 text-sm min-h-[44px] aria-selected:bg-accent/10 aria-selected:text-accent-foreground"
           >
             <Heart className="h-4 w-4 text-muted-foreground" />
             {t("nav.wishlist")}
@@ -102,7 +102,7 @@ export function CommandPalette() {
           <CommandItem
             value="profile"
             onSelect={() => runCommand(() => navigate("/profile"))}
-            className="flex cursor-pointer items-center gap-3 rounded-lg px-2 py-2.5 text-sm aria-selected:bg-accent/10 aria-selected:text-accent-foreground"
+            className="flex cursor-pointer items-center gap-3 rounded-lg px-3 py-3 text-sm min-h-[44px] aria-selected:bg-accent/10 aria-selected:text-accent-foreground"
           >
             <User className="h-4 w-4 text-muted-foreground" />
             {t("nav.profile")}
@@ -120,7 +120,7 @@ export function CommandPalette() {
             onSelect={() =>
               runCommand(() => navigate("/collections?create=true"))
             }
-            className="flex cursor-pointer items-center gap-3 rounded-lg px-2 py-2.5 text-sm aria-selected:bg-accent/10 aria-selected:text-accent-foreground"
+            className="flex cursor-pointer items-center gap-3 rounded-lg px-3 py-3 text-sm min-h-[44px] aria-selected:bg-accent/10 aria-selected:text-accent-foreground"
           >
             <Plus className="h-4 w-4 text-muted-foreground" />
             {t("commandPalette.createCollection")}
@@ -130,7 +130,7 @@ export function CommandPalette() {
             onSelect={() =>
               runCommand(() => setTheme(theme === "dark" ? "light" : "dark"))
             }
-            className="flex cursor-pointer items-center gap-3 rounded-lg px-2 py-2.5 text-sm aria-selected:bg-accent/10 aria-selected:text-accent-foreground"
+            className="flex cursor-pointer items-center gap-3 rounded-lg px-3 py-3 text-sm min-h-[44px] aria-selected:bg-accent/10 aria-selected:text-accent-foreground"
           >
             {theme === "dark" ? (
               <Sun className="h-4 w-4 text-muted-foreground" />
@@ -146,7 +146,7 @@ export function CommandPalette() {
                 window.dispatchEvent(new Event("toggle-sidebar"))
               )
             }
-            className="flex cursor-pointer items-center gap-3 rounded-lg px-2 py-2.5 text-sm aria-selected:bg-accent/10 aria-selected:text-accent-foreground"
+            className="flex cursor-pointer items-center gap-3 rounded-lg px-3 py-3 text-sm min-h-[44px] aria-selected:bg-accent/10 aria-selected:text-accent-foreground"
           >
             <PanelLeftClose className="h-4 w-4 text-muted-foreground" />
             {t("commandPalette.toggleSidebar")}
@@ -158,7 +158,7 @@ export function CommandPalette() {
                 i18n.changeLanguage(i18n.language === "en" ? "pt" : "en")
               )
             }
-            className="flex cursor-pointer items-center gap-3 rounded-lg px-2 py-2.5 text-sm aria-selected:bg-accent/10 aria-selected:text-accent-foreground"
+            className="flex cursor-pointer items-center gap-3 rounded-lg px-3 py-3 text-sm min-h-[44px] aria-selected:bg-accent/10 aria-selected:text-accent-foreground"
           >
             <Languages className="h-4 w-4 text-muted-foreground" />
             {t("commandPalette.changeLanguage")}

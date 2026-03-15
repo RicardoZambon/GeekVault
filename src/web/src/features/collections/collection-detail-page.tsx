@@ -696,7 +696,7 @@ export default function CollectionDetail() {
           <SkeletonRect width="140px" height="36px" />
           <SkeletonRect width="140px" height="36px" />
         </div>
-        <div className="grid gap-4 grid-cols-2 sm:grid-cols-3 md:grid-cols-4">
+        <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
           {Array.from({ length: 8 }).map((_, i) => (
             <div key={i} className="overflow-hidden rounded-lg border bg-card">
               <SkeletonRect width="100%" height="0" className="aspect-square" style={{ paddingBottom: "100%" }} />
@@ -845,7 +845,7 @@ export default function CollectionDetail() {
           {/* Search, Filter, Sort controls */}
           <div className="mt-3 flex flex-wrap items-center gap-2">
             {/* Search */}
-            <div className="relative flex-1 min-w-[180px]">
+            <div className="relative flex-1 min-w-0 sm:min-w-[180px]">
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
                 className="pl-9 h-9"
@@ -857,7 +857,7 @@ export default function CollectionDetail() {
 
             {/* Condition filter - DS Select */}
             <Select value={conditionFilter || "all"} onValueChange={(v) => updateParam("condition", v)}>
-              <SelectTrigger className="h-9 w-[160px]">
+              <SelectTrigger className="h-9 w-full sm:w-[160px]">
                 <SelectValue placeholder={t("collectionDetail.conditionAll")} />
               </SelectTrigger>
               <SelectContent>
@@ -890,7 +890,7 @@ export default function CollectionDetail() {
 
             {/* Sort - DS Select */}
             <Select value={sortBy} onValueChange={(v) => updateParam("sortBy", v)}>
-              <SelectTrigger className="h-9 w-[120px]">
+              <SelectTrigger className="h-9 w-full sm:w-[120px]">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -930,7 +930,7 @@ export default function CollectionDetail() {
               items={items}
               keyExtractor={(item) => item.id}
               layout="grid"
-              gridClassName="mt-4 grid gap-4 grid-cols-2 sm:grid-cols-3 md:grid-cols-4"
+              gridClassName="mt-4 grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4"
               onReorder={handleReorderItems}
               renderItem={(item, { dragHandleProps, isDragging }) => {
                 const isOwned = ownedItemIds.has(item.id)

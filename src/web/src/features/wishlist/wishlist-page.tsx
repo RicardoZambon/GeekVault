@@ -425,7 +425,7 @@ export default function Wishlist() {
           {/* Filter/Sort Toolbar */}
           <div className="mt-6 flex flex-wrap items-center gap-3">
             <Select value={priorityFilter} onValueChange={(v) => setPriorityFilter(v as PriorityFilter)}>
-              <SelectTrigger className="w-[160px]">
+              <SelectTrigger className="w-full sm:w-[160px]">
                 <SelectValue placeholder={t("wishlist.filterPriority")} />
               </SelectTrigger>
               <SelectContent>
@@ -437,7 +437,7 @@ export default function Wishlist() {
             </Select>
 
             <Select value={sortBy} onValueChange={(v) => setSortBy(v as SortOption)}>
-              <SelectTrigger className="w-[160px]">
+              <SelectTrigger className="w-full sm:w-[160px]">
                 <SelectValue placeholder={t("wishlist.sortBy")} />
               </SelectTrigger>
               <SelectContent>
