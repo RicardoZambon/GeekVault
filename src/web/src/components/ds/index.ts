@@ -36,3 +36,5 @@ export {
 export { Textarea } from "./textarea"
 export { Tabs, TabsList, TabsTrigger, TabsContent } from "./tabs"
 export { ScrollArea, ScrollBar } from "./scroll-area"
+export { DataTable } from "./data-table"
+export type { DataTableProps, DataTableColumn } from "./data-table"
