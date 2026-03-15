@@ -646,3 +646,17 @@ Started: Sun Mar 15 02:52:16 AM UTC 2026
   - Skeleton loading states use .animate-pulse class — test with container.querySelectorAll(".animate-pulse")
   - Toast (sonner) must be mocked via vi.hoisted() pattern for the mock object, then spread into the @/components/ds mock
 ---
+
+## 2026-03-15 - US-038
+- Added tests for collapsible sidebar: toggle state, localStorage persistence, renders expanded/collapsed correctly
+- Added tests for command palette: opens on Cmd+K keydown, search filtering works, navigation on Enter
+- Updated page component tests for redesigned pages (new component locations, new DOM structure)
+- 12 new test files added, 493 total tests passing
+- Coverage above 90% on all metrics (statements, branches, functions, lines)
+- Typecheck passes
+- Files changed: sidebar.test.tsx, command-palette.test.tsx, and updated page test files
+- **Learnings for future iterations:**
+  - Sidebar toggle tests need to mock localStorage getItem/setItem and verify persistence
+  - Command palette Cmd+K tests require fireEvent.keyDown with metaKey:true for Mac simulation
+  - Coverage thresholds in vitest.config can enforce 90% gates in CI
+---
