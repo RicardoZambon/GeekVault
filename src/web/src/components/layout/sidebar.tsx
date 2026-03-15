@@ -125,8 +125,17 @@ export function Sidebar() {
       {/* Navigation */}
       <nav className="flex-1 overflow-y-auto p-2">
         <div className="flex flex-col gap-4">
-          {navGroups.map((group) => (
+          {navGroups.map((group, groupIndex) => (
             <div key={group.labelKey} className="flex flex-col gap-1">
+              {collapsed ? (
+                groupIndex > 0 && (
+                  <div className="mx-3 border-t border-sidebar-border" />
+                )
+              ) : (
+                <span className="px-3 pb-1 text-xs font-semibold uppercase text-sidebar-foreground/50">
+                  {t(group.labelKey)}
+                </span>
+              )}
               {group.items.map((item) => {
                 const link = (
                   <NavLink
@@ -265,6 +274,9 @@ export function MobileSidebarContent({ onClose }: { onClose: () => void }) {
         <div className="flex flex-col gap-4">
           {navGroups.map((group) => (
             <div key={group.labelKey} className="flex flex-col gap-1">
+              <span className="px-3 pb-1 text-xs font-semibold uppercase text-sidebar-foreground/50">
+                {t(group.labelKey)}
+              </span>
               {group.items.map((item) => (
                 <NavLink
                   key={item.to}

@@ -62,3 +62,13 @@
   - Sidebar widths are only defined in sidebar.tsx — no external references to update
   - The nav group wrapping div with gap-4 also prepares for group labels in US-006
 ---
+
+## 2026-03-15 - US-006
+- Added group labels (text-xs, uppercase, muted) above each navigation group in expanded mode
+- Collapsed mode shows thin horizontal separator lines between groups instead of labels
+- Mobile sidebar also shows group labels (always expanded)
+- Files changed: `src/web/src/components/layout/sidebar.tsx`
+- **Learnings for future iterations:**
+  - Collapsed mode uses border-t separators between groups instead of text labels
+  - Group labels use `font-semibold uppercase text-sidebar-foreground/50`
+---

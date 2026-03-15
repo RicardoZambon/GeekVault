@@ -98,7 +98,7 @@
         "Verify in browser using dev-browser skill"
       ],
       "priority": 6,
-      "passes": false,
+      "passes": true,
       "notes": "Uses the grouped nav structure from US-003 and i18n keys from US-001."
     },
     {
