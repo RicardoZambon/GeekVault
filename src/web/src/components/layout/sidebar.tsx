@@ -138,8 +138,8 @@ export function Sidebar() {
                     end={item.to === "/"}
                     className={({ isActive }) =>
                       cn(
-                        "font-medium transition-colors relative border-l-[3px]",
-                        collapsed ? "flex items-center justify-center h-[48px] rounded-md" : "flex items-center gap-3 px-3 min-h-[44px] text-sm rounded-lg",
+                        "font-medium transition-colors relative border-l-[3px] block",
+                        collapsed ? "rounded-md" : "rounded-lg",
                         isActive
                           ? "bg-sidebar-accent text-sidebar-accent-foreground border-sidebar-primary"
                           : "border-transparent text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground"
@@ -148,12 +148,14 @@ export function Sidebar() {
                   >
                     {({ isActive }) =>
                       collapsed ? (
-                        <item.icon className={cn("h-6 w-6", isActive && "text-sidebar-primary")} />
+                        <div className="flex items-center justify-center h-[48px]">
+                          <item.icon className={cn("h-6 w-6", isActive && "text-sidebar-primary")} />
+                        </div>
                       ) : (
-                        <>
+                        <div className="flex items-center gap-3 px-3 min-h-[44px] text-sm">
                           <item.icon className={cn("h-5 w-5 shrink-0", isActive && "text-sidebar-primary")} />
                           <span>{t(item.labelKey)}</span>
-                        </>
+                        </div>
                       )
                     }
                   </NavLink>
