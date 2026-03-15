@@ -352,6 +352,18 @@
     "toggleSidebar": "Alternar Barra Lateral",
     "changeLanguage": "Mudar Idioma"
   },
+  "emptyStates": {
+    "dashboard": {
+      "title": "Seu cofre está vazio",
+      "description": "Comece criando sua primeira coleção para rastrear seus colecionáveis.",
+      "action": "Criar Coleção"
+    },
+    "collections": {
+      "title": "Nenhuma coleção ainda",
+      "description": "Coleções organizam seus itens por tipo — quadrinhos, cartas, figuras e mais.",
+      "action": "Crie Sua Primeira Coleção"
+    }
+  },
   "auth": {
     "login": "Entrar",
     "loginDescription": "Entre na sua conta",

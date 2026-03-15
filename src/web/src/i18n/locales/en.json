@@ -352,6 +352,18 @@
     "toggleSidebar": "Toggle Sidebar",
     "changeLanguage": "Change Language"
   },
+  "emptyStates": {
+    "dashboard": {
+      "title": "Your vault is empty",
+      "description": "Start by creating your first collection to track your collectibles.",
+      "action": "Create Collection"
+    },
+    "collections": {
+      "title": "No collections yet",
+      "description": "Collections organize your items by type — comics, cards, figures, and more.",
+      "action": "Create Your First Collection"
+    }
+  },
   "auth": {
     "login": "Sign in",
     "loginDescription": "Sign in to your account",

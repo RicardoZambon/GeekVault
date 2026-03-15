@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react"
+import { useNavigate } from "react-router-dom"
 import { useTranslation } from "react-i18next"
+import { Lock } from "lucide-react"
 import { useAuth } from "@/components/auth-provider"
-import { PageHeader, toast } from "@/components/ds"
+import { PageHeader, EmptyState, toast } from "@/components/ds"
 import { StatsRow } from "./components/stats-row"
 import { ChartsSection } from "./components/charts-section"
 import { CollectionSummaries } from "./components/collection-summaries"
@@ -44,6 +46,7 @@ interface DashboardData {
 export default function Dashboard() {
   const { t } = useTranslation()
   const { token, user } = useAuth()
+  const navigate = useNavigate()
   const [data, setData] = useState<DashboardData | null>(null)
   const [loading, setLoading] = useState(true)
 
@@ -63,9 +66,22 @@ export default function Dashboard() {
     ? t("dashboard.welcome", { name: user.displayName })
     : t("dashboard.description")
 
+  const isEmpty = !loading && data !== null && data.totalCollections === 0
+
   return (
     <div className="space-y-6">
       <PageHeader title={t("dashboard.title")} description={welcomeMsg} />
+
+      {isEmpty ? (
+        <EmptyState
+          icon={<Lock />}
+          title={t("emptyStates.dashboard.title")}
+          description={t("emptyStates.dashboard.description")}
+          actionLabel={t("emptyStates.dashboard.action")}
+          onAction={() => navigate("/collections?create=true")}
+        />
+      ) : (
+        <>
 
       <StatsRow
         totalCollections={data?.totalCollections ?? 0}
@@ -90,6 +106,8 @@ export default function Dashboard() {
         acquisitions={data?.recentAcquisitions ?? []}
         loading={loading}
       />
+        </>
+      )}
     </div>
   )
 }

@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef, type FormEvent } from "react"
-import { useNavigate } from "react-router-dom"
+import { useNavigate, useSearchParams } from "react-router-dom"
 import { useTranslation } from "react-i18next"
-import { Plus, Pencil, Trash2, MoreVertical, Image } from "lucide-react"
+import { Plus, Pencil, Trash2, MoreVertical, Image, Library } from "lucide-react"
+import { EmptyState } from "@/components/ds"
 import { useAuth } from "@/components/auth-provider"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -36,6 +37,7 @@ export default function Collections() {
   const { t } = useTranslation()
   const { token } = useAuth()
   const navigate = useNavigate()
+  const [searchParams, setSearchParams] = useSearchParams()
 
   const [collections, setCollections] = useState<Collection[]>([])
   const [collectionTypes, setCollectionTypes] = useState<CollectionType[]>([])
@@ -94,6 +96,14 @@ export default function Collections() {
     fetchCollections()
     fetchCollectionTypes()
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Handle ?create=true query param
+  useEffect(() => {
+    if (!loading && searchParams.get("create") === "true") {
+      openCreate()
+      setSearchParams({}, { replace: true })
+    }
+  }, [loading]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Close menu on outside click
   useEffect(() => {
@@ -245,9 +255,13 @@ export default function Collections() {
       )}
 
       {collections.length === 0 ? (
-        <div className="mt-12 text-center text-muted-foreground">
-          {t("collections.empty")}
-        </div>
+        <EmptyState
+          icon={<Library />}
+          title={t("emptyStates.collections.title")}
+          description={t("emptyStates.collections.description")}
+          actionLabel={t("emptyStates.collections.action")}
+          onAction={openCreate}
+        />
       ) : (
         <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {collections.map((c) => (
