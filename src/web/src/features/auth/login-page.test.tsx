@@ -29,6 +29,8 @@ vi.mock("react-i18next", () => ({
   }),
 }))
 
+vi.mock("@/assets/logo-full.png", () => ({ default: "logo.png" }))
+
 describe("Login", () => {
   beforeEach(() => {
     vi.clearAllMocks()
@@ -46,12 +48,12 @@ describe("Login", () => {
     renderLogin()
     expect(screen.getByLabelText("auth.email")).toBeInTheDocument()
     expect(screen.getByLabelText("auth.password")).toBeInTheDocument()
-    expect(screen.getByRole("button", { name: "auth.login" })).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: /auth\.login/ })).toBeInTheDocument()
   })
 
   it("shows error when email is empty", async () => {
     renderLogin()
-    fireEvent.click(screen.getByRole("button", { name: "auth.login" }))
+    fireEvent.click(screen.getByRole("button", { name: /auth\.login/ }))
     expect(await screen.findByText("auth.emailRequired")).toBeInTheDocument()
   })
 
@@ -60,7 +62,7 @@ describe("Login", () => {
     fireEvent.change(screen.getByLabelText("auth.email"), {
       target: { value: "test@test.com" },
     })
-    fireEvent.click(screen.getByRole("button", { name: "auth.login" }))
+    fireEvent.click(screen.getByRole("button", { name: /auth\.login/ }))
     expect(await screen.findByText("auth.passwordRequired")).toBeInTheDocument()
   })
 
@@ -73,7 +75,7 @@ describe("Login", () => {
     fireEvent.change(screen.getByLabelText("auth.password"), {
       target: { value: "password123" },
     })
-    fireEvent.click(screen.getByRole("button", { name: "auth.login" }))
+    fireEvent.click(screen.getByRole("button", { name: /auth\.login/ }))
 
     await waitFor(() => {
       expect(mockLogin).toHaveBeenCalledWith("test@test.com", "password123")
@@ -90,7 +92,7 @@ describe("Login", () => {
     fireEvent.change(screen.getByLabelText("auth.password"), {
       target: { value: "wrong" },
     })
-    fireEvent.click(screen.getByRole("button", { name: "auth.login" }))
+    fireEvent.click(screen.getByRole("button", { name: /auth\.login/ }))
 
     expect(await screen.findByText("Invalid credentials")).toBeInTheDocument()
   })
@@ -104,7 +106,7 @@ describe("Login", () => {
     fireEvent.change(screen.getByLabelText("auth.password"), {
       target: { value: "pass" },
     })
-    fireEvent.click(screen.getByRole("button", { name: "auth.login" }))
+    fireEvent.click(screen.getByRole("button", { name: /auth\.login/ }))
 
     expect(await screen.findByText("auth.loginFailed")).toBeInTheDocument()
   })

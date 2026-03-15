@@ -21,6 +21,53 @@ vi.mock("react-i18next", () => ({
   }),
 }))
 
+vi.mock("framer-motion", () => ({
+  motion: {
+    div: ({ children, ...props }: any) => {
+      const { variants, initial, animate, exit, whileHover, whileTap, layout, ...rest } = props
+      return <div {...rest}>{children}</div>
+    },
+  },
+  AnimatePresence: ({ children }: any) => <>{children}</>,
+}))
+
+vi.mock("@/components/ds", async () => {
+  const actual = await vi.importActual("@/components/ds")
+  return {
+    ...actual,
+    Select: ({ value, onValueChange, disabled, children }: any) => (
+      <select value={value} onChange={(e: any) => onValueChange(e.target.value)} disabled={disabled}>{children}</select>
+    ),
+    SelectTrigger: ({ children }: any) => <>{children}</>,
+    SelectValue: ({ placeholder }: any) => <>{placeholder}</>,
+    SelectContent: ({ children }: any) => <>{children}</>,
+    SelectItem: ({ value, children }: any) => <option value={value}>{children}</option>,
+    toast: { success: vi.fn(), error: vi.fn(), info: vi.fn(), warning: vi.fn() },
+    SortableList: ({ items, onReorder, renderItem, gridClassName }: any) => (
+      <div className={gridClassName}>{items?.map((item: any, i: number) => <div key={item.id ?? i}>{renderItem(item, { dragHandleProps: {}, isDragging: false })}</div>)}</div>
+    ),
+    DropdownMenu: ({ children }: any) => <div>{children}</div>,
+    DropdownMenuTrigger: ({ children }: any) => <>{children}</>,
+    DropdownMenuContent: ({ children }: any) => <div>{children}</div>,
+    DropdownMenuItem: ({ children, onClick, className }: any) => <button onClick={onClick} className={className}>{children}</button>,
+    StaggerChildren: ({ children, ...props }: any) => <div {...props}>{children}</div>,
+    staggerItemVariants: {},
+    FadeIn: ({ children }: any) => <div>{children}</div>,
+  }
+})
+
+vi.mock("./components/import-wizard", () => ({
+  ImportWizard: ({ open, onOpenChange, onImportComplete }: any) => {
+    if (!open) return null
+    return (
+      <div role="dialog">
+        <p>collectionDetail.importTitle</p>
+        <button onClick={() => onOpenChange(false)}>collectionDetail.importCancel</button>
+      </div>
+    )
+  },
+}))
+
 const collection = { id: 1, name: "Comics", description: "My comics", coverImage: null, visibility: "Private", collectionTypeId: 1, itemCount: 2 }
 const collectionType = { id: 1, name: "Comic Books", description: null, icon: "📚", customFields: [{ name: "Grade", type: "text", required: false, options: [] }] }
 const items = {
@@ -70,10 +117,10 @@ describe("CollectionDetail", () => {
     })
   }
 
-  it("shows loading state", () => {
+  it("shows loading state with skeletons", () => {
     vi.spyOn(global, "fetch").mockReturnValue(new Promise(() => {}))
     renderWithRoute()
-    expect(document.querySelector(".animate-spin")).toBeInTheDocument()
+    expect(document.querySelector(".animate-pulse")).toBeInTheDocument()
   })
 
   it("renders collection with items", async () => {
@@ -180,7 +227,9 @@ describe("CollectionDetail", () => {
     renderWithRoute()
     await waitFor(() => screen.getByText("Comics"))
     fireEvent.click(screen.getByText("collectionDetail.import"))
-    expect(await screen.findByText("collectionDetail.importTitle")).toBeInTheDocument()
+    await waitFor(() => {
+      expect(screen.getByText("collectionDetail.importTitle")).toBeInTheDocument()
+    })
   })
 
   it("submits add item form successfully", async () => {
@@ -375,7 +424,7 @@ describe("CollectionDetail", () => {
 
     // Set card should appear
     expect(screen.getByText("Series A")).toBeInTheDocument()
-    expect(screen.getByText(/2 \/ 5/)).toBeInTheDocument()
+    expect(screen.getByText(/2\/5/)).toBeInTheDocument()
 
     // Click the set to load detail
     fireEvent.click(screen.getByText("Series A"))
@@ -393,7 +442,7 @@ describe("CollectionDetail", () => {
     // Switch to sets tab
     fireEvent.click(screen.getByText(/sets\.title/))
     // Click create set
-    fireEvent.click(screen.getByText("sets.create"))
+    fireEvent.click(screen.getAllByText("sets.create")[0])
     await waitFor(() => {
       expect(screen.getByText("sets.createTitle")).toBeInTheDocument()
     })
@@ -416,7 +465,7 @@ describe("CollectionDetail", () => {
     await waitFor(() => screen.getByText("Comics"))
 
     fireEvent.click(screen.getByText(/sets\.title/))
-    fireEvent.click(screen.getByText("sets.create"))
+    fireEvent.click(screen.getAllByText("sets.create")[0])
     await waitFor(() => screen.getByText("sets.createTitle"))
 
     // Submit without filling name
@@ -451,7 +500,7 @@ describe("CollectionDetail", () => {
     await waitFor(() => screen.getByText("Comics"))
 
     fireEvent.click(screen.getByText(/sets\.title/))
-    fireEvent.click(screen.getByText("sets.create"))
+    fireEvent.click(screen.getAllByText("sets.create")[0])
     await waitFor(() => screen.getByText("sets.createTitle"))
 
     fireEvent.change(screen.getByLabelText("sets.nameLabel"), { target: { value: "New Set" } })
@@ -495,10 +544,8 @@ describe("CollectionDetail", () => {
     fireEvent.click(screen.getByText(/sets\.title/))
     await waitFor(() => screen.getByText("Series A"))
 
-    // Click the edit (pencil) button on the set - use the parent set card to scope
-    const setCard = screen.getByText("Series A").closest("[class*='cursor-pointer']")!
-    const editButton = setCard.querySelector("button")!
-    fireEvent.click(editButton)
+    // Click the edit (pencil) button on the set
+    fireEvent.click(screen.getByTitle("sets.edit"))
 
     await waitFor(() => {
       expect(screen.getByText("sets.editTitle")).toBeInTheDocument()
@@ -547,10 +594,8 @@ describe("CollectionDetail", () => {
     fireEvent.click(screen.getByText(/sets\.title/))
     await waitFor(() => screen.getByText("Series A"))
 
-    // Click the delete (trash) button - second button in the set card
-    const setCard = screen.getByText("Series A").closest("[class*='cursor-pointer']")!
-    const buttons = setCard.querySelectorAll("button")
-    fireEvent.click(buttons[1]) // trash button
+    // Click the delete (trash) button
+    fireEvent.click(screen.getByTitle("sets.delete"))
 
     await waitFor(() => {
       expect(screen.getByText("sets.deleteTitle")).toBeInTheDocument()
@@ -606,8 +651,8 @@ describe("CollectionDetail", () => {
     await waitFor(() => screen.getByText("Series A"))
     fireEvent.click(screen.getByText("Series A"))
 
-    await waitFor(() => screen.getByText("sets.addItems"))
-    fireEvent.click(screen.getByText("sets.addItems"))
+    await waitFor(() => screen.getByTitle("sets.addItems"))
+    fireEvent.click(screen.getByTitle("sets.addItems"))
 
     await waitFor(() => screen.getByText("sets.addItemsTitle"))
 
@@ -661,8 +706,8 @@ describe("CollectionDetail", () => {
     await waitFor(() => screen.getByText("Series A"))
     fireEvent.click(screen.getByText("Series A"))
 
-    await waitFor(() => screen.getByText("sets.addItems"))
-    fireEvent.click(screen.getByText("sets.addItems"))
+    await waitFor(() => screen.getByTitle("sets.addItems"))
+    fireEvent.click(screen.getByTitle("sets.addItems"))
     await waitFor(() => screen.getByText("sets.addItemsTitle"))
 
     // Type a name in the "add by name" field
@@ -771,121 +816,21 @@ describe("CollectionDetail", () => {
     expect(screen.getByText("collectionDetail.exportJSON").className).toContain("border-primary")
   })
 
-  it("imports file - shows preview and confirms", async () => {
-    const previewData = {
-      rows: [
-        { rowNumber: 1, data: { identifier: "X-001", name: "X-Men" }, errors: [] },
-        { rowNumber: 2, data: { identifier: "X-002", name: "X-Force" }, errors: ["Missing field"] },
-      ],
-      validCount: 1,
-      errorCount: 1,
-    }
-    const importResult = { importedCount: 1 }
-
-    vi.spyOn(global, "fetch").mockImplementation((url, opts) => {
-      const urlStr = String(url)
-      const method = (opts as RequestInit)?.method ?? "GET"
-      if (urlStr.includes("/import/preview") && method === "POST") {
-        return Promise.resolve({ ok: true, json: () => Promise.resolve(previewData) } as Response)
-      }
-      if (urlStr.includes("/import/confirm") && method === "POST") {
-        return Promise.resolve({ ok: true, json: () => Promise.resolve(importResult) } as Response)
-      }
-      if (urlStr.includes("/collection-types/")) {
-        return Promise.resolve({ ok: true, json: () => Promise.resolve(collectionType) } as Response)
-      }
-      if (urlStr.includes("/copies")) {
-        return Promise.resolve({ ok: true, json: () => Promise.resolve([]) } as Response)
-      }
-      if (urlStr.includes("/sets")) {
-        return Promise.resolve({ ok: true, json: () => Promise.resolve([]) } as Response)
-      }
-      if (urlStr.match(/\/collections\/\d+$/)) {
-        return Promise.resolve({ ok: true, json: () => Promise.resolve(collection) } as Response)
-      }
-      return Promise.resolve({ ok: true, json: () => Promise.resolve(items) } as Response)
-    })
-
-    renderWithRoute()
-    await waitFor(() => screen.getByText("Comics"))
-
-    fireEvent.click(screen.getByText("collectionDetail.import"))
-    await screen.findByText("collectionDetail.importTitle")
-
-    // Simulate file selection
-    const file = new File(["id,name\n1,Test"], "test.csv", { type: "text/csv" })
-    const fileInput = screen.getByLabelText("collectionDetail.importSelectFile")
-    fireEvent.change(fileInput, { target: { files: [file] } })
-
-    // Click preview
-    fireEvent.click(screen.getByText("collectionDetail.importPreview"))
-
-    // Wait for preview step
-    await waitFor(() => {
-      expect(screen.getByText(/collectionDetail\.importValidRows/)).toBeInTheDocument()
-    })
-    expect(screen.getByText(/collectionDetail\.importErrorRows/)).toBeInTheDocument()
-    expect(screen.getByText("Missing field")).toBeInTheDocument()
-
-    // Confirm import
-    fireEvent.click(screen.getByText("collectionDetail.importConfirm"))
-
-    await waitFor(() => {
-      expect(screen.getByText(/collectionDetail\.importSuccess/)).toBeInTheDocument()
-    })
-  })
-
-  it("shows error when import preview fails", async () => {
-    vi.spyOn(global, "fetch").mockImplementation((url, opts) => {
-      const urlStr = String(url)
-      const method = (opts as RequestInit)?.method ?? "GET"
-      if (urlStr.includes("/import/preview") && method === "POST") {
-        return Promise.resolve({ ok: false, json: () => Promise.resolve({ message: "Bad CSV" }) } as Response)
-      }
-      if (urlStr.includes("/collection-types/")) {
-        return Promise.resolve({ ok: true, json: () => Promise.resolve(collectionType) } as Response)
-      }
-      if (urlStr.includes("/copies")) {
-        return Promise.resolve({ ok: true, json: () => Promise.resolve([]) } as Response)
-      }
-      if (urlStr.includes("/sets")) {
-        return Promise.resolve({ ok: true, json: () => Promise.resolve([]) } as Response)
-      }
-      if (urlStr.match(/\/collections\/\d+$/)) {
-        return Promise.resolve({ ok: true, json: () => Promise.resolve(collection) } as Response)
-      }
-      return Promise.resolve({ ok: true, json: () => Promise.resolve(items) } as Response)
-    })
-
-    renderWithRoute()
-    await waitFor(() => screen.getByText("Comics"))
-
-    fireEvent.click(screen.getByText("collectionDetail.import"))
-    await screen.findByText("collectionDetail.importTitle")
-
-    const file = new File(["bad"], "test.csv", { type: "text/csv" })
-    const fileInput = screen.getByLabelText("collectionDetail.importSelectFile")
-    fireEvent.change(fileInput, { target: { files: [file] } })
-
-    fireEvent.click(screen.getByText("collectionDetail.importPreview"))
-
-    await waitFor(() => {
-      expect(screen.getByText("Bad CSV")).toBeInTheDocument()
-    })
-  })
-
-  it("shows import no file error when no file selected", async () => {
+  it("opens import wizard and closes via cancel", async () => {
     mockFetch()
     renderWithRoute()
     await waitFor(() => screen.getByText("Comics"))
 
     fireEvent.click(screen.getByText("collectionDetail.import"))
-    await screen.findByText("collectionDetail.importTitle")
+    await waitFor(() => {
+      expect(screen.getByText("collectionDetail.importTitle")).toBeInTheDocument()
+    })
 
-    // The preview button should be disabled when no file - but handleImportPreview also checks
-    // We can't click a disabled button, so let's verify the button is disabled
-    const previewBtn = screen.getByText("collectionDetail.importPreview")
-    expect(previewBtn.closest("button")).toBeDisabled()
+    // Close the import wizard via cancel
+    fireEvent.click(screen.getByText("collectionDetail.importCancel"))
+    await waitFor(() => {
+      expect(screen.queryByText("collectionDetail.importTitle")).not.toBeInTheDocument()
+    })
   })
 
   it("displays set items with owned/unowned icons", async () => {
@@ -1051,8 +996,8 @@ describe("CollectionDetail", () => {
     fireEvent.click(screen.getByText(/sets\.title/))
     await waitFor(() => screen.getByText("Series A"))
     fireEvent.click(screen.getByText("Series A"))
-    await waitFor(() => screen.getByText("sets.addItems"))
-    fireEvent.click(screen.getByText("sets.addItems"))
+    await waitFor(() => screen.getByTitle("sets.addItems"))
+    fireEvent.click(screen.getByTitle("sets.addItems"))
     await waitFor(() => screen.getByText("sets.addItemsTitle"))
 
     // Both items should be visible initially
@@ -1093,58 +1038,22 @@ describe("CollectionDetail", () => {
     fireEvent.click(screen.getByText(/sets\.title/))
     await waitFor(() => screen.getByText("Series A"))
 
-    expect(screen.getByText("sets.selectSet")).toBeInTheDocument()
+    // Set should be visible but not expanded (no detail content shown)
+    expect(screen.getByText("Series A")).toBeInTheDocument()
+    expect(screen.queryByText("sets.emptyItems")).not.toBeInTheDocument()
   })
 
-  it("closes import dialog via OK button after successful import", async () => {
-    const previewData = {
-      rows: [{ rowNumber: 1, data: { identifier: "X-001", name: "X-Men" }, errors: [] }],
-      validCount: 1,
-      errorCount: 0,
-    }
-    const importResultData = { importedCount: 1 }
-
-    vi.spyOn(global, "fetch").mockImplementation((url, opts) => {
-      const urlStr = String(url)
-      const method = (opts as RequestInit)?.method ?? "GET"
-      if (urlStr.includes("/import/preview") && method === "POST") {
-        return Promise.resolve({ ok: true, json: () => Promise.resolve(previewData) } as Response)
-      }
-      if (urlStr.includes("/import/confirm") && method === "POST") {
-        return Promise.resolve({ ok: true, json: () => Promise.resolve(importResultData) } as Response)
-      }
-      if (urlStr.includes("/collection-types/")) {
-        return Promise.resolve({ ok: true, json: () => Promise.resolve(collectionType) } as Response)
-      }
-      if (urlStr.includes("/copies")) {
-        return Promise.resolve({ ok: true, json: () => Promise.resolve([]) } as Response)
-      }
-      if (urlStr.includes("/sets")) {
-        return Promise.resolve({ ok: true, json: () => Promise.resolve([]) } as Response)
-      }
-      if (urlStr.match(/\/collections\/\d+$/)) {
-        return Promise.resolve({ ok: true, json: () => Promise.resolve(collection) } as Response)
-      }
-      return Promise.resolve({ ok: true, json: () => Promise.resolve(items) } as Response)
-    })
-
+  it("opens and closes import dialog via cancel button", async () => {
+    mockFetch()
     renderWithRoute()
     await waitFor(() => screen.getByText("Comics"))
 
     fireEvent.click(screen.getByText("collectionDetail.import"))
-    await screen.findByText("collectionDetail.importTitle")
+    await waitFor(() => {
+      expect(screen.getByText("collectionDetail.importTitle")).toBeInTheDocument()
+    })
 
-    const file = new File(["id,name\n1,Test"], "test.csv", { type: "text/csv" })
-    fireEvent.change(screen.getByLabelText("collectionDetail.importSelectFile"), { target: { files: [file] } })
-    fireEvent.click(screen.getByText("collectionDetail.importPreview"))
-
-    await waitFor(() => screen.getByText("collectionDetail.importConfirm"))
-    fireEvent.click(screen.getByText("collectionDetail.importConfirm"))
-
-    await waitFor(() => screen.getByText("OK"))
-    fireEvent.click(screen.getByText("OK"))
-
-    // Dialog should close - the import title should no longer be visible
+    fireEvent.click(screen.getByText("collectionDetail.importCancel"))
     await waitFor(() => {
       expect(screen.queryByText("collectionDetail.importTitle")).not.toBeInTheDocument()
     })
@@ -1188,8 +1097,8 @@ describe("CollectionDetail", () => {
     await waitFor(() => screen.getByText("Series A"))
     fireEvent.click(screen.getByText("Series A"))
 
-    await waitFor(() => screen.getByText("sets.addItems"))
-    fireEvent.click(screen.getByText("sets.addItems"))
+    await waitFor(() => screen.getByTitle("sets.addItems"))
+    fireEvent.click(screen.getByTitle("sets.addItems"))
     await waitFor(() => screen.getByText("sets.addItemsTitle"))
 
     const nameInput = screen.getByPlaceholderText("sets.addByNamePlaceholder")
@@ -1204,51 +1113,20 @@ describe("CollectionDetail", () => {
     })
   })
 
-  it("shows error when import confirm fails", async () => {
-    const previewData = {
-      rows: [{ rowNumber: 1, data: { identifier: "X-001", name: "X-Men" }, errors: [] }],
-      validCount: 1,
-      errorCount: 0,
-    }
-    vi.spyOn(global, "fetch").mockImplementation((url, opts) => {
-      const urlStr = String(url)
-      const method = (opts as RequestInit)?.method ?? "GET"
-      if (urlStr.includes("/import/preview") && method === "POST") {
-        return Promise.resolve({ ok: true, json: () => Promise.resolve(previewData) } as Response)
-      }
-      if (urlStr.includes("/import/confirm") && method === "POST") {
-        return Promise.resolve({ ok: false, json: () => Promise.resolve({ message: "Import failed" }) } as Response)
-      }
-      if (urlStr.includes("/collection-types/")) {
-        return Promise.resolve({ ok: true, json: () => Promise.resolve(collectionType) } as Response)
-      }
-      if (urlStr.includes("/copies")) {
-        return Promise.resolve({ ok: true, json: () => Promise.resolve([]) } as Response)
-      }
-      if (urlStr.includes("/sets")) {
-        return Promise.resolve({ ok: true, json: () => Promise.resolve([]) } as Response)
-      }
-      if (urlStr.match(/\/collections\/\d+$/)) {
-        return Promise.resolve({ ok: true, json: () => Promise.resolve(collection) } as Response)
-      }
-      return Promise.resolve({ ok: true, json: () => Promise.resolve(items) } as Response)
-    })
-
+  it("import dialog can be toggled", async () => {
+    mockFetch()
     renderWithRoute()
     await waitFor(() => screen.getByText("Comics"))
 
+    // Open
     fireEvent.click(screen.getByText("collectionDetail.import"))
-    await screen.findByText("collectionDetail.importTitle")
-
-    const file = new File(["id,name\n1,Test"], "test.csv", { type: "text/csv" })
-    fireEvent.change(screen.getByLabelText("collectionDetail.importSelectFile"), { target: { files: [file] } })
-    fireEvent.click(screen.getByText("collectionDetail.importPreview"))
-
-    await waitFor(() => screen.getByText("collectionDetail.importConfirm"))
-    fireEvent.click(screen.getByText("collectionDetail.importConfirm"))
-
     await waitFor(() => {
-      expect(screen.getByText("Import failed")).toBeInTheDocument()
+      expect(screen.getByText("collectionDetail.importTitle")).toBeInTheDocument()
+    })
+    // Close
+    fireEvent.click(screen.getByText("collectionDetail.importCancel"))
+    await waitFor(() => {
+      expect(screen.queryByText("collectionDetail.importTitle")).not.toBeInTheDocument()
     })
   })
 
@@ -1273,7 +1151,7 @@ describe("CollectionDetail", () => {
     renderWithRoute()
     await waitFor(() => screen.getByText("Comics"))
 
-    expect(screen.getByText("collectionDetail.emptyItems")).toBeInTheDocument()
+    expect(screen.getByText("emptyStates.collectionDetail.title")).toBeInTheDocument()
   })
 
   it("shows cover image when available", async () => {
@@ -1322,12 +1200,13 @@ describe("CollectionDetail", () => {
     renderWithRoute()
     await waitFor(() => screen.getByText("Comics"))
 
-    // Find the condition select by looking for the "conditionAll" option
-    const conditionSelect = screen.getByDisplayValue("collectionDetail.conditionAll")
-    fireEvent.change(conditionSelect, { target: { value: "Mint" } })
-
-    // Verify it changed
-    expect(conditionSelect).toHaveValue("Mint")
+    // Find the condition select - it's a mocked Radix Select rendered as native <select>
+    const selects = document.querySelectorAll("select")
+    // Find the one with "all" value (condition filter)
+    const conditionSelect = Array.from(selects).find((s) => s.value === "all")
+    expect(conditionSelect).toBeTruthy()
+    fireEvent.change(conditionSelect!, { target: { value: "Mint" } })
+    expect(conditionSelect!).toHaveValue("Mint")
   })
 
   it("clicks owned status filter buttons", async () => {
@@ -1348,9 +1227,13 @@ describe("CollectionDetail", () => {
     renderWithRoute()
     await waitFor(() => screen.getByText("Comics"))
 
-    const sortSelect = screen.getByDisplayValue("collectionDetail.sortName")
-    fireEvent.change(sortSelect, { target: { value: "price" } })
-    expect(sortSelect).toHaveValue("price")
+    // Find the sort select - it's a mocked Radix Select rendered as native <select>
+    const selects = document.querySelectorAll("select")
+    // Find the one with "name" value (sort by)
+    const sortSelect = Array.from(selects).find((s) => s.value === "name")
+    expect(sortSelect).toBeTruthy()
+    fireEvent.change(sortSelect!, { target: { value: "price" } })
+    expect(sortSelect!).toHaveValue("price")
   })
 
   it("closes export dialog via cancel button", async () => {
@@ -1383,49 +1266,20 @@ describe("CollectionDetail", () => {
     })
   })
 
-  it("goes back from import preview to upload step", async () => {
-    const previewData = {
-      rows: [{ rowNumber: 1, data: { identifier: "X-001", name: "X-Men" }, errors: [] }],
-      validCount: 1,
-      errorCount: 0,
-    }
-    vi.spyOn(global, "fetch").mockImplementation((url, opts) => {
-      const urlStr = String(url)
-      const method = (opts as RequestInit)?.method ?? "GET"
-      if (urlStr.includes("/import/preview") && method === "POST") {
-        return Promise.resolve({ ok: true, json: () => Promise.resolve(previewData) } as Response)
-      }
-      if (urlStr.includes("/collection-types/")) {
-        return Promise.resolve({ ok: true, json: () => Promise.resolve(collectionType) } as Response)
-      }
-      if (urlStr.includes("/copies")) {
-        return Promise.resolve({ ok: true, json: () => Promise.resolve([]) } as Response)
-      }
-      if (urlStr.includes("/sets")) {
-        return Promise.resolve({ ok: true, json: () => Promise.resolve([]) } as Response)
-      }
-      if (urlStr.match(/\/collections\/\d+$/)) {
-        return Promise.resolve({ ok: true, json: () => Promise.resolve(collection) } as Response)
-      }
-      return Promise.resolve({ ok: true, json: () => Promise.resolve(items) } as Response)
-    })
-
+  it("re-opens import dialog after closing", async () => {
+    mockFetch()
     renderWithRoute()
     await waitFor(() => screen.getByText("Comics"))
 
+    // Open, close, re-open
     fireEvent.click(screen.getByText("collectionDetail.import"))
-    await screen.findByText("collectionDetail.importTitle")
+    await waitFor(() => screen.getByText("collectionDetail.importTitle"))
+    fireEvent.click(screen.getByText("collectionDetail.importCancel"))
+    await waitFor(() => expect(screen.queryByText("collectionDetail.importTitle")).not.toBeInTheDocument())
 
-    const file = new File(["id,name\n1,Test"], "test.csv", { type: "text/csv" })
-    fireEvent.change(screen.getByLabelText("collectionDetail.importSelectFile"), { target: { files: [file] } })
-    fireEvent.click(screen.getByText("collectionDetail.importPreview"))
-
-    await waitFor(() => screen.getByText("collectionDetail.importConfirm"))
-
-    // Click back button to go to upload step
-    fireEvent.click(screen.getByText("collectionDetail.importBack"))
+    fireEvent.click(screen.getByText("collectionDetail.import"))
     await waitFor(() => {
-      expect(screen.getByText("collectionDetail.importPreview")).toBeInTheDocument()
+      expect(screen.getByText("collectionDetail.importTitle")).toBeInTheDocument()
     })
   })
 
@@ -1455,9 +1309,8 @@ describe("CollectionDetail", () => {
     fireEvent.click(screen.getByText(/sets\.title/))
     await waitFor(() => screen.getByText("Series A"))
 
-    const setCard = screen.getByText("Series A").closest("[class*='cursor-pointer']")!
-    const buttons = setCard.querySelectorAll("button")
-    fireEvent.click(buttons[1]) // trash button
+    // Click the delete (trash) button
+    fireEvent.click(screen.getByTitle("sets.delete"))
 
     await waitFor(() => screen.getByText("sets.deleteTitle"))
 
@@ -1593,7 +1446,7 @@ describe("CollectionDetail", () => {
     await waitFor(() => screen.getByText("Comics"))
 
     fireEvent.click(screen.getByText(/sets\.title/))
-    fireEvent.click(screen.getByText("sets.create"))
+    fireEvent.click(screen.getAllByText("sets.create")[0])
     await waitFor(() => screen.getByText("sets.createTitle"))
 
     fireEvent.click(screen.getByText("sets.cancel"))
@@ -1611,15 +1464,15 @@ describe("CollectionDetail", () => {
     const tabButtons = document.querySelectorAll(".flex.border-b button")
     const itemsTab = tabButtons[0] as HTMLElement
     const setsTab = tabButtons[1] as HTMLElement
-    expect(itemsTab.className).toContain("border-primary")
+    expect(itemsTab.className).toContain("border-accent")
 
     // Switch to sets tab
     fireEvent.click(setsTab)
-    expect(setsTab.className).toContain("border-primary")
+    expect(setsTab.className).toContain("border-accent")
 
     // Switch back to items tab
     fireEvent.click(itemsTab)
-    expect(itemsTab.className).toContain("border-primary")
+    expect(itemsTab.className).toContain("border-accent")
   })
 
   it("shows generic error when add item POST fails and json parsing fails", async () => {
@@ -1709,8 +1562,8 @@ describe("CollectionDetail", () => {
     await waitFor(() => screen.getByText("Series A"))
     fireEvent.click(screen.getByText("Series A"))
 
-    await waitFor(() => screen.getByText("sets.addItems"))
-    fireEvent.click(screen.getByText("sets.addItems"))
+    await waitFor(() => screen.getByTitle("sets.addItems"))
+    fireEvent.click(screen.getByTitle("sets.addItems"))
     await waitFor(() => screen.getByText("sets.addItemsTitle"))
 
     // Close via Escape key
@@ -1991,13 +1844,10 @@ describe("CollectionDetail", () => {
     await waitFor(() => screen.getByText("Series A"))
     // Select the set first so selectedSet.id === editingSet.id
     fireEvent.click(screen.getByText("Series A"))
-    await waitFor(() => screen.getByText("sets.addItems"))
+    await waitFor(() => screen.getByTitle("sets.addItems"))
 
-    // Now click edit on the set — use the sidebar set list, not the detail panel
-    const setCards = document.querySelectorAll("[class*='cursor-pointer']")
-    const seriesACard = Array.from(setCards).find(el => el.textContent?.includes("Series A") && el.querySelector("button"))
-    const editButton = seriesACard?.querySelector("button")!
-    fireEvent.click(editButton)
+    // Now click edit on the set
+    fireEvent.click(screen.getByTitle("sets.edit"))
     await waitFor(() => screen.getByText("sets.editTitle"))
 
     fireEvent.change(screen.getByLabelText("sets.nameLabel"), { target: { value: "Series B" } })
@@ -2039,13 +1889,10 @@ describe("CollectionDetail", () => {
     await waitFor(() => screen.getByText("Series A"))
     // Select the set
     fireEvent.click(screen.getByText("Series A"))
-    await waitFor(() => screen.getByText("sets.addItems"))
+    await waitFor(() => screen.getByTitle("sets.addItems"))
 
-    // Click delete — use the sidebar set list
-    const setCards = document.querySelectorAll("[class*='cursor-pointer']")
-    const seriesACard = Array.from(setCards).find(el => el.textContent?.includes("Series A") && el.querySelector("button"))
-    const buttons = seriesACard?.querySelectorAll("button")
-    fireEvent.click(buttons![1]) // trash button
+    // Click delete
+    fireEvent.click(screen.getByTitle("sets.delete"))
 
     await waitFor(() => screen.getByText("sets.deleteTitle"))
     fireEvent.click(screen.getByText("sets.delete"))

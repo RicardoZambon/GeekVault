@@ -21,13 +21,53 @@ vi.mock("react-i18next", () => ({
   }),
 }))
 
+vi.mock("framer-motion", () => ({
+  motion: { div: ({ children, ...props }: any) => <div {...props}>{children}</div> },
+  AnimatePresence: ({ children }: any) => <>{children}</>,
+  useSpring: (val: number) => ({ get: () => val }),
+  useTransform: (_: any, __: any, range: number[]) => ({ get: () => range[0] }),
+  useMotionValue: (val: number) => ({ get: () => val, set: () => {} }),
+}))
+
+const { mockToast } = vi.hoisted(() => ({
+  mockToast: { success: vi.fn(), error: vi.fn(), info: vi.fn(), warning: vi.fn() },
+}))
+
+vi.mock("@/components/ds", async () => {
+  const actual = await vi.importActual("@/components/ds")
+  return {
+    ...actual,
+    StaggerChildren: ({ children, ...props }: any) => <div {...props}>{children}</div>,
+    staggerItemVariants: {},
+    FadeIn: ({ children }: any) => <div>{children}</div>,
+    PageTransition: ({ children }: any) => <div>{children}</div>,
+    AnimatedNumber: ({ value }: { value: number }) => <span>{value}</span>,
+    toast: mockToast,
+    Select: ({ value, onValueChange, disabled, children }: any) => (
+      <select value={value} onChange={(e: any) => onValueChange(e.target.value)} disabled={disabled}>{children}</select>
+    ),
+    SelectTrigger: ({ children }: any) => <>{children}</>,
+    SelectValue: () => null,
+    SelectContent: ({ children }: any) => <>{children}</>,
+    SelectItem: ({ value, children }: any) => <option value={value}>{children}</option>,
+    DropdownMenu: ({ children }: any) => <div>{children}</div>,
+    DropdownMenuTrigger: ({ children }: any) => <>{children}</>,
+    DropdownMenuContent: ({ children }: any) => <div>{children}</div>,
+    DropdownMenuItem: ({ children, onClick, className }: any) => <button onClick={onClick} className={className}>{children}</button>,
+  }
+})
+
+vi.mock("@/hooks", () => ({
+  useDebounce: (value: string) => value,
+}))
+
 const collections = [
   { id: 1, name: "Comics", description: "My comics", coverImage: null, visibility: "Private", collectionTypeId: 1, collectionTypeName: "Comic Books", itemCount: 5 },
   { id: 2, name: "Cards", description: "", coverImage: "http://img.jpg", visibility: "Private", collectionTypeId: 2, collectionTypeName: "Trading Cards", itemCount: 10 },
 ]
 
 const collectionTypes = [
-  { id: 1, name: "Comic Books", icon: "📚" },
+  { id: 1, name: "Comic Books", icon: "\uD83D\uDCDA" },
   { id: 2, name: "Trading Cards", icon: "" },
 ]
 
@@ -45,10 +85,12 @@ describe("Collections", () => {
     })
   }
 
-  it("shows loading spinner", () => {
+  it("shows loading state with skeleton elements", () => {
     vi.spyOn(global, "fetch").mockReturnValue(new Promise(() => {}))
-    render(<MemoryRouter><Collections /></MemoryRouter>)
-    expect(document.querySelector(".animate-spin")).toBeInTheDocument()
+    const { container } = render(<MemoryRouter><Collections /></MemoryRouter>)
+    // Loading state renders SkeletonRect components which have animate-pulse class
+    const skeletons = container.querySelectorAll(".animate-pulse")
+    expect(skeletons.length).toBeGreaterThan(0)
   })
 
   it("renders collection cards", async () => {
@@ -60,12 +102,13 @@ describe("Collections", () => {
     })
   })
 
-  it("shows empty state", async () => {
+  it("shows empty state with emptyStates key", async () => {
     mockFetch([])
     render(<MemoryRouter><Collections /></MemoryRouter>)
     await waitFor(() => {
-      expect(screen.getByText("collections.empty")).toBeInTheDocument()
+      expect(screen.getByText("emptyStates.collections.title")).toBeInTheDocument()
     })
+    expect(screen.getByText("emptyStates.collections.description")).toBeInTheDocument()
   })
 
   it("navigates to collection on card click", async () => {
@@ -102,10 +145,11 @@ describe("Collections", () => {
   it("validates type required on submit", async () => {
     mockFetch([], []) // no types
     render(<MemoryRouter><Collections /></MemoryRouter>)
-    await waitFor(() => screen.getByText("collections.empty"))
-    fireEvent.click(screen.getByText("collections.create"))
+    await waitFor(() => screen.getByText("emptyStates.collections.title"))
+    // Click the action button in empty state to open create dialog
+    fireEvent.click(screen.getByText("emptyStates.collections.action"))
     await waitFor(() => screen.getByText("collections.createTitle"))
-    // Enter a name but no type
+    // Enter a name but no type (no types available, formTypeId stays "")
     fireEvent.change(screen.getByLabelText("collections.nameLabel"), { target: { value: "Test" } })
     fireEvent.click(screen.getAllByText("collections.create").pop()!)
     await waitFor(() => {
@@ -117,11 +161,8 @@ describe("Collections", () => {
     mockFetch()
     render(<MemoryRouter><Collections /></MemoryRouter>)
     await waitFor(() => screen.getByText("Comics"))
-    // Click the menu button
-    const menuButtons = screen.getAllByLabelText("collections.actions")
-    fireEvent.click(menuButtons[0])
-    await waitFor(() => screen.getByText("collections.edit"))
-    fireEvent.click(screen.getByText("collections.edit"))
+    const editButtons = screen.getAllByText("collections.edit")
+    fireEvent.click(editButtons[0])
     await waitFor(() => {
       expect(screen.getByText("collections.editTitle")).toBeInTheDocument()
     })
@@ -132,16 +173,14 @@ describe("Collections", () => {
     render(<MemoryRouter><Collections /></MemoryRouter>)
     await waitFor(() => screen.getByText("Comics"))
 
-    const menuButtons = screen.getAllByLabelText("collections.actions")
-    fireEvent.click(menuButtons[0])
-    await waitFor(() => screen.getByText("collections.delete"))
-    fireEvent.click(screen.getByText("collections.delete"))
+    const deleteButtons = screen.getAllByText("collections.delete")
+    fireEvent.click(deleteButtons[0])
     await waitFor(() => {
       expect(screen.getByText("collections.deleteConfirm")).toBeInTheDocument()
     })
   })
 
-  it("shows error on fetch failure", async () => {
+  it("shows error via toast on fetch failure", async () => {
     vi.spyOn(global, "fetch").mockImplementation((url) => {
       if (String(url).includes("/collection-types")) {
         return Promise.resolve({ ok: true, json: () => Promise.resolve([]) } as Response)
@@ -150,7 +189,7 @@ describe("Collections", () => {
     })
     render(<MemoryRouter><Collections /></MemoryRouter>)
     await waitFor(() => {
-      expect(screen.getByText("collections.fetchError")).toBeInTheDocument()
+      expect(mockToast.error).toHaveBeenCalledWith("collections.fetchError")
     })
   })
 
@@ -174,9 +213,13 @@ describe("Collections", () => {
     await waitFor(() => screen.getByText("collections.createTitle"))
 
     fireEvent.change(screen.getByLabelText("collections.nameLabel"), { target: { value: "New" } })
-    // Select type
-    const typeSelect = screen.getByLabelText("collections.typeLabel")
-    fireEvent.change(typeSelect, { target: { value: "1" } })
+    // Select type via the mocked native select
+    const typeSelects = screen.getAllByRole("combobox")
+    const formTypeSelect = typeSelects.find((el) => {
+      const options = el.querySelectorAll("option")
+      return Array.from(options).some((o) => o.textContent?.includes("Comic Books"))
+    })!
+    fireEvent.change(formTypeSelect, { target: { value: "1" } })
 
     fireEvent.click(screen.getAllByText("collections.create").pop()!)
     await waitFor(() => {
@@ -184,36 +227,24 @@ describe("Collections", () => {
     })
   })
 
-  it("closes menu on outside click", async () => {
+  it("renders dropdown menu actions for each collection", async () => {
     mockFetch()
     render(<MemoryRouter><Collections /></MemoryRouter>)
     await waitFor(() => screen.getByText("Comics"))
 
-    const menuButtons = screen.getAllByLabelText("collections.actions")
-    fireEvent.click(menuButtons[0])
-    await waitFor(() => screen.getByText("collections.edit"))
-
-    // Click outside
-    fireEvent.mouseDown(document.body)
-    await waitFor(() => {
-      expect(screen.queryByText("collections.edit")).not.toBeInTheDocument()
-    })
+    const editButtons = screen.getAllByText("collections.edit")
+    const deleteButtons = screen.getAllByText("collections.delete")
+    expect(editButtons).toHaveLength(2)
+    expect(deleteButtons).toHaveLength(2)
   })
 
-  it("toggles menu open and closed", async () => {
+  it("renders action buttons for each collection card", async () => {
     mockFetch()
     render(<MemoryRouter><Collections /></MemoryRouter>)
     await waitFor(() => screen.getByText("Comics"))
 
-    const menuButtons = screen.getAllByLabelText("collections.actions")
-    fireEvent.click(menuButtons[0])
-    await waitFor(() => screen.getByText("collections.edit"))
-
-    // Click same menu button to close
-    fireEvent.click(menuButtons[0])
-    await waitFor(() => {
-      expect(screen.queryByText("collections.edit")).not.toBeInTheDocument()
-    })
+    const actionButtons = screen.getAllByLabelText("collections.actions")
+    expect(actionButtons).toHaveLength(2)
   })
 
   it("creates collection with cover image upload", async () => {
@@ -239,10 +270,17 @@ describe("Collections", () => {
     await waitFor(() => screen.getByText("collections.createTitle"))
 
     fireEvent.change(screen.getByLabelText("collections.nameLabel"), { target: { value: "New Col" } })
-    fireEvent.change(screen.getByLabelText("collections.typeLabel"), { target: { value: "1" } })
 
-    // Add a cover file
-    const fileInput = screen.getByLabelText("collections.coverLabel")
+    // Select type
+    const typeSelects = screen.getAllByRole("combobox")
+    const formTypeSelect = typeSelects.find((el) => {
+      const options = el.querySelectorAll("option")
+      return Array.from(options).some((o) => o.textContent?.includes("Comic Books"))
+    })!
+    fireEvent.change(formTypeSelect, { target: { value: "1" } })
+
+    // Add a cover file via the hidden file input
+    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement
     const file = new File(["img"], "cover.png", { type: "image/png" })
     fireEvent.change(fileInput, { target: { files: [file] } })
 
@@ -271,7 +309,12 @@ describe("Collections", () => {
     await waitFor(() => screen.getByText("collections.createTitle"))
 
     fireEvent.change(screen.getByLabelText("collections.nameLabel"), { target: { value: "Dup" } })
-    fireEvent.change(screen.getByLabelText("collections.typeLabel"), { target: { value: "1" } })
+    const typeSelects = screen.getAllByRole("combobox")
+    const formTypeSelect = typeSelects.find((el) => {
+      const options = el.querySelectorAll("option")
+      return Array.from(options).some((o) => o.textContent?.includes("Comic Books"))
+    })!
+    fireEvent.change(formTypeSelect, { target: { value: "1" } })
 
     fireEvent.click(screen.getAllByText("collections.create").pop()!)
     expect(await screen.findByText("Name taken")).toBeInTheDocument()
@@ -295,7 +338,12 @@ describe("Collections", () => {
     await waitFor(() => screen.getByText("collections.createTitle"))
 
     fireEvent.change(screen.getByLabelText("collections.nameLabel"), { target: { value: "X" } })
-    fireEvent.change(screen.getByLabelText("collections.typeLabel"), { target: { value: "1" } })
+    const typeSelects = screen.getAllByRole("combobox")
+    const formTypeSelect = typeSelects.find((el) => {
+      const options = el.querySelectorAll("option")
+      return Array.from(options).some((o) => o.textContent?.includes("Comic Books"))
+    })!
+    fireEvent.change(formTypeSelect, { target: { value: "1" } })
 
     fireEvent.click(screen.getAllByText("collections.create").pop()!)
     expect(await screen.findByText("collections.saveFailed")).toBeInTheDocument()
@@ -316,10 +364,8 @@ describe("Collections", () => {
     render(<MemoryRouter><Collections /></MemoryRouter>)
     await waitFor(() => screen.getByText("Comics"))
 
-    const menuButtons = screen.getAllByLabelText("collections.actions")
-    fireEvent.click(menuButtons[0])
-    await waitFor(() => screen.getByText("collections.delete"))
-    fireEvent.click(screen.getByText("collections.delete"))
+    const deleteButtons = screen.getAllByText("collections.delete")
+    fireEvent.click(deleteButtons[0])
     await screen.findByText("collections.deleteConfirm")
 
     fireEvent.click(screen.getAllByText("collections.delete").pop()!)
@@ -328,7 +374,7 @@ describe("Collections", () => {
     })
   })
 
-  it("shows error when delete fails", async () => {
+  it("shows error via toast when delete fails", async () => {
     vi.spyOn(global, "fetch").mockImplementation((url, opts) => {
       const urlStr = String(url)
       if (urlStr.includes("/collection-types")) {
@@ -343,15 +389,13 @@ describe("Collections", () => {
     render(<MemoryRouter><Collections /></MemoryRouter>)
     await waitFor(() => screen.getByText("Comics"))
 
-    const menuButtons = screen.getAllByLabelText("collections.actions")
-    fireEvent.click(menuButtons[0])
-    await waitFor(() => screen.getByText("collections.delete"))
-    fireEvent.click(screen.getByText("collections.delete"))
+    const deleteButtons = screen.getAllByText("collections.delete")
+    fireEvent.click(deleteButtons[0])
     await screen.findByText("collections.deleteConfirm")
 
     fireEvent.click(screen.getAllByText("collections.delete").pop()!)
     await waitFor(() => {
-      expect(screen.getByText("collections.deleteFailed")).toBeInTheDocument()
+      expect(mockToast.error).toHaveBeenCalledWith("collections.deleteFailed")
     })
   })
 
@@ -372,11 +416,8 @@ describe("Collections", () => {
     render(<MemoryRouter><Collections /></MemoryRouter>)
     await waitFor(() => screen.getByText("Comics"))
 
-    // Open menu and click edit
-    const menuButtons = screen.getAllByLabelText("collections.actions")
-    fireEvent.click(menuButtons[0])
-    await waitFor(() => screen.getByText("collections.edit"))
-    fireEvent.click(screen.getByText("collections.edit"))
+    const editButtons = screen.getAllByText("collections.edit")
+    fireEvent.click(editButtons[0])
     await waitFor(() => screen.getByText("collections.editTitle"))
 
     // Verify save button text (editingId branch)
@@ -408,10 +449,8 @@ describe("Collections", () => {
     render(<MemoryRouter><Collections /></MemoryRouter>)
     await waitFor(() => screen.getByText("Comics"))
 
-    const menuButtons = screen.getAllByLabelText("collections.actions")
-    fireEvent.click(menuButtons[0])
-    await waitFor(() => screen.getByText("collections.delete"))
-    fireEvent.click(screen.getByText("collections.delete"))
+    const deleteButtons = screen.getAllByText("collections.delete")
+    fireEvent.click(deleteButtons[0])
     await screen.findByText("collections.deleteConfirm")
 
     fireEvent.keyDown(screen.getByRole("dialog"), { key: "Escape" })
@@ -425,10 +464,8 @@ describe("Collections", () => {
     render(<MemoryRouter><Collections /></MemoryRouter>)
     await waitFor(() => screen.getByText("Comics"))
 
-    const menuButtons = screen.getAllByLabelText("collections.actions")
-    fireEvent.click(menuButtons[0])
-    await waitFor(() => screen.getByText("collections.delete"))
-    fireEvent.click(screen.getByText("collections.delete"))
+    const deleteButtons = screen.getAllByText("collections.delete")
+    fireEvent.click(deleteButtons[0])
     await screen.findByText("collections.deleteConfirm")
 
     fireEvent.click(screen.getByText("collections.cancel"))
@@ -466,26 +503,77 @@ describe("Collections", () => {
     fireEvent.click(screen.getByText("collections.create"))
     await waitFor(() => screen.getByText("collections.createTitle"))
 
-    const fileInput = screen.getByLabelText("collections.coverLabel")
+    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement
     // Test selecting a file
     const file = new File(["img"], "cover.png", { type: "image/png" })
     fireEvent.change(fileInput, { target: { files: [file] } })
+    // The file name should appear in the dropzone
+    expect(screen.getByText("cover.png")).toBeInTheDocument()
     // Test clearing (null branch via ?.[0] ?? null)
     fireEvent.change(fileInput, { target: { files: null } })
   })
 
-  it("resets type to empty when selecting blank option", async () => {
+  it("shows collection type name as badge and item count", async () => {
     mockFetch()
+    render(<MemoryRouter><Collections /></MemoryRouter>)
+    await waitFor(() => screen.getByText("Comics"))
+    expect(screen.getByText("Comic Books")).toBeInTheDocument()
+    expect(screen.getByText("collections.itemCount:5")).toBeInTheDocument()
+  })
+
+  it("shows toast on successful create", async () => {
+    vi.spyOn(global, "fetch").mockImplementation((url, opts) => {
+      const urlStr = String(url)
+      if (urlStr.includes("/collection-types")) {
+        return Promise.resolve({ ok: true, json: () => Promise.resolve(collectionTypes) } as Response)
+      }
+      if (opts && (opts as RequestInit).method === "POST") {
+        return Promise.resolve({ ok: true, json: () => Promise.resolve({ id: 3 }) } as Response)
+      }
+      return Promise.resolve({ ok: true, json: () => Promise.resolve(collections) } as Response)
+    })
+
     render(<MemoryRouter><Collections /></MemoryRouter>)
     await waitFor(() => screen.getByText("collections.title"))
     fireEvent.click(screen.getByText("collections.create"))
     await waitFor(() => screen.getByText("collections.createTitle"))
 
-    const typeSelect = screen.getByLabelText("collections.typeLabel")
-    // First select a valid type
-    fireEvent.change(typeSelect, { target: { value: "1" } })
-    // Then reset to empty
-    fireEvent.change(typeSelect, { target: { value: "" } })
-    expect(typeSelect).toHaveValue("")
+    fireEvent.change(screen.getByLabelText("collections.nameLabel"), { target: { value: "New" } })
+    const typeSelects = screen.getAllByRole("combobox")
+    const formTypeSelect = typeSelects.find((el) => {
+      const options = el.querySelectorAll("option")
+      return Array.from(options).some((o) => o.textContent?.includes("Comic Books"))
+    })!
+    fireEvent.change(formTypeSelect, { target: { value: "1" } })
+
+    fireEvent.click(screen.getAllByText("collections.create").pop()!)
+    await waitFor(() => {
+      expect(mockToast.success).toHaveBeenCalledWith("collections.createSuccess")
+    })
+  })
+
+  it("shows toast on successful delete", async () => {
+    vi.spyOn(global, "fetch").mockImplementation((url, opts) => {
+      const urlStr = String(url)
+      if (urlStr.includes("/collection-types")) {
+        return Promise.resolve({ ok: true, json: () => Promise.resolve(collectionTypes) } as Response)
+      }
+      if (opts && (opts as RequestInit).method === "DELETE") {
+        return Promise.resolve({ ok: true } as Response)
+      }
+      return Promise.resolve({ ok: true, json: () => Promise.resolve(collections) } as Response)
+    })
+
+    render(<MemoryRouter><Collections /></MemoryRouter>)
+    await waitFor(() => screen.getByText("Comics"))
+
+    const deleteButtons = screen.getAllByText("collections.delete")
+    fireEvent.click(deleteButtons[0])
+    await screen.findByText("collections.deleteConfirm")
+
+    fireEvent.click(screen.getAllByText("collections.delete").pop()!)
+    await waitFor(() => {
+      expect(mockToast.success).toHaveBeenCalledWith("collections.deleteSuccess")
+    })
   })
 })

@@ -11,15 +11,46 @@ vi.mock("react-router-dom", async () => {
 })
 
 vi.mock("@/components/auth-provider", () => ({
-  useAuth: () => ({ token: "mock-token", user: null, isLoading: false, login: vi.fn(), register: vi.fn(), logout: vi.fn() }),
+  useAuth: () => ({ token: "mock-token", user: { displayName: "Ralph" }, isLoading: false, login: vi.fn(), register: vi.fn(), logout: vi.fn() }),
 }))
 
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({
-    t: (key: string) => key,
+    t: (key: string, opts?: Record<string, unknown>) => {
+      if (opts?.name) return `${key}:${opts.name}`
+      if (opts?.count !== undefined) return `${key}:${opts.count}`
+      return key
+    },
     i18n: { language: "en", changeLanguage: vi.fn() },
   }),
 }))
+
+vi.mock("framer-motion", () => ({
+  motion: { div: ({ children, ...props }: any) => <div {...props}>{children}</div> },
+  AnimatePresence: ({ children }: any) => <>{children}</>,
+  useSpring: (val: number) => ({ get: () => val }),
+  useTransform: (_: any, __: any, range: number[]) => ({ get: () => range[0] }),
+  useMotionValue: (val: number) => ({ get: () => val, set: () => {} }),
+}))
+
+const { mockToast } = vi.hoisted(() => ({
+  mockToast: { success: vi.fn(), error: vi.fn(), info: vi.fn(), warning: vi.fn() },
+}))
+
+vi.mock("@/components/ds", async () => {
+  const actual = await vi.importActual("@/components/ds")
+  return {
+    ...actual,
+    StaggerChildren: ({ children, ...props }: any) => <div {...props}>{children}</div>,
+    staggerItemVariants: {},
+    FadeIn: ({ children }: any) => <div>{children}</div>,
+    PageTransition: ({ children }: any) => <div>{children}</div>,
+    AnimatedNumber: ({ value, format }: { value: number; format?: (n: number) => string }) => (
+      <span>{format ? format(value) : value}</span>
+    ),
+    toast: mockToast,
+  }
+})
 
 // Mock recharts to avoid rendering issues in jsdom
 let capturedPieLabel: ((entry: { name: string; value: number }) => string) | null = null
@@ -77,23 +108,26 @@ const dashboardData = {
 describe("Dashboard", () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    capturedPieLabel = null
   })
 
-  it("shows loading state", () => {
+  it("shows loading state with skeleton elements", () => {
     vi.spyOn(global, "fetch").mockReturnValue(new Promise(() => {}))
-    render(<MemoryRouter><Dashboard /></MemoryRouter>)
-    expect(screen.getByText("dashboard.loading")).toBeInTheDocument()
+    const { container } = render(<MemoryRouter><Dashboard /></MemoryRouter>)
+    // Loading state renders SkeletonRect components which have animate-pulse class
+    const skeletons = container.querySelectorAll(".animate-pulse")
+    expect(skeletons.length).toBeGreaterThan(0)
   })
 
-  it("shows error state", async () => {
+  it("shows error via toast on fetch failure", async () => {
     vi.spyOn(global, "fetch").mockResolvedValueOnce({ ok: false } as Response)
     render(<MemoryRouter><Dashboard /></MemoryRouter>)
     await waitFor(() => {
-      expect(screen.getByText("dashboard.fetchError")).toBeInTheDocument()
+      expect(mockToast.error).toHaveBeenCalledWith("dashboard.fetchError")
     })
   })
 
-  it("renders dashboard data", async () => {
+  it("renders dashboard data with stats and sections", async () => {
     vi.spyOn(global, "fetch").mockResolvedValueOnce({
       ok: true,
       json: () => Promise.resolve(dashboardData),
@@ -103,13 +137,29 @@ describe("Dashboard", () => {
     await waitFor(() => {
       expect(screen.getByText("dashboard.title")).toBeInTheDocument()
     })
+    // Stats are rendered via AnimatedNumber mock
     expect(screen.getByText("3")).toBeInTheDocument() // totalCollections
     expect(screen.getByText("50")).toBeInTheDocument() // totalItems
+    expect(screen.getByText("25")).toBeInTheDocument() // totalOwnedCopies
+    // Recent acquisitions
     expect(screen.getByText("Spider-Man #1")).toBeInTheDocument()
+    // Collection summaries
     expect(screen.getByText("Comics")).toBeInTheDocument()
   })
 
-  it("renders null values with dash", async () => {
+  it("shows welcome message with user display name", async () => {
+    vi.spyOn(global, "fetch").mockResolvedValueOnce({
+      ok: true,
+      json: () => Promise.resolve(dashboardData),
+    } as Response)
+
+    render(<MemoryRouter><Dashboard /></MemoryRouter>)
+    await waitFor(() => {
+      expect(screen.getByText("dashboard.welcome:Ralph")).toBeInTheDocument()
+    })
+  })
+
+  it("renders null values with dash in recent acquisitions", async () => {
     vi.spyOn(global, "fetch").mockResolvedValueOnce({
       ok: true,
       json: () => Promise.resolve(dashboardData),
@@ -117,8 +167,8 @@ describe("Dashboard", () => {
 
     render(<MemoryRouter><Dashboard /></MemoryRouter>)
     await waitFor(() => screen.getByText("dashboard.title"))
-    // Batman #1 has null values
-    const dashes = screen.getAllByText("—")
+    // Batman #1 has null purchasePrice, estimatedValue, acquisitionDate, acquisitionSource
+    const dashes = screen.getAllByText("\u2014")
     expect(dashes.length).toBeGreaterThan(0)
   })
 
@@ -134,7 +184,7 @@ describe("Dashboard", () => {
     expect(mockNavigate).toHaveBeenCalledWith("/collections/1")
   })
 
-  it("shows empty state when no collections", async () => {
+  it("shows empty state when totalCollections is 0", async () => {
     vi.spyOn(global, "fetch").mockResolvedValueOnce({
       ok: true,
       json: () =>
@@ -149,12 +199,31 @@ describe("Dashboard", () => {
 
     render(<MemoryRouter><Dashboard /></MemoryRouter>)
     await waitFor(() => {
-      expect(screen.getByText("dashboard.empty")).toBeInTheDocument()
+      expect(screen.getByText("emptyStates.dashboard.title")).toBeInTheDocument()
     })
+    expect(screen.getByText("emptyStates.dashboard.description")).toBeInTheDocument()
+  })
+
+  it("navigates to collections with create param from empty state action", async () => {
+    vi.spyOn(global, "fetch").mockResolvedValueOnce({
+      ok: true,
+      json: () =>
+        Promise.resolve({
+          ...dashboardData,
+          totalCollections: 0,
+          collectionSummaries: [],
+          recentAcquisitions: [],
+          itemsByCondition: [],
+        }),
+    } as Response)
+
+    render(<MemoryRouter><Dashboard /></MemoryRouter>)
+    await waitFor(() => screen.getByText("emptyStates.dashboard.title"))
+    fireEvent.click(screen.getByText("emptyStates.dashboard.action"))
+    expect(mockNavigate).toHaveBeenCalledWith("/collections?create=true")
   })
 
   it("calls pie chart label function correctly", async () => {
-    capturedPieLabel = null
     vi.spyOn(global, "fetch").mockResolvedValueOnce({
       ok: true,
       json: () => Promise.resolve(dashboardData),
@@ -171,18 +240,51 @@ describe("Dashboard", () => {
     expect(result).toBe("Mint: 10")
   })
 
-  it("returns null when data is null after loading", async () => {
-    // This tests the `if (!data) return null` branch
+  it("renders stats and sections when data is loaded (not empty)", async () => {
+    vi.spyOn(global, "fetch").mockResolvedValueOnce({
+      ok: true,
+      json: () => Promise.resolve(dashboardData),
+    } as Response)
+
+    render(<MemoryRouter><Dashboard /></MemoryRouter>)
+    await waitFor(() => screen.getByText("dashboard.title"))
+
+    // Verify stats labels
+    expect(screen.getByText("dashboard.totalCollections")).toBeInTheDocument()
+    expect(screen.getByText("dashboard.totalItems")).toBeInTheDocument()
+    expect(screen.getByText("dashboard.totalOwned")).toBeInTheDocument()
+    expect(screen.getByText("dashboard.totalValue")).toBeInTheDocument()
+    expect(screen.getByText("dashboard.totalInvested")).toBeInTheDocument()
+
+    // Section titles
+    expect(screen.getByText("dashboard.collectionSummaries")).toBeInTheDocument()
+    expect(screen.getByText("dashboard.recentAcquisitions")).toBeInTheDocument()
+  })
+
+  it("renders data=null after loading without crashing", async () => {
     vi.spyOn(global, "fetch").mockResolvedValueOnce({
       ok: true,
       json: () => Promise.resolve(null),
     } as Response)
 
-    const { container } = render(<MemoryRouter><Dashboard /></MemoryRouter>)
+    render(<MemoryRouter><Dashboard /></MemoryRouter>)
+    // data is null, loading is false, isEmpty check: !loading && data !== null && data.totalCollections === 0
+    // data is null so isEmpty is false, falls through to render stats with 0 values
     await waitFor(() => {
-      expect(screen.queryByText("dashboard.loading")).not.toBeInTheDocument()
+      expect(screen.getByText("dashboard.title")).toBeInTheDocument()
     })
-    // The component returns null, so no content
-    expect(container.querySelector('[class*="space-y"]')).not.toBeInTheDocument()
+  })
+
+  it("shows collection summary values", async () => {
+    vi.spyOn(global, "fetch").mockResolvedValueOnce({
+      ok: true,
+      json: () => Promise.resolve(dashboardData),
+    } as Response)
+
+    render(<MemoryRouter><Dashboard /></MemoryRouter>)
+    await waitFor(() => screen.getByText("Comics"))
+    // Collection summary details
+    expect(screen.getByText("30")).toBeInTheDocument() // itemCount
+    expect(screen.getByText("15")).toBeInTheDocument() // ownedCount
   })
 })

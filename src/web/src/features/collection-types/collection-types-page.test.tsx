@@ -19,10 +19,70 @@ vi.mock("react-i18next", () => ({
   }),
 }))
 
+vi.mock("framer-motion", () => ({
+  motion: {
+    div: (props: any) => {
+      const { variants, initial, animate, exit, whileHover, whileTap, whileInView, ...rest } = props
+      return <div {...rest} />
+    },
+  },
+  AnimatePresence: ({ children }: any) => <>{children}</>,
+}))
+
+vi.mock("@/components/ds", async () => {
+  const actual = await vi.importActual("@/components/ds")
+  return {
+    ...actual,
+    SortableList: ({ items, renderItem }: any) => (
+      <div data-testid="sortable-list">
+        {items.map((item: any, i: number) => (
+          <div key={i}>{renderItem(item, { dragHandleProps: {}, isDragging: false })}</div>
+        ))}
+      </div>
+    ),
+    StaggerChildren: ({ children, ...props }: any) => {
+      const { variants, initial, animate, exit, ...rest } = props
+      return <div {...rest}>{children}</div>
+    },
+    staggerItemVariants: {},
+    Select: ({ value, onValueChange, disabled, children }: any) => (
+      <select
+        value={value}
+        onChange={(e: any) => onValueChange(e.target.value)}
+        disabled={disabled}
+        data-testid="ds-select"
+      >
+        {children}
+      </select>
+    ),
+    SelectTrigger: ({ children }: any) => <>{children}</>,
+    SelectValue: () => null,
+    SelectContent: ({ children }: any) => <>{children}</>,
+    SelectItem: ({ value, children }: any) => <option value={value}>{children}</option>,
+    Tabs: ({ children, defaultValue }: any) => <div data-testid="tabs" data-default={defaultValue}>{children}</div>,
+    TabsList: ({ children }: any) => <div role="tablist">{children}</div>,
+    TabsTrigger: ({ children, value }: any) => <button role="tab" data-value={value}>{children}</button>,
+    TabsContent: ({ children }: any) => <div>{children}</div>,
+    DropdownMenu: ({ children }: any) => <div data-testid="dropdown-menu">{children}</div>,
+    DropdownMenuTrigger: ({ children, asChild }: any) => <>{children}</>,
+    DropdownMenuContent: ({ children }: any) => <div>{children}</div>,
+    DropdownMenuItem: ({ children, onClick, ...props }: any) => (
+      <button role="menuitem" onClick={onClick} {...props}>{children}</button>
+    ),
+    toast: { success: vi.fn(), error: vi.fn(), info: vi.fn(), warning: vi.fn() },
+  }
+})
+
 const types = [
-  { id: 1, name: "Comics", description: "Comic books", icon: "📚", customFieldSchema: [{ name: "Grade", type: "text", required: false, options: [] }] },
+  { id: 1, name: "Comics", description: "Comic books", icon: "\u{1F4DA}", customFieldSchema: [{ name: "Grade", type: "text", required: false, options: [] }] },
   { id: 2, name: "Cards", description: "", icon: "", customFieldSchema: [] },
 ]
+
+// Helper to get toast mock from the mocked module
+async function getToastMock() {
+  const ds = await import("@/components/ds")
+  return ds.toast
+}
 
 describe("CollectionTypes", () => {
   beforeEach(() => {
@@ -35,10 +95,11 @@ describe("CollectionTypes", () => {
     )
   }
 
-  it("shows loading state", () => {
+  it("shows loading state with skeleton elements", () => {
     vi.spyOn(global, "fetch").mockReturnValue(new Promise(() => {}))
-    render(<MemoryRouter><CollectionTypes /></MemoryRouter>)
-    expect(document.querySelector(".animate-spin")).toBeInTheDocument()
+    const { container } = render(<MemoryRouter><CollectionTypes /></MemoryRouter>)
+    const pulseElements = container.querySelectorAll(".animate-pulse")
+    expect(pulseElements.length).toBeGreaterThan(0)
   })
 
   it("renders types", async () => {
@@ -54,15 +115,16 @@ describe("CollectionTypes", () => {
     mockFetch([])
     render(<MemoryRouter><CollectionTypes /></MemoryRouter>)
     await waitFor(() => {
-      expect(screen.getByText("collectionTypes.empty")).toBeInTheDocument()
+      expect(screen.getByText("emptyStates.collectionTypes.title")).toBeInTheDocument()
     })
   })
 
-  it("shows error on fetch failure", async () => {
+  it("shows error on fetch failure via toast", async () => {
+    const toastMock = await getToastMock()
     vi.spyOn(global, "fetch").mockResolvedValueOnce({ ok: false } as Response)
     render(<MemoryRouter><CollectionTypes /></MemoryRouter>)
     await waitFor(() => {
-      expect(screen.getByText("collectionTypes.fetchError")).toBeInTheDocument()
+      expect(toastMock.error).toHaveBeenCalledWith("collectionTypes.fetchError")
     })
   })
 
@@ -84,22 +146,36 @@ describe("CollectionTypes", () => {
     expect(await screen.findByText("collectionTypes.nameRequired")).toBeInTheDocument()
   })
 
-  it("opens edit dialog", async () => {
+  it("opens edit dialog via dropdown menu", async () => {
     mockFetch()
     render(<MemoryRouter><CollectionTypes /></MemoryRouter>)
     await waitFor(() => screen.getByText("Comics"))
-    const editButtons = screen.getAllByLabelText("collectionTypes.edit")
-    fireEvent.click(editButtons[0])
+
+    // Click the three-dot dropdown trigger
+    const actionButtons = screen.getAllByLabelText("collections.actions")
+    fireEvent.click(actionButtons[0])
+
+    // Click the edit menu item
+    const editItems = screen.getAllByText("collectionTypes.edit")
+    fireEvent.click(editItems[0])
+
     expect(await screen.findByText("collectionTypes.editTitle")).toBeInTheDocument()
     expect(screen.getByDisplayValue("Comics")).toBeInTheDocument()
   })
 
-  it("opens delete dialog", async () => {
+  it("opens delete dialog via dropdown menu", async () => {
     mockFetch()
     render(<MemoryRouter><CollectionTypes /></MemoryRouter>)
     await waitFor(() => screen.getByText("Comics"))
-    const deleteButtons = screen.getAllByLabelText("collectionTypes.delete")
-    fireEvent.click(deleteButtons[0])
+
+    // Click the three-dot dropdown trigger
+    const actionButtons = screen.getAllByLabelText("collections.actions")
+    fireEvent.click(actionButtons[0])
+
+    // Click the delete menu item
+    const deleteItems = screen.getAllByText("collectionTypes.delete")
+    fireEvent.click(deleteItems[0])
+
     expect(await screen.findByText("collectionTypes.deleteConfirm")).toBeInTheDocument()
   })
 
@@ -110,14 +186,14 @@ describe("CollectionTypes", () => {
     fireEvent.click(screen.getByText("collectionTypes.create"))
     await screen.findByText("collectionTypes.createTitle")
 
-    // No fields message
+    // No fields message visible (tabs mock renders all content)
     expect(screen.getByText("collectionTypes.noFields")).toBeInTheDocument()
 
     // Add a field
     fireEvent.click(screen.getByText("collectionTypes.addField"))
     expect(screen.getByText("collectionTypes.fieldNumber:1")).toBeInTheDocument()
 
-    // Remove the field
+    // Remove the field via the small icon button (h-7 w-7)
     const removeButtons = document.querySelectorAll('[class*="h-7 w-7"]')
     fireEvent.click(removeButtons[0])
     expect(screen.getByText("collectionTypes.noFields")).toBeInTheDocument()
@@ -153,8 +229,8 @@ describe("CollectionTypes", () => {
     const fieldNameInput = screen.getByPlaceholderText("collectionTypes.fieldNamePlaceholder")
     fireEvent.change(fieldNameInput, { target: { value: "Status" } })
 
-    // Change type to enum
-    const typeSelect = screen.getByDisplayValue("collectionTypes.fieldTypes.text")
+    // Change type to enum via mocked native select
+    const typeSelect = screen.getByTestId("ds-select")
     fireEvent.change(typeSelect, { target: { value: "enum" } })
 
     // Submit without options
@@ -162,7 +238,7 @@ describe("CollectionTypes", () => {
     expect(await screen.findByText("collectionTypes.enumOptionsRequired:Status")).toBeInTheDocument()
   })
 
-  it("adds and removes enum options", async () => {
+  it("adds enum options via tag editor", async () => {
     mockFetch()
     render(<MemoryRouter><CollectionTypes /></MemoryRouter>)
     await waitFor(() => screen.getByText("collectionTypes.title"))
@@ -170,14 +246,37 @@ describe("CollectionTypes", () => {
     await screen.findByText("collectionTypes.createTitle")
 
     fireEvent.click(screen.getByText("collectionTypes.addField"))
-    const typeSelect = screen.getByDisplayValue("collectionTypes.fieldTypes.text")
+
+    // Change type to enum
+    const typeSelect = screen.getByTestId("ds-select")
     fireEvent.change(typeSelect, { target: { value: "enum" } })
 
-    // Add an option
+    // Add an option via the tag input + button
+    const enumInput = screen.getByPlaceholderText("collectionTypes.enumTagPlaceholder")
+    fireEvent.change(enumInput, { target: { value: "Option A" } })
     fireEvent.click(screen.getByText("collectionTypes.addOption"))
-    const optionInput = screen.getByPlaceholderText("collectionTypes.enumOptionPlaceholder:1")
-    fireEvent.change(optionInput, { target: { value: "Option A" } })
-    expect(screen.getByDisplayValue("Option A")).toBeInTheDocument()
+
+    // Option should appear as a badge/tag
+    expect(screen.getByText("Option A")).toBeInTheDocument()
+  })
+
+  it("adds enum option via Enter key", async () => {
+    mockFetch()
+    render(<MemoryRouter><CollectionTypes /></MemoryRouter>)
+    await waitFor(() => screen.getByText("collectionTypes.title"))
+    fireEvent.click(screen.getByText("collectionTypes.create"))
+    await screen.findByText("collectionTypes.createTitle")
+
+    fireEvent.click(screen.getByText("collectionTypes.addField"))
+
+    const typeSelect = screen.getByTestId("ds-select")
+    fireEvent.change(typeSelect, { target: { value: "enum" } })
+
+    const enumInput = screen.getByPlaceholderText("collectionTypes.enumTagPlaceholder")
+    fireEvent.change(enumInput, { target: { value: "TagA" } })
+    fireEvent.keyDown(enumInput, { key: "Enter" })
+
+    expect(screen.getByText("TagA")).toBeInTheDocument()
   })
 
   it("validates max fields", async () => {
@@ -189,7 +288,7 @@ describe("CollectionTypes", () => {
 
     fireEvent.change(screen.getByLabelText("collectionTypes.nameLabel"), { target: { value: "T" } })
 
-    // Add 11 fields (max is 10)
+    // Add 10 fields (max)
     for (let i = 0; i < 10; i++) {
       fireEvent.click(screen.getByText("collectionTypes.addField"))
     }
@@ -219,6 +318,7 @@ describe("CollectionTypes", () => {
   })
 
   it("creates collection type successfully", async () => {
+    const toastMock = await getToastMock()
     let postCalled = false
     vi.spyOn(global, "fetch").mockImplementation((_url, opts) => {
       if (opts && (opts as RequestInit).method === "POST") {
@@ -235,16 +335,17 @@ describe("CollectionTypes", () => {
 
     fireEvent.change(screen.getByLabelText("collectionTypes.nameLabel"), { target: { value: "Figures" } })
     fireEvent.change(screen.getByLabelText("collectionTypes.descriptionLabel"), { target: { value: "Action figures" } })
-    fireEvent.change(screen.getByLabelText("collectionTypes.iconLabel"), { target: { value: "🧸" } })
+    fireEvent.change(screen.getByLabelText("collectionTypes.iconLabel"), { target: { value: "\u{1F9F8}" } })
 
     fireEvent.click(screen.getAllByText("collectionTypes.create").pop()!)
     await waitFor(() => {
       expect(postCalled).toBe(true)
-      expect(screen.queryByText("collectionTypes.createTitle")).not.toBeInTheDocument()
+      expect(toastMock.success).toHaveBeenCalledWith("collectionTypes.createSuccess")
     })
   })
 
   it("edits collection type successfully via PUT", async () => {
+    const toastMock = await getToastMock()
     let putCalled = false
     vi.spyOn(global, "fetch").mockImplementation((_url, opts) => {
       if (opts && (opts as RequestInit).method === "PUT") {
@@ -256,8 +357,12 @@ describe("CollectionTypes", () => {
 
     render(<MemoryRouter><CollectionTypes /></MemoryRouter>)
     await waitFor(() => screen.getByText("Comics"))
-    const editButtons = screen.getAllByLabelText("collectionTypes.edit")
-    fireEvent.click(editButtons[0])
+
+    // Open edit via dropdown
+    const actionButtons = screen.getAllByLabelText("collections.actions")
+    fireEvent.click(actionButtons[0])
+    const editItems = screen.getAllByText("collectionTypes.edit")
+    fireEvent.click(editItems[0])
     await screen.findByText("collectionTypes.editTitle")
 
     fireEvent.change(screen.getByDisplayValue("Comics"), { target: { value: "Comics Updated" } })
@@ -265,6 +370,7 @@ describe("CollectionTypes", () => {
 
     await waitFor(() => {
       expect(putCalled).toBe(true)
+      expect(toastMock.success).toHaveBeenCalledWith("collectionTypes.saveSuccess")
     })
   })
 
@@ -307,6 +413,7 @@ describe("CollectionTypes", () => {
   })
 
   it("deletes collection type successfully", async () => {
+    const toastMock = await getToastMock()
     vi.spyOn(global, "fetch").mockImplementation((_url, opts) => {
       if (opts && (opts as RequestInit).method === "DELETE") {
         return Promise.resolve({ ok: true } as Response)
@@ -317,17 +424,21 @@ describe("CollectionTypes", () => {
     render(<MemoryRouter><CollectionTypes /></MemoryRouter>)
     await waitFor(() => screen.getByText("Comics"))
 
-    const deleteButtons = screen.getAllByLabelText("collectionTypes.delete")
-    fireEvent.click(deleteButtons[0])
+    // Open delete via dropdown
+    const actionButtons = screen.getAllByLabelText("collections.actions")
+    fireEvent.click(actionButtons[0])
+    const deleteItems = screen.getAllByText("collectionTypes.delete")
+    fireEvent.click(deleteItems[0])
     await screen.findByText("collectionTypes.deleteConfirm")
 
     fireEvent.click(screen.getAllByText("collectionTypes.delete").pop()!)
     await waitFor(() => {
-      expect(screen.queryByText("collectionTypes.deleteConfirm")).not.toBeInTheDocument()
+      expect(toastMock.success).toHaveBeenCalledWith("collectionTypes.deleteSuccess")
     })
   })
 
   it("shows error when delete fails", async () => {
+    const toastMock = await getToastMock()
     vi.spyOn(global, "fetch").mockImplementation((_url, opts) => {
       if (opts && (opts as RequestInit).method === "DELETE") {
         return Promise.resolve({ ok: false } as Response)
@@ -338,13 +449,16 @@ describe("CollectionTypes", () => {
     render(<MemoryRouter><CollectionTypes /></MemoryRouter>)
     await waitFor(() => screen.getByText("Comics"))
 
-    const deleteButtons = screen.getAllByLabelText("collectionTypes.delete")
-    fireEvent.click(deleteButtons[0])
+    // Open delete via dropdown
+    const actionButtons = screen.getAllByLabelText("collections.actions")
+    fireEvent.click(actionButtons[0])
+    const deleteItems = screen.getAllByText("collectionTypes.delete")
+    fireEvent.click(deleteItems[0])
     await screen.findByText("collectionTypes.deleteConfirm")
 
     fireEvent.click(screen.getAllByText("collectionTypes.delete").pop()!)
     await waitFor(() => {
-      expect(screen.getByText("collectionTypes.deleteFailed")).toBeInTheDocument()
+      expect(toastMock.error).toHaveBeenCalledWith("collectionTypes.deleteFailed")
     })
   })
 
@@ -356,25 +470,25 @@ describe("CollectionTypes", () => {
     await screen.findByText("collectionTypes.createTitle")
 
     fireEvent.click(screen.getByText("collectionTypes.addField"))
-    const typeSelect = screen.getByDisplayValue("collectionTypes.fieldTypes.text")
+    const typeSelect = screen.getByTestId("ds-select")
 
     // Change to enum
     fireEvent.change(typeSelect, { target: { value: "enum" } })
     expect(screen.getByText("collectionTypes.addOption")).toBeInTheDocument()
 
-    // Add an option
+    // Add an option via tag editor
+    const enumInput = screen.getByPlaceholderText("collectionTypes.enumTagPlaceholder")
+    fireEvent.change(enumInput, { target: { value: "Opt1" } })
     fireEvent.click(screen.getByText("collectionTypes.addOption"))
-    const optionInput = screen.getByPlaceholderText("collectionTypes.enumOptionPlaceholder:1")
-    fireEvent.change(optionInput, { target: { value: "Opt1" } })
-    expect(screen.getByDisplayValue("Opt1")).toBeInTheDocument()
+    expect(screen.getByText("Opt1")).toBeInTheDocument()
 
     // Change to number - options should disappear
-    const typeSelect2 = screen.getByDisplayValue("collectionTypes.fieldTypes.enum")
+    const typeSelect2 = screen.getByTestId("ds-select")
     fireEvent.change(typeSelect2, { target: { value: "number" } })
     expect(screen.queryByText("collectionTypes.addOption")).not.toBeInTheDocument()
   })
 
-  it("removes enum option", async () => {
+  it("removes enum option tag", async () => {
     mockFetch()
     render(<MemoryRouter><CollectionTypes /></MemoryRouter>)
     await waitFor(() => screen.getByText("collectionTypes.title"))
@@ -382,24 +496,25 @@ describe("CollectionTypes", () => {
     await screen.findByText("collectionTypes.createTitle")
 
     fireEvent.click(screen.getByText("collectionTypes.addField"))
-    const typeSelect = screen.getByDisplayValue("collectionTypes.fieldTypes.text")
+    const typeSelect = screen.getByTestId("ds-select")
     fireEvent.change(typeSelect, { target: { value: "enum" } })
 
     // Add two options
+    const enumInput = screen.getByPlaceholderText("collectionTypes.enumTagPlaceholder")
+    fireEvent.change(enumInput, { target: { value: "A" } })
     fireEvent.click(screen.getByText("collectionTypes.addOption"))
+    fireEvent.change(enumInput, { target: { value: "B" } })
     fireEvent.click(screen.getByText("collectionTypes.addOption"))
 
-    const optionInput1 = screen.getByPlaceholderText("collectionTypes.enumOptionPlaceholder:1")
-    fireEvent.change(optionInput1, { target: { value: "A" } })
-    const optionInput2 = screen.getByPlaceholderText("collectionTypes.enumOptionPlaceholder:2")
-    fireEvent.change(optionInput2, { target: { value: "B" } })
+    expect(screen.getByText("A")).toBeInTheDocument()
+    expect(screen.getByText("B")).toBeInTheDocument()
 
-    // Remove first option - click the X button next to it
-    const optionRemoveButtons = document.querySelectorAll('.pl-6 [class*="h-7 w-7"]')
-    fireEvent.click(optionRemoveButtons[0])
+    // Remove first option - click the X button in the badge
+    const badgeRemoveButtons = document.querySelectorAll(".pl-6 button.rounded-full")
+    fireEvent.click(badgeRemoveButtons[0])
 
-    expect(screen.queryByDisplayValue("A")).not.toBeInTheDocument()
-    expect(screen.getByDisplayValue("B")).toBeInTheDocument()
+    expect(screen.queryByText("A")).not.toBeInTheDocument()
+    expect(screen.getByText("B")).toBeInTheDocument()
   })
 
   it("closes create dialog via cancel button", async () => {
@@ -419,8 +534,11 @@ describe("CollectionTypes", () => {
     mockFetch()
     render(<MemoryRouter><CollectionTypes /></MemoryRouter>)
     await waitFor(() => screen.getByText("Comics"))
-    const deleteButtons = screen.getAllByLabelText("collectionTypes.delete")
-    fireEvent.click(deleteButtons[0])
+
+    const actionButtons = screen.getAllByLabelText("collections.actions")
+    fireEvent.click(actionButtons[0])
+    const deleteItems = screen.getAllByText("collectionTypes.delete")
+    fireEvent.click(deleteItems[0])
     await screen.findByText("collectionTypes.deleteConfirm")
 
     fireEvent.keyDown(screen.getByRole("dialog"), { key: "Escape" })
@@ -433,8 +551,11 @@ describe("CollectionTypes", () => {
     mockFetch()
     render(<MemoryRouter><CollectionTypes /></MemoryRouter>)
     await waitFor(() => screen.getByText("Comics"))
-    const deleteButtons = screen.getAllByLabelText("collectionTypes.delete")
-    fireEvent.click(deleteButtons[0])
+
+    const actionButtons = screen.getAllByLabelText("collections.actions")
+    fireEvent.click(actionButtons[0])
+    const deleteItems = screen.getAllByText("collectionTypes.delete")
+    fireEvent.click(deleteItems[0])
     await screen.findByText("collectionTypes.deleteConfirm")
 
     fireEvent.click(screen.getByText("collectionTypes.cancel"))
@@ -443,14 +564,7 @@ describe("CollectionTypes", () => {
     })
   })
 
-  it("submits with maxFields validation error when >10 fields", async () => {
-    // This test covers line 111-113 (the formFields.length > 10 branch in handleSubmit)
-    // We need to force 11 fields to exist when submit happens
-    // Since the add button is disabled at 10, we can't add 11 via UI
-    // But the validation branch at line 111 checks > 10, meaning exactly 10 passes.
-    // The button becomes disabled, so this branch can only trigger if someone bypasses the UI.
-    // The existing test already covers the button being disabled at 10.
-    // Let's just verify the actual maxFields check is hit via form name validation flow
+  it("shows fields count display", async () => {
     mockFetch()
     render(<MemoryRouter><CollectionTypes /></MemoryRouter>)
     await waitFor(() => screen.getByText("collectionTypes.title"))
@@ -459,30 +573,6 @@ describe("CollectionTypes", () => {
 
     fireEvent.change(screen.getByLabelText("collectionTypes.nameLabel"), { target: { value: "Test" } })
 
-    // Add 10 fields (max), fill all names so we pass field name validation
-    for (let i = 0; i < 10; i++) {
-      fireEvent.click(screen.getByText("collectionTypes.addField"))
-    }
-    const fieldInputs = screen.getAllByPlaceholderText("collectionTypes.fieldNamePlaceholder")
-    fieldInputs.forEach((input, i) => {
-      fireEvent.change(input, { target: { value: `Field ${i + 1}` } })
-    })
-
-    // At 10, button is disabled and validation passes (10 is not > 10)
-    expect(screen.getByText("collectionTypes.addField")).toBeDisabled()
-  })
-
-  it("submits with max fields validation error", async () => {
-    mockFetch()
-    render(<MemoryRouter><CollectionTypes /></MemoryRouter>)
-    await waitFor(() => screen.getByText("collectionTypes.title"))
-    fireEvent.click(screen.getByText("collectionTypes.create"))
-    await screen.findByText("collectionTypes.createTitle")
-
-    fireEvent.change(screen.getByLabelText("collectionTypes.nameLabel"), { target: { value: "Test" } })
-
-    // Try to add 11 fields - after 10 the button is disabled, but we can test the maxFields validation
-    // by checking the fields count display
     for (let i = 0; i < 10; i++) {
       fireEvent.click(screen.getByText("collectionTypes.addField"))
     }
@@ -502,9 +592,11 @@ describe("CollectionTypes", () => {
     render(<MemoryRouter><CollectionTypes /></MemoryRouter>)
     await waitFor(() => screen.getByText("Overloaded"))
 
-    // Open edit dialog (which loads 11 fields from API)
-    const editButtons = screen.getAllByLabelText("collectionTypes.edit")
-    fireEvent.click(editButtons[0])
+    // Open edit dialog via dropdown (which loads 11 fields from API)
+    const actionButtons = screen.getAllByLabelText("collections.actions")
+    fireEvent.click(actionButtons[0])
+    const editItems = screen.getAllByText("collectionTypes.edit")
+    fireEvent.click(editItems[0])
     await screen.findByText("collectionTypes.editTitle")
 
     // Submit - should trigger maxFields validation
@@ -512,5 +604,49 @@ describe("CollectionTypes", () => {
     await waitFor(() => {
       expect(screen.getByText("collectionTypes.maxFields")).toBeInTheDocument()
     })
+  })
+
+  it("does not add duplicate enum options", async () => {
+    mockFetch()
+    render(<MemoryRouter><CollectionTypes /></MemoryRouter>)
+    await waitFor(() => screen.getByText("collectionTypes.title"))
+    fireEvent.click(screen.getByText("collectionTypes.create"))
+    await screen.findByText("collectionTypes.createTitle")
+
+    fireEvent.click(screen.getByText("collectionTypes.addField"))
+    const typeSelect = screen.getByTestId("ds-select")
+    fireEvent.change(typeSelect, { target: { value: "enum" } })
+
+    const enumInput = screen.getByPlaceholderText("collectionTypes.enumTagPlaceholder")
+
+    // Add option "A"
+    fireEvent.change(enumInput, { target: { value: "A" } })
+    fireEvent.click(screen.getByText("collectionTypes.addOption"))
+    expect(screen.getByText("A")).toBeInTheDocument()
+
+    // Try adding "A" again - should not duplicate
+    fireEvent.change(enumInput, { target: { value: "A" } })
+    fireEvent.click(screen.getByText("collectionTypes.addOption"))
+    const allAs = screen.getAllByText("A")
+    expect(allAs.length).toBe(1)
+  })
+
+  it("does not add empty enum options", async () => {
+    mockFetch()
+    render(<MemoryRouter><CollectionTypes /></MemoryRouter>)
+    await waitFor(() => screen.getByText("collectionTypes.title"))
+    fireEvent.click(screen.getByText("collectionTypes.create"))
+    await screen.findByText("collectionTypes.createTitle")
+
+    fireEvent.click(screen.getByText("collectionTypes.addField"))
+    const typeSelect = screen.getByTestId("ds-select")
+    fireEvent.change(typeSelect, { target: { value: "enum" } })
+
+    // Try adding empty option
+    fireEvent.click(screen.getByText("collectionTypes.addOption"))
+
+    // No badge tags should appear (only the existing UI text)
+    const badges = document.querySelectorAll(".pl-6 .gap-1")
+    expect(badges.length).toBe(0)
   })
 })

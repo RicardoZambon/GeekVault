@@ -29,6 +29,8 @@ vi.mock("react-i18next", () => ({
   }),
 }))
 
+vi.mock("@/assets/logo-full.png", () => ({ default: "logo.png" }))
+
 describe("Register", () => {
   beforeEach(() => {
     vi.clearAllMocks()
@@ -51,7 +53,7 @@ describe("Register", () => {
 
   it("shows error when display name is empty", () => {
     renderRegister()
-    fireEvent.click(screen.getByRole("button", { name: "auth.register" }))
+    fireEvent.click(screen.getByRole("button", { name: /auth\.register/ }))
     expect(screen.getByText("auth.displayNameRequired")).toBeInTheDocument()
   })
 
@@ -60,7 +62,7 @@ describe("Register", () => {
     fireEvent.change(screen.getByLabelText("auth.displayName"), {
       target: { value: "Test" },
     })
-    fireEvent.click(screen.getByRole("button", { name: "auth.register" }))
+    fireEvent.click(screen.getByRole("button", { name: /auth\.register/ }))
     expect(screen.getByText("auth.emailRequired")).toBeInTheDocument()
   })
 
@@ -72,7 +74,7 @@ describe("Register", () => {
     fireEvent.change(screen.getByLabelText("auth.email"), {
       target: { value: "a@b.com" },
     })
-    fireEvent.click(screen.getByRole("button", { name: "auth.register" }))
+    fireEvent.click(screen.getByRole("button", { name: /auth\.register/ }))
     expect(screen.getByText("auth.passwordRequired")).toBeInTheDocument()
   })
 
@@ -87,7 +89,7 @@ describe("Register", () => {
     fireEvent.change(screen.getByLabelText("auth.password"), {
       target: { value: "12345" },
     })
-    fireEvent.click(screen.getByRole("button", { name: "auth.register" }))
+    fireEvent.click(screen.getByRole("button", { name: /auth\.register/ }))
     expect(screen.getByText("auth.passwordTooShort")).toBeInTheDocument()
   })
 
@@ -103,7 +105,7 @@ describe("Register", () => {
     fireEvent.change(screen.getByLabelText("auth.password"), {
       target: { value: "password123" },
     })
-    fireEvent.click(screen.getByRole("button", { name: "auth.register" }))
+    fireEvent.click(screen.getByRole("button", { name: /auth\.register/ }))
 
     await waitFor(() => {
       expect(mockRegister).toHaveBeenCalledWith("a@b.com", "password123", "Test User")
@@ -123,7 +125,7 @@ describe("Register", () => {
     fireEvent.change(screen.getByLabelText("auth.password"), {
       target: { value: "password123" },
     })
-    fireEvent.click(screen.getByRole("button", { name: "auth.register" }))
+    fireEvent.click(screen.getByRole("button", { name: /auth\.register/ }))
 
     expect(await screen.findByText("Email taken")).toBeInTheDocument()
   })
@@ -140,7 +142,7 @@ describe("Register", () => {
     fireEvent.change(screen.getByLabelText("auth.password"), {
       target: { value: "password123" },
     })
-    fireEvent.click(screen.getByRole("button", { name: "auth.register" }))
+    fireEvent.click(screen.getByRole("button", { name: /auth\.register/ }))
 
     expect(await screen.findByText("auth.registerFailed")).toBeInTheDocument()
   })

@@ -50,7 +50,7 @@ describe("Button", () => {
 
   it("applies icon size", () => {
     render(<Button size="icon">I</Button>)
-    expect(screen.getByRole("button")).toHaveClass("w-9")
+    expect(screen.getByRole("button")).toHaveClass("w-11")
   })
 
   it("applies custom className", () => {

@@ -21,6 +21,29 @@ vi.mock("react-i18next", () => ({
   }),
 }))
 
+vi.mock("framer-motion", () => ({
+  motion: {
+    div: ({ children, ...props }: any) => {
+      const { variants, initial, animate, exit, whileHover, whileTap, layout, ...rest } = props
+      return <div {...rest}>{children}</div>
+    },
+  },
+  AnimatePresence: ({ children }: any) => <>{children}</>,
+}))
+
+vi.mock("@/components/ds", async () => {
+  const actual = await vi.importActual("@/components/ds")
+  return {
+    ...actual,
+    FadeIn: ({ children, className }: any) => <div className={className}>{children}</div>,
+    StaggerChildren: ({ children, className }: any) => <div className={className}>{children}</div>,
+    staggerItemVariants: {},
+    toast: { success: vi.fn(), error: vi.fn(), info: vi.fn(), warning: vi.fn() },
+  }
+})
+
+const { toast } = await import("@/components/ds")
+
 const item = {
   id: 1,
   collectionId: 1,
@@ -77,17 +100,28 @@ describe("CatalogItemDetail", () => {
     })
   }
 
-  it("shows loading state", () => {
+  function findCopyCard() {
+    // Copy cards use DS Card. Find by the condition text "Near Mint" and go up to the card div.
+    const conditionEl = screen.getByText("Near Mint")
+    // Walk up to find the Card (has bg-card class)
+    let el: HTMLElement | null = conditionEl
+    while (el && !el.className?.includes("bg-card")) {
+      el = el.parentElement
+    }
+    return el!
+  }
+
+  it("shows loading state with skeletons", () => {
     vi.spyOn(global, "fetch").mockReturnValue(new Promise(() => {}))
     renderWithRoute()
-    expect(document.querySelector(".animate-spin")).toBeInTheDocument()
+    expect(document.querySelector(".animate-pulse")).toBeInTheDocument()
   })
 
   it("renders item details", async () => {
     mockFetch()
     renderWithRoute()
     await waitFor(() => {
-      expect(screen.getByText("Spider-Man #1")).toBeInTheDocument()
+      expect(screen.getAllByText("Spider-Man #1")[0]).toBeInTheDocument()
     })
     expect(screen.getByText("SM-001")).toBeInTheDocument()
     expect(screen.getByText("First issue")).toBeInTheDocument()
@@ -130,18 +164,18 @@ describe("CatalogItemDetail", () => {
     })
   })
 
-  it("shows no copies message", async () => {
+  it("shows empty state when no copies", async () => {
     mockFetch(false)
     renderWithRoute()
     await waitFor(() => {
-      expect(screen.getByText("itemDetail.noCopies")).toBeInTheDocument()
+      expect(screen.getByText("emptyStates.ownedCopies.title")).toBeInTheDocument()
     })
   })
 
   it("opens edit dialog", async () => {
     mockFetch()
     renderWithRoute()
-    await waitFor(() => screen.getByText("Spider-Man #1"))
+    await waitFor(() => screen.getAllByText("Spider-Man #1")[0])
     fireEvent.click(screen.getByText("itemDetail.edit"))
     expect(await screen.findByText("itemDetail.editTitle")).toBeInTheDocument()
     expect(screen.getByDisplayValue("SM-001")).toBeInTheDocument()
@@ -151,7 +185,7 @@ describe("CatalogItemDetail", () => {
   it("validates edit form", async () => {
     mockFetch()
     renderWithRoute()
-    await waitFor(() => screen.getByText("Spider-Man #1"))
+    await waitFor(() => screen.getAllByText("Spider-Man #1")[0])
     fireEvent.click(screen.getByText("itemDetail.edit"))
     await screen.findByText("itemDetail.editTitle")
 
@@ -164,7 +198,7 @@ describe("CatalogItemDetail", () => {
   it("validates name required in edit", async () => {
     mockFetch()
     renderWithRoute()
-    await waitFor(() => screen.getByText("Spider-Man #1"))
+    await waitFor(() => screen.getAllByText("Spider-Man #1")[0])
     fireEvent.click(screen.getByText("itemDetail.edit"))
     await screen.findByText("itemDetail.editTitle")
 
@@ -176,7 +210,7 @@ describe("CatalogItemDetail", () => {
   it("opens delete dialog", async () => {
     mockFetch()
     renderWithRoute()
-    await waitFor(() => screen.getByText("Spider-Man #1"))
+    await waitFor(() => screen.getAllByText("Spider-Man #1")[0])
     fireEvent.click(screen.getByText("itemDetail.delete"))
     expect(await screen.findByText("itemDetail.deleteConfirm")).toBeInTheDocument()
   })
@@ -184,17 +218,20 @@ describe("CatalogItemDetail", () => {
   it("opens add copy dialog", async () => {
     mockFetch()
     renderWithRoute()
-    await waitFor(() => screen.getByText("Spider-Man #1"))
-    fireEvent.click(screen.getByText("ownedCopy.add"))
+    await waitFor(() => screen.getAllByText("Spider-Man #1")[0])
+    // There are multiple "add" buttons (one in hero, one in copies section)
+    const addButtons = screen.getAllByText("ownedCopy.add")
+    fireEvent.click(addButtons[0])
     expect(await screen.findByText("ownedCopy.addTitle")).toBeInTheDocument()
   })
 
-  it("navigates back to collection", async () => {
+  it("navigates back to collection via breadcrumb", async () => {
     mockFetch()
     renderWithRoute()
-    await waitFor(() => screen.getByText("Spider-Man #1"))
-    fireEvent.click(screen.getByText("itemDetail.backToCollection"))
-    expect(mockNavigate).toHaveBeenCalledWith("/collections/1")
+    await waitFor(() => screen.getAllByText("Spider-Man #1")[0])
+    // The breadcrumb has a Link to /collections/1 with the collection name
+    const collectionLink = screen.getByText("Comics")
+    expect(collectionLink).toHaveAttribute("href", "/collections/1")
   })
 
   it("shows image when available", async () => {
@@ -210,13 +247,7 @@ describe("CatalogItemDetail", () => {
     renderWithRoute()
     await waitFor(() => screen.getByText("Near Mint"))
 
-    // Find the edit button for the copy
-    const editButtons = document.querySelectorAll("button")
-    const editCopyBtn = Array.from(editButtons).find(
-      (btn) => btn.closest("[class*='rounded-lg border bg-card p-4']") && btn.querySelector("svg")
-    )
-    // Use a more targeted approach
-    const copyCard = screen.getByText("Near Mint").closest("[class*='rounded-lg']")!
+    const copyCard = findCopyCard()
     const buttons = copyCard.querySelectorAll("button")
     fireEvent.click(buttons[0]) // first button is edit
     expect(await screen.findByText("ownedCopy.editTitle")).toBeInTheDocument()
@@ -227,7 +258,7 @@ describe("CatalogItemDetail", () => {
     renderWithRoute()
     await waitFor(() => screen.getByText("Near Mint"))
 
-    const copyCard = screen.getByText("Near Mint").closest("[class*='rounded-lg border bg-card p-4']")!
+    const copyCard = findCopyCard()
     const buttons = copyCard.querySelectorAll("button")
     fireEvent.click(buttons[1]) // second button is delete
     expect(await screen.findByText("ownedCopy.deleteConfirm")).toBeInTheDocument()
@@ -244,7 +275,7 @@ describe("CatalogItemDetail", () => {
       return Promise.resolve({ ok: true, json: () => Promise.resolve({}) } as Response)
     })
     renderWithRoute()
-    await waitFor(() => screen.getByText("Spider-Man #1"))
+    await waitFor(() => screen.getAllByText("Spider-Man #1")[0])
     // No img tag should be present
     expect(screen.queryByAltText("Spider-Man #1")).not.toBeInTheDocument()
   })
@@ -252,7 +283,7 @@ describe("CatalogItemDetail", () => {
   it("submits edit form successfully", async () => {
     mockFetch()
     renderWithRoute()
-    await waitFor(() => screen.getByText("Spider-Man #1"))
+    await waitFor(() => screen.getAllByText("Spider-Man #1")[0])
     fireEvent.click(screen.getByText("itemDetail.edit"))
     await screen.findByText("itemDetail.editTitle")
 
@@ -291,7 +322,7 @@ describe("CatalogItemDetail", () => {
   it("shows error on edit form submission failure", async () => {
     mockFetch()
     renderWithRoute()
-    await waitFor(() => screen.getByText("Spider-Man #1"))
+    await waitFor(() => screen.getAllByText("Spider-Man #1")[0])
     fireEvent.click(screen.getByText("itemDetail.edit"))
     await screen.findByText("itemDetail.editTitle")
 
@@ -327,7 +358,7 @@ describe("CatalogItemDetail", () => {
       return Promise.resolve({ ok: true, json: () => Promise.resolve({}) } as Response)
     })
     renderWithRoute()
-    await waitFor(() => screen.getByText("Spider-Man #1"))
+    await waitFor(() => screen.getAllByText("Spider-Man #1")[0])
 
     fireEvent.click(screen.getByText("itemDetail.edit"))
     await screen.findByText("itemDetail.editTitle")
@@ -342,7 +373,7 @@ describe("CatalogItemDetail", () => {
   it("deletes item successfully and navigates back", async () => {
     mockFetch()
     renderWithRoute()
-    await waitFor(() => screen.getByText("Spider-Man #1"))
+    await waitFor(() => screen.getAllByText("Spider-Man #1")[0])
 
     fireEvent.click(screen.getByText("itemDetail.delete"))
     await screen.findByText("itemDetail.deleteConfirm")
@@ -366,7 +397,7 @@ describe("CatalogItemDetail", () => {
   it("shows error when delete item fails", async () => {
     mockFetch()
     renderWithRoute()
-    await waitFor(() => screen.getByText("Spider-Man #1"))
+    await waitFor(() => screen.getAllByText("Spider-Man #1")[0])
 
     fireEvent.click(screen.getByText("itemDetail.delete"))
     await screen.findByText("itemDetail.deleteConfirm")
@@ -380,16 +411,17 @@ describe("CatalogItemDetail", () => {
     fireEvent.click(confirmBtn)
 
     await waitFor(() => {
-      expect(screen.getByText("itemDetail.deleteFailed")).toBeInTheDocument()
+      expect(toast.error).toHaveBeenCalled()
     })
   })
 
   it("submits add copy form successfully", async () => {
     mockFetch()
     renderWithRoute()
-    await waitFor(() => screen.getByText("Spider-Man #1"))
+    await waitFor(() => screen.getAllByText("Spider-Man #1")[0])
 
-    fireEvent.click(screen.getByText("ownedCopy.add"))
+    const addButtons = screen.getAllByText("ownedCopy.add")
+    fireEvent.click(addButtons[0])
     await screen.findByText("ownedCopy.addTitle")
 
     // Fill in form fields
@@ -424,9 +456,10 @@ describe("CatalogItemDetail", () => {
   it("shows error when add copy fails", async () => {
     mockFetch()
     renderWithRoute()
-    await waitFor(() => screen.getByText("Spider-Man #1"))
+    await waitFor(() => screen.getAllByText("Spider-Man #1")[0])
 
-    fireEvent.click(screen.getByText("ownedCopy.add"))
+    const addButtons = screen.getAllByText("ownedCopy.add")
+    fireEvent.click(addButtons[0])
     await screen.findByText("ownedCopy.addTitle")
 
     vi.spyOn(global, "fetch").mockImplementation((_, opts) => {
@@ -452,7 +485,7 @@ describe("CatalogItemDetail", () => {
     await waitFor(() => screen.getByText("Near Mint"))
 
     // Click edit on the copy
-    const copyCard = screen.getByText("Near Mint").closest("[class*='rounded-lg border bg-card p-4']")!
+    const copyCard = findCopyCard()
     const buttons = copyCard.querySelectorAll("button")
     fireEvent.click(buttons[0]) // edit button
     await screen.findByText("ownedCopy.editTitle")
@@ -489,7 +522,7 @@ describe("CatalogItemDetail", () => {
     await waitFor(() => screen.getByText("Near Mint"))
 
     // Click delete on the copy
-    const copyCard = screen.getByText("Near Mint").closest("[class*='rounded-lg border bg-card p-4']")!
+    const copyCard = findCopyCard()
     const buttons = copyCard.querySelectorAll("button")
     fireEvent.click(buttons[1]) // delete button
     await screen.findByText("ownedCopy.deleteConfirm")
@@ -515,13 +548,12 @@ describe("CatalogItemDetail", () => {
     })
   })
 
-  it("handles delete copy failure by closing dialog and storing error", async () => {
+  it("handles delete copy failure", async () => {
     mockFetch()
     renderWithRoute()
     await waitFor(() => screen.getByText("Near Mint"))
 
-    // Click delete on the copy
-    const copyCard = screen.getByText("Near Mint").closest("[class*='rounded-lg border bg-card p-4']")!
+    const copyCard = findCopyCard()
     const buttons = copyCard.querySelectorAll("button")
     fireEvent.click(buttons[1]) // delete button
     await screen.findByText("ownedCopy.deleteConfirm")
@@ -538,13 +570,6 @@ describe("CatalogItemDetail", () => {
     await waitFor(() => {
       expect(screen.queryByText("ownedCopy.deleteConfirm")).not.toBeInTheDocument()
     })
-
-    // The error is stored in copyError and will show when copy form dialog opens next
-    // Verify by opening add copy dialog - error should be visible
-    fireEvent.click(screen.getByText("ownedCopy.add"))
-    await screen.findByText("ownedCopy.addTitle")
-    // Opening a new copy dialog calls openAddCopy which resets copyError, so error won't show
-    // The key behavior is that the delete dialog closed - which we already verified
   })
 
   it("renders edit dialog with enum custom field", async () => {
@@ -563,15 +588,14 @@ describe("CatalogItemDetail", () => {
       return Promise.resolve({ ok: true, json: () => Promise.resolve({}) } as Response)
     })
     renderWithRoute()
-    await waitFor(() => screen.getByText("Spider-Man #1"))
+    await waitFor(() => screen.getAllByText("Spider-Man #1")[0])
 
     fireEvent.click(screen.getByText("itemDetail.edit"))
     await screen.findByText("itemDetail.editTitle")
 
-    // Enum select should render with options (DC and Image are unique; Marvel appears elsewhere too)
+    // Enum select should render with options
     expect(screen.getByText("DC")).toBeInTheDocument()
     expect(screen.getByText("Image")).toBeInTheDocument()
-    // Verify there's a select with the enum options
     const selects = document.querySelectorAll("select")
     const enumSelect = Array.from(selects).find((s) => s.querySelector("option[value='DC']"))
     expect(enumSelect).toBeTruthy()
@@ -594,7 +618,7 @@ describe("CatalogItemDetail", () => {
       return Promise.resolve({ ok: true, json: () => Promise.resolve({}) } as Response)
     })
     renderWithRoute()
-    await waitFor(() => screen.getByText("Spider-Man #1"))
+    await waitFor(() => screen.getAllByText("Spider-Man #1")[0])
 
     fireEvent.click(screen.getByText("itemDetail.edit"))
     await screen.findByText("itemDetail.editTitle")
@@ -612,7 +636,7 @@ describe("CatalogItemDetail", () => {
   it("submits edit form with cleared optional fields (null branches)", async () => {
     mockFetch()
     renderWithRoute()
-    await waitFor(() => screen.getByText("Spider-Man #1"))
+    await waitFor(() => screen.getAllByText("Spider-Man #1")[0])
     fireEvent.click(screen.getByText("itemDetail.edit"))
     await screen.findByText("itemDetail.editTitle")
 
@@ -660,7 +684,7 @@ describe("CatalogItemDetail", () => {
   it("handles edit submit error when res.json() fails", async () => {
     mockFetch()
     renderWithRoute()
-    await waitFor(() => screen.getByText("Spider-Man #1"))
+    await waitFor(() => screen.getAllByText("Spider-Man #1")[0])
     fireEvent.click(screen.getByText("itemDetail.edit"))
     await screen.findByText("itemDetail.editTitle")
 
@@ -684,9 +708,10 @@ describe("CatalogItemDetail", () => {
   it("renders copy form with all condition options in add dialog", async () => {
     mockFetch()
     renderWithRoute()
-    await waitFor(() => screen.getByText("Spider-Man #1"))
+    await waitFor(() => screen.getAllByText("Spider-Man #1")[0])
 
-    fireEvent.click(screen.getByText("ownedCopy.add"))
+    const addButtons = screen.getAllByText("ownedCopy.add")
+    fireEvent.click(addButtons[0])
     await screen.findByText("ownedCopy.addTitle")
 
     const conditionSelect = screen.getByLabelText("ownedCopy.condition")
@@ -700,7 +725,7 @@ describe("CatalogItemDetail", () => {
     renderWithRoute()
     await waitFor(() => screen.getByText("Near Mint"))
 
-    const copyCard = screen.getByText("Near Mint").closest("[class*='rounded-lg border bg-card p-4']")!
+    const copyCard = findCopyCard()
     const buttons = copyCard.querySelectorAll("button")
     fireEvent.click(buttons[0])
     await screen.findByText("ownedCopy.editTitle")
@@ -738,7 +763,7 @@ describe("CatalogItemDetail", () => {
       return Promise.resolve({ ok: true, json: () => Promise.resolve({}) } as Response)
     })
     renderWithRoute()
-    await waitFor(() => screen.getByText("Spider-Man #1"))
+    await waitFor(() => screen.getAllByText("Spider-Man #1")[0])
 
     fireEvent.click(screen.getByText("itemDetail.edit"))
     await screen.findByText("itemDetail.editTitle")
@@ -753,7 +778,7 @@ describe("CatalogItemDetail", () => {
   it("changes text custom field value in edit dialog", async () => {
     mockFetch()
     renderWithRoute()
-    await waitFor(() => screen.getByText("Spider-Man #1"))
+    await waitFor(() => screen.getAllByText("Spider-Man #1")[0])
 
     fireEvent.click(screen.getByText("itemDetail.edit"))
     await screen.findByText("itemDetail.editTitle")
@@ -769,7 +794,7 @@ describe("CatalogItemDetail", () => {
     renderWithRoute()
     await waitFor(() => screen.getByText("Near Mint"))
 
-    const copyCard = screen.getByText("Near Mint").closest("[class*='rounded-lg border bg-card p-4']")!
+    const copyCard = findCopyCard()
     const buttons = copyCard.querySelectorAll("button")
     fireEvent.click(buttons[1]) // delete button
     await screen.findByText("ownedCopy.deleteConfirm")
@@ -794,9 +819,10 @@ describe("CatalogItemDetail", () => {
   it("renders all copy dialog form fields in add mode", async () => {
     mockFetch()
     renderWithRoute()
-    await waitFor(() => screen.getByText("Spider-Man #1"))
+    await waitFor(() => screen.getAllByText("Spider-Man #1")[0])
 
-    fireEvent.click(screen.getByText("ownedCopy.add"))
+    const addButtons = screen.getAllByText("ownedCopy.add")
+    fireEvent.click(addButtons[0])
     await screen.findByText("ownedCopy.addTitle")
 
     // Verify all form fields are present
@@ -828,7 +854,7 @@ describe("CatalogItemDetail", () => {
       return Promise.resolve({ ok: true, json: () => Promise.resolve({}) } as Response)
     })
     renderWithRoute()
-    await waitFor(() => screen.getByText("Spider-Man #1"))
+    await waitFor(() => screen.getAllByText("Spider-Man #1")[0])
 
     fireEvent.click(screen.getByText("itemDetail.edit"))
     await screen.findByText("itemDetail.editTitle")
@@ -846,7 +872,7 @@ describe("CatalogItemDetail", () => {
   it("handles delete item failure (error branch in handleDelete)", async () => {
     mockFetch()
     renderWithRoute()
-    await waitFor(() => screen.getByText("Spider-Man #1"))
+    await waitFor(() => screen.getAllByText("Spider-Man #1")[0])
 
     fireEvent.click(screen.getByText("itemDetail.delete"))
     await screen.findByText("itemDetail.deleteConfirm")
@@ -861,7 +887,7 @@ describe("CatalogItemDetail", () => {
     fireEvent.click(confirmBtn)
 
     await waitFor(() => {
-      expect(screen.getByText("itemDetail.deleteFailed")).toBeInTheDocument()
+      expect(toast.error).toHaveBeenCalled()
     })
   })
 
@@ -870,7 +896,7 @@ describe("CatalogItemDetail", () => {
     renderWithRoute()
     await waitFor(() => screen.getByText("Near Mint"))
 
-    const copyCard = screen.getByText("Near Mint").closest("[class*='rounded-lg border bg-card p-4']")!
+    const copyCard = findCopyCard()
     const buttons = copyCard.querySelectorAll("button")
     fireEvent.click(buttons[1]) // delete button
     await screen.findByText("ownedCopy.deleteConfirm")
@@ -889,9 +915,10 @@ describe("CatalogItemDetail", () => {
   it("closes copy dialog via cancel button in add mode", async () => {
     mockFetch()
     renderWithRoute()
-    await waitFor(() => screen.getByText("Spider-Man #1"))
+    await waitFor(() => screen.getAllByText("Spider-Man #1")[0])
 
-    fireEvent.click(screen.getByText("ownedCopy.add"))
+    const addButtons = screen.getAllByText("ownedCopy.add")
+    fireEvent.click(addButtons[0])
     await screen.findByText("ownedCopy.addTitle")
 
     // Click cancel
@@ -908,7 +935,7 @@ describe("CatalogItemDetail", () => {
   it("modifies all edit form fields", async () => {
     mockFetch()
     renderWithRoute()
-    await waitFor(() => screen.getByText("Spider-Man #1"))
+    await waitFor(() => screen.getAllByText("Spider-Man #1")[0])
     fireEvent.click(screen.getByText("itemDetail.edit"))
     await screen.findByText("itemDetail.editTitle")
 
@@ -941,7 +968,7 @@ describe("CatalogItemDetail", () => {
   it("closes edit dialog via cancel button", async () => {
     mockFetch()
     renderWithRoute()
-    await waitFor(() => screen.getByText("Spider-Man #1"))
+    await waitFor(() => screen.getAllByText("Spider-Man #1")[0])
 
     fireEvent.click(screen.getByText("itemDetail.edit"))
     await screen.findByText("itemDetail.editTitle")
@@ -960,7 +987,7 @@ describe("CatalogItemDetail", () => {
   it("closes delete item dialog via cancel button", async () => {
     mockFetch()
     renderWithRoute()
-    await waitFor(() => screen.getByText("Spider-Man #1"))
+    await waitFor(() => screen.getAllByText("Spider-Man #1")[0])
 
     fireEvent.click(screen.getByText("itemDetail.delete"))
     await screen.findByText("itemDetail.deleteConfirm")
@@ -991,7 +1018,7 @@ describe("CatalogItemDetail", () => {
     renderWithRoute()
     await waitFor(() => screen.getByText("Near Mint"))
 
-    const copyCard = screen.getByText("Near Mint").closest("[class*='rounded-lg']")!
+    const copyCard = findCopyCard()
     const buttons = copyCard.querySelectorAll("button")
     fireEvent.click(buttons[0]) // edit button
     await screen.findByText("ownedCopy.editTitle")
@@ -1006,7 +1033,7 @@ describe("CatalogItemDetail", () => {
   it("handles edit submit with non-Error throw (string thrown)", async () => {
     mockFetch()
     renderWithRoute()
-    await waitFor(() => screen.getByText("Spider-Man #1"))
+    await waitFor(() => screen.getAllByText("Spider-Man #1")[0])
     fireEvent.click(screen.getByText("itemDetail.edit"))
     await screen.findByText("itemDetail.editTitle")
 
@@ -1024,8 +1051,9 @@ describe("CatalogItemDetail", () => {
   it("handles copy submit with non-Error throw (string thrown)", async () => {
     mockFetch()
     renderWithRoute()
-    await waitFor(() => screen.getByText("Spider-Man #1"))
-    fireEvent.click(screen.getByText("ownedCopy.add"))
+    await waitFor(() => screen.getAllByText("Spider-Man #1")[0])
+    const addButtons = screen.getAllByText("ownedCopy.add")
+    fireEvent.click(addButtons[0])
     await screen.findByText("ownedCopy.addTitle")
 
     // Mock fetch to throw a string (not an Error instance)
@@ -1056,7 +1084,7 @@ describe("CatalogItemDetail", () => {
       return Promise.resolve({ ok: true, json: () => Promise.resolve({}) } as Response)
     })
     renderWithRoute()
-    await waitFor(() => screen.getByText("Spider-Man #1"))
+    await waitFor(() => screen.getAllByText("Spider-Man #1")[0])
 
     fireEvent.click(screen.getByText("itemDetail.edit"))
     await screen.findByText("itemDetail.editTitle")
@@ -1085,7 +1113,7 @@ describe("CatalogItemDetail", () => {
       return Promise.resolve({ ok: true, json: () => Promise.resolve({}) } as Response)
     })
     renderWithRoute()
-    await waitFor(() => screen.getByText("Spider-Man #1"))
+    await waitFor(() => screen.getAllByText("Spider-Man #1")[0])
 
     fireEvent.click(screen.getByText("itemDetail.edit"))
     await screen.findByText("itemDetail.editTitle")
@@ -1100,7 +1128,7 @@ describe("CatalogItemDetail", () => {
   it("handles file input change for item image in edit dialog", async () => {
     mockFetch()
     renderWithRoute()
-    await waitFor(() => screen.getByText("Spider-Man #1"))
+    await waitFor(() => screen.getAllByText("Spider-Man #1")[0])
 
     fireEvent.click(screen.getByText("itemDetail.edit"))
     await screen.findByText("itemDetail.editTitle")
@@ -1116,9 +1144,10 @@ describe("CatalogItemDetail", () => {
   it("handles file input change for copy images", async () => {
     mockFetch()
     renderWithRoute()
-    await waitFor(() => screen.getByText("Spider-Man #1"))
+    await waitFor(() => screen.getAllByText("Spider-Man #1")[0])
 
-    fireEvent.click(screen.getByText("ownedCopy.add"))
+    const addButtons = screen.getAllByText("ownedCopy.add")
+    fireEvent.click(addButtons[0])
     await screen.findByText("ownedCopy.addTitle")
 
     const fileInput = screen.getByLabelText("ownedCopy.imagesLabel")
@@ -1143,14 +1172,14 @@ describe("CatalogItemDetail", () => {
       return Promise.resolve({ ok: true, json: () => Promise.resolve({}) } as Response)
     })
     renderWithRoute()
-    await waitFor(() => screen.getByText("Spider-Man #1"))
+    await waitFor(() => screen.getAllByText("Spider-Man #1")[0])
 
     // The copy card should show existing images
     const images = screen.getAllByAltText(/ownedCopy\.imageAlt/)
     expect(images.length).toBe(2)
 
     // Click edit on the copy to trigger editingCopy with images
-    const copyCard = screen.getByText("Near Mint").closest("[class*='rounded-lg border bg-card p-4']")!
+    const copyCard = findCopyCard()
     const buttons = copyCard.querySelectorAll("button")
     fireEvent.click(buttons[0]) // edit button
     await screen.findByText("ownedCopy.editTitle")
@@ -1180,7 +1209,7 @@ describe("CatalogItemDetail", () => {
       return Promise.resolve({ ok: true, json: () => Promise.resolve({}) } as Response)
     })
     renderWithRoute()
-    await waitFor(() => screen.getByText("Spider-Man #1"))
+    await waitFor(() => screen.getAllByText("Spider-Man #1")[0])
 
     fireEvent.click(screen.getByText("itemDetail.edit"))
     await screen.findByText("itemDetail.editTitle")
@@ -1217,7 +1246,7 @@ describe("CatalogItemDetail", () => {
       return Promise.resolve({ ok: true, json: () => Promise.resolve({}) } as Response)
     })
     renderWithRoute()
-    await waitFor(() => screen.getByText("Spider-Man #1"))
+    await waitFor(() => screen.getAllByText("Spider-Man #1")[0])
 
     fireEvent.click(screen.getByText("itemDetail.edit"))
     await screen.findByText("itemDetail.editTitle")
@@ -1253,9 +1282,10 @@ describe("CatalogItemDetail", () => {
       return Promise.resolve({ ok: true, json: () => Promise.resolve({}) } as Response)
     })
     renderWithRoute()
-    await waitFor(() => screen.getByText("Spider-Man #1"))
+    await waitFor(() => screen.getAllByText("Spider-Man #1")[0])
 
-    fireEvent.click(screen.getByText("ownedCopy.add"))
+    const addButtons = screen.getAllByText("ownedCopy.add")
+    fireEvent.click(addButtons[0])
     await screen.findByText("ownedCopy.addTitle")
 
     // Select image files
@@ -1290,9 +1320,10 @@ describe("CatalogItemDetail", () => {
       return Promise.resolve({ ok: true, json: () => Promise.resolve({}) } as Response)
     })
     renderWithRoute()
-    await waitFor(() => screen.getByText("Spider-Man #1"))
+    await waitFor(() => screen.getAllByText("Spider-Man #1")[0])
 
-    fireEvent.click(screen.getByText("ownedCopy.add"))
+    const addButtons = screen.getAllByText("ownedCopy.add")
+    fireEvent.click(addButtons[0])
     await screen.findByText("ownedCopy.addTitle")
 
     const fileInput = screen.getByLabelText("ownedCopy.imagesLabel")

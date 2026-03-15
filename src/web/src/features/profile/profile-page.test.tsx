@@ -4,9 +4,14 @@ import { MemoryRouter } from "react-router-dom"
 import Profile from "./profile-page"
 
 const mockChangeLanguage = vi.fn()
+const mockSetTheme = vi.fn()
 
 vi.mock("@/components/auth-provider", () => ({
   useAuth: () => ({ token: "mock-token", user: { id: "1", email: "a@b.com", displayName: "T" }, isLoading: false, login: vi.fn(), register: vi.fn(), logout: vi.fn() }),
+}))
+
+vi.mock("@/components/theme-provider", () => ({
+  useTheme: () => ({ theme: "system", setTheme: mockSetTheme }),
 }))
 
 vi.mock("react-i18next", () => ({
@@ -15,6 +20,29 @@ vi.mock("react-i18next", () => ({
     i18n: { language: "en", changeLanguage: mockChangeLanguage },
   }),
 }))
+
+vi.mock("framer-motion", () => ({
+  motion: { div: ({ children, ...props }: any) => <div {...props}>{children}</div> },
+  AnimatePresence: ({ children }: any) => <>{children}</>,
+}))
+
+vi.mock("@/components/ds", async () => {
+  const actual = await vi.importActual("@/components/ds")
+  return {
+    ...actual,
+    FadeIn: ({ children }: any) => <div>{children}</div>,
+    Select: ({ value, onValueChange, disabled, children }: any) => (
+      <select value={value} onChange={(e: any) => onValueChange(e.target.value)} disabled={disabled}>{children}</select>
+    ),
+    SelectTrigger: ({ children }: any) => <>{children}</>,
+    SelectValue: () => null,
+    SelectContent: ({ children }: any) => <>{children}</>,
+    SelectItem: ({ value, children }: any) => <option value={value}>{children}</option>,
+    toast: { success: vi.fn(), error: vi.fn(), info: vi.fn(), warning: vi.fn() },
+  }
+})
+
+const { toast } = await import("@/components/ds")
 
 const profileData = {
   id: "1",
@@ -31,10 +59,10 @@ describe("Profile", () => {
     vi.clearAllMocks()
   })
 
-  it("shows loading state", () => {
+  it("shows loading state with skeletons", () => {
     vi.spyOn(global, "fetch").mockReturnValue(new Promise(() => {}))
     render(<MemoryRouter><Profile /></MemoryRouter>)
-    expect(screen.getByText("profile.loading")).toBeInTheDocument()
+    expect(document.querySelector(".animate-pulse")).toBeInTheDocument()
   })
 
   it("renders profile form after loading", async () => {
@@ -50,15 +78,15 @@ describe("Profile", () => {
     expect(screen.getByDisplayValue("Test User")).toBeInTheDocument()
   })
 
-  it("shows error on fetch failure", async () => {
+  it("shows toast error on fetch failure", async () => {
     vi.spyOn(global, "fetch").mockResolvedValueOnce({ ok: false } as Response)
     render(<MemoryRouter><Profile /></MemoryRouter>)
     await waitFor(() => {
-      expect(screen.getByText("profile.fetchError")).toBeInTheDocument()
+      expect(toast.error).toHaveBeenCalledWith("profile.fetchError")
     })
   })
 
-  it("saves profile successfully", async () => {
+  it("saves profile successfully and shows toast", async () => {
     vi.spyOn(global, "fetch")
       .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve(profileData) } as Response)
       .mockResolvedValueOnce({
@@ -71,12 +99,12 @@ describe("Profile", () => {
 
     fireEvent.click(screen.getByText("profile.save"))
     await waitFor(() => {
-      expect(screen.getByText("profile.saveSuccess")).toBeInTheDocument()
+      expect(toast.success).toHaveBeenCalledWith("profile.saveSuccess")
     })
     expect(mockChangeLanguage).toHaveBeenCalledWith("pt")
   })
 
-  it("shows error on save failure", async () => {
+  it("shows toast error on save failure", async () => {
     vi.spyOn(global, "fetch")
       .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve(profileData) } as Response)
       .mockResolvedValueOnce({ ok: false } as Response)
@@ -85,7 +113,7 @@ describe("Profile", () => {
     await waitFor(() => screen.getByText("profile.title"))
     fireEvent.click(screen.getByText("profile.save"))
     await waitFor(() => {
-      expect(screen.getByText("profile.saveFailed")).toBeInTheDocument()
+      expect(toast.error).toHaveBeenCalledWith("profile.saveFailed")
     })
   })
 
@@ -118,7 +146,7 @@ describe("Profile", () => {
     })
   })
 
-  it("handles avatar upload failure", async () => {
+  it("handles avatar upload failure with toast", async () => {
     vi.spyOn(global, "fetch")
       .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve(profileData) } as Response)
       .mockResolvedValueOnce({ ok: false } as Response)
@@ -131,7 +159,7 @@ describe("Profile", () => {
     fireEvent.change(input, { target: { files: [file] } })
 
     await waitFor(() => {
-      expect(screen.getByText("profile.avatarFailed")).toBeInTheDocument()
+      expect(toast.error).toHaveBeenCalledWith("profile.avatarFailed")
     })
   })
 
@@ -168,7 +196,7 @@ describe("Profile", () => {
 
     fireEvent.click(screen.getByText("profile.save"))
     await waitFor(() => {
-      expect(screen.getByText("profile.saveSuccess")).toBeInTheDocument()
+      expect(toast.success).toHaveBeenCalledWith("profile.saveSuccess")
     })
     // Language matches "en" so changeLanguage should NOT be called
     expect(mockChangeLanguage).not.toHaveBeenCalled()
@@ -183,14 +211,14 @@ describe("Profile", () => {
     render(<MemoryRouter><Profile /></MemoryRouter>)
     await waitFor(() => screen.getByText("profile.title"))
 
-    // Check language select
-    const langSelect = screen.getByLabelText("profile.languageLabel")
-    expect(langSelect).toBeInTheDocument()
+    // Check language select - mocked as native <select>
+    const selects = document.querySelectorAll("select")
+    expect(selects.length).toBeGreaterThanOrEqual(2)
+
+    const langSelect = selects[0]
     expect(langSelect).toHaveValue("en")
 
-    // Check currency select
-    const currSelect = screen.getByLabelText("profile.currencyLabel")
-    expect(currSelect).toBeInTheDocument()
+    const currSelect = selects[1]
     expect(currSelect).toHaveValue("USD")
 
     // Change language
@@ -248,15 +276,14 @@ describe("Profile", () => {
     expect(bioInput).toHaveValue("")
 
     // language fallback to "en"
-    const langSelect = screen.getByLabelText("profile.languageLabel")
-    expect(langSelect).toHaveValue("en")
+    const selects = document.querySelectorAll("select")
+    expect(selects[0]).toHaveValue("en")
 
     // currency fallback to "USD"
-    const currSelect = screen.getByLabelText("profile.currencyLabel")
-    expect(currSelect).toHaveValue("USD")
+    expect(selects[1]).toHaveValue("USD")
   })
 
-  it("triggers file input click when upload avatar button is clicked", async () => {
+  it("triggers file input click when avatar area is clicked", async () => {
     vi.spyOn(global, "fetch").mockResolvedValueOnce({
       ok: true,
       json: () => Promise.resolve(profileData),
@@ -268,7 +295,9 @@ describe("Profile", () => {
     const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement
     const clickSpy = vi.spyOn(fileInput, "click")
 
-    fireEvent.click(screen.getByText("profile.uploadAvatar"))
+    // Click the avatar area (the div with cursor-pointer)
+    const avatarArea = document.querySelector(".cursor-pointer")!
+    fireEvent.click(avatarArea)
     expect(clickSpy).toHaveBeenCalled()
   })
 
@@ -282,5 +311,33 @@ describe("Profile", () => {
     await waitFor(() => screen.getByText("profile.title"))
 
     expect(screen.getByDisplayValue("test@example.com")).toBeDisabled()
+  })
+
+  it("renders theme section with appearance options", async () => {
+    vi.spyOn(global, "fetch").mockResolvedValueOnce({
+      ok: true,
+      json: () => Promise.resolve(profileData),
+    } as Response)
+
+    render(<MemoryRouter><Profile /></MemoryRouter>)
+    await waitFor(() => screen.getByText("profile.title"))
+
+    expect(screen.getByText("profile.sections.appearance")).toBeInTheDocument()
+    expect(screen.getByText("profile.sections.themeLight")).toBeInTheDocument()
+    expect(screen.getByText("profile.sections.themeDark")).toBeInTheDocument()
+    expect(screen.getByText("profile.sections.themeSystem")).toBeInTheDocument()
+  })
+
+  it("changes theme when theme button is clicked", async () => {
+    vi.spyOn(global, "fetch").mockResolvedValueOnce({
+      ok: true,
+      json: () => Promise.resolve(profileData),
+    } as Response)
+
+    render(<MemoryRouter><Profile /></MemoryRouter>)
+    await waitFor(() => screen.getByText("profile.title"))
+
+    fireEvent.click(screen.getByText("profile.sections.themeDark"))
+    expect(mockSetTheme).toHaveBeenCalledWith("dark")
   })
 })
