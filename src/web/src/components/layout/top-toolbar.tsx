@@ -118,9 +118,13 @@ export function TopToolbar() {
         {/* User menu */}
         <UserMenu side="bottom" align="end">
           <Button variant="ghost" size="icon" className="ml-1">
-            <div className="flex h-7 w-7 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-bold">
-              {initials}
-            </div>
+            {user?.avatar ? (
+              <img src={user.avatar} alt="" className="h-7 w-7 rounded-full object-cover" />
+            ) : (
+              <div className="flex h-7 w-7 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-bold">
+                {initials}
+              </div>
+            )}
           </Button>
         </UserMenu>
       </div>

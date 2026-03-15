@@ -6,12 +6,12 @@ import { AnimatedOutlet } from "./animated-outlet"
 
 export default function AppLayout() {
   return (
-    <div className="flex min-h-screen">
+    <div className="flex h-screen overflow-hidden">
       {/* Desktop sidebar */}
       <Sidebar />
 
       {/* Main content area */}
-      <div className="flex flex-1 flex-col">
+      <div className="flex min-h-0 flex-1 flex-col">
         {/* Mobile header */}
         <Header />
 

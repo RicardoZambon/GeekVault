@@ -5,7 +5,7 @@ import { ThemeProvider } from "@/components/theme-provider"
 
 // Mock auth context value
 export const mockAuth = {
-  user: { id: "1", email: "test@example.com", displayName: "Test User" },
+  user: { id: "1", email: "test@example.com", displayName: "Test User", avatar: null },
   token: "mock-token",
   isLoading: false,
   login: vi.fn(),

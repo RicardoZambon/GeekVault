@@ -21,7 +21,7 @@ vi.mock("react-i18next", () => ({
 vi.mock("@/components/auth-provider", () => ({
   useAuth: () => ({
     token: "mock-token",
-    user: { displayName: "John Doe", email: "john@test.com" },
+    user: { displayName: "John Doe", email: "john@test.com", avatar: null },
     isLoading: false,
     login: vi.fn(),
     register: vi.fn(),

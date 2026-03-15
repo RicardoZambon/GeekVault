@@ -14,7 +14,7 @@ vi.mock("react-router-dom", async () => {
 vi.mock("@/components/auth-provider", () => ({
   useAuth: () => ({
     token: "mock-token",
-    user: { displayName: "Jane", email: "jane@test.com" },
+    user: { displayName: "Jane", email: "jane@test.com", avatar: null },
     isLoading: false,
     login: vi.fn(),
     register: vi.fn(),

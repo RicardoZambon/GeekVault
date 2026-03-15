@@ -145,8 +145,9 @@ public class AuthEndpointsTests : IClassFixture<TestFactory<AuthEndpointsTests>>
         Assert.NotNull(result);
         Assert.Equal("me-test@example.com", result.Email);
         Assert.NotEmpty(result.UserId);
+        Assert.Equal("Test User", result.DisplayName);
     }
 
     private record AuthResult(string Token, string UserId, string Email, string? DisplayName);
-    private record MeResult(string UserId, string Email);
+    private record MeResult(string UserId, string Email, string? DisplayName, string? Avatar);
 }

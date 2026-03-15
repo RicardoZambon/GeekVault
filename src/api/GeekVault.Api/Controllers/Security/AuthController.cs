@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using GeekVault.Api.DTOs.Security;
+using GeekVault.Api.Repositories.Security;
 using GeekVault.Api.Services.Security;
 
 namespace GeekVault.Api.Controllers.Security;
@@ -47,11 +48,23 @@ public static class AuthController
         .WithName("Logout")
         .WithOpenApi();
 
-        app.MapGet("/api/auth/me", (ClaimsPrincipal user) =>
+        app.MapGet("/api/auth/me", async (
+            ClaimsPrincipal user,
+            IUsersRepository usersRepository) =>
         {
             var userId = user.FindFirstValue(ClaimTypes.NameIdentifier);
-            var email = user.FindFirstValue(ClaimTypes.Email);
-            return Results.Ok(new { userId, email });
+            if (userId == null) return Results.Unauthorized();
+
+            var dbUser = await usersRepository.FindByIdAsync(userId);
+            if (dbUser == null) return Results.Unauthorized();
+
+            return Results.Ok(new
+            {
+                userId,
+                email = dbUser.Email,
+                displayName = dbUser.DisplayName,
+                avatar = dbUser.Avatar
+            });
         })
         .RequireAuthorization()
         .WithName("Me")

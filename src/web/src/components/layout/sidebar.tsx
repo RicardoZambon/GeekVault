@@ -180,9 +180,13 @@ export function Sidebar() {
               collapsed ? "justify-center px-2" : "gap-3 px-2"
             )}
           >
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-sidebar-primary text-sidebar-primary-foreground text-xs font-bold">
-              {initials}
-            </div>
+            {user?.avatar ? (
+              <img src={user.avatar} alt="" className="h-8 w-8 shrink-0 rounded-full object-cover" />
+            ) : (
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-sidebar-primary text-sidebar-primary-foreground text-xs font-bold">
+                {initials}
+              </div>
+            )}
             {!collapsed && (
               <div className="flex-1 min-w-0 text-left">
                 <p className="truncate text-sm font-medium text-sidebar-foreground">
@@ -274,9 +278,13 @@ export function MobileSidebarContent({ onClose }: { onClose: () => void }) {
       <div className="border-t border-sidebar-border p-4">
         <UserMenu side="top" align="start">
           <button className="flex w-full items-center gap-3 rounded-lg px-2 py-2 transition-colors hover:bg-sidebar-accent/50">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-sidebar-primary text-sidebar-primary-foreground text-xs font-bold">
-              {initials}
-            </div>
+            {user?.avatar ? (
+              <img src={user.avatar} alt="" className="h-8 w-8 shrink-0 rounded-full object-cover" />
+            ) : (
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-sidebar-primary text-sidebar-primary-foreground text-xs font-bold">
+                {initials}
+              </div>
+            )}
             <div className="flex-1 min-w-0 text-left">
               <p className="truncate text-sm font-medium text-sidebar-foreground">
                 {user?.displayName}
