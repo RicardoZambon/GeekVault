@@ -120,10 +120,10 @@ export function Sidebar() {
       <nav className={cn("flex-1 overflow-y-auto", collapsed ? "p-3" : "p-2")}>
         <div className={cn("flex flex-col", collapsed ? "gap-0" : "gap-4")}>
           {navGroups.map((group, groupIndex) => (
-            <div key={group.labelKey} className="flex flex-col gap-1">
+            <div key={group.labelKey} className="flex flex-col">
               {collapsed ? (
                 groupIndex > 0 && (
-                  <div className="mx-2 my-1.5 border-t border-sidebar-border" />
+                  <div className="mx-2 my-3 border-t border-sidebar-border" />
                 )
               ) : (
                 <span className="px-3 pb-1 text-xs font-semibold uppercase text-sidebar-foreground/50">
@@ -141,15 +141,15 @@ export function Sidebar() {
                         "font-medium transition-colors relative block rounded-md",
                         !collapsed && "rounded-lg",
                         isActive
-                          ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                          ? "bg-sidebar-accent text-sidebar-accent-foreground rounded-md"
                           : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground"
                       )
                     }
                   >
                     {({ isActive }) =>
                       collapsed ? (
-                        <div className={cn("flex items-center justify-center h-[48px] border-l-[3px]", isActive ? "border-sidebar-primary" : "border-transparent")}>
-                          <item.icon className={cn("h-6 w-6", isActive && "text-sidebar-primary")} />
+                        <div className={cn("flex items-center justify-center h-[48px]", isActive ? "border-sidebar-primary" : "border-transparent")}>
+                          <item.icon className={cn("h-6 w-6", isActive ? "text-sidebar-primary" : "text-sidebar-foreground/70")} />
                         </div>
                       ) : (
                         <div className={cn("flex items-center gap-3 px-3 min-h-[44px] text-sm border-l-[3px]", isActive ? "border-sidebar-primary" : "border-transparent")}>
