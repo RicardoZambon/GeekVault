@@ -46,6 +46,12 @@ export function Sidebar() {
     localStorage.setItem(STORAGE_KEY, String(collapsed))
   }, [collapsed])
 
+  useEffect(() => {
+    const handler = () => setCollapsed((prev) => !prev)
+    window.addEventListener("toggle-sidebar", handler)
+    return () => window.removeEventListener("toggle-sidebar", handler)
+  }, [])
+
   const handleLogout = () => {
     logout()
     navigate("/login", { replace: true })

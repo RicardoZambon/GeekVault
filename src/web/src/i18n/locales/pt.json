@@ -340,6 +340,17 @@
     "en": "Inglês",
     "pt": "Português"
   },
+  "commandPalette": {
+    "label": "Paleta de comandos",
+    "placeholder": "Digite um comando ou pesquise...",
+    "noResults": "Nenhum resultado encontrado.",
+    "navigation": "Navegação",
+    "actions": "Ações",
+    "createCollection": "Criar Coleção",
+    "toggleTheme": "Alternar Tema",
+    "toggleSidebar": "Alternar Barra Lateral",
+    "changeLanguage": "Mudar Idioma"
+  },
   "auth": {
     "login": "Entrar",
     "loginDescription": "Entre na sua conta",

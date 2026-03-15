@@ -340,6 +340,17 @@
     "en": "English",
     "pt": "Portuguese"
   },
+  "commandPalette": {
+    "label": "Command palette",
+    "placeholder": "Type a command or search...",
+    "noResults": "No results found.",
+    "navigation": "Navigation",
+    "actions": "Actions",
+    "createCollection": "Create Collection",
+    "toggleTheme": "Toggle Theme",
+    "toggleSidebar": "Toggle Sidebar",
+    "changeLanguage": "Change Language"
+  },
   "auth": {
     "login": "Sign in",
     "loginDescription": "Sign in to your account",

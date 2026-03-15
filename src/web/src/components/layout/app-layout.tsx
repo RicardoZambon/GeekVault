@@ -1,6 +1,7 @@
 import { Outlet } from "react-router-dom"
 import { Sidebar } from "./sidebar"
 import { Header } from "./header"
+import { CommandPalette } from "./command-palette"
 
 export default function AppLayout() {
   return (
@@ -18,6 +19,9 @@ export default function AppLayout() {
           <Outlet />
         </main>
       </div>
+
+      {/* Command palette (Cmd+K) */}
+      <CommandPalette />
     </div>
   )
 }
