@@ -16,7 +16,21 @@ public class CollectionsRepository : ICollectionsRepository
     public async Task<List<Collection>> GetByUserIdAsync(string userId)
     {
         return await _db.Collections
+            .Include(c => c.CollectionType)
             .Where(c => c.UserId == userId)
+            .ToListAsync();
+    }
+
+    public async Task<List<CollectionWithCounts>> GetByUserIdWithCountsAsync(string userId)
+    {
+        return await _db.Collections
+            .Include(c => c.CollectionType)
+            .Where(c => c.UserId == userId)
+            .Select(c => new CollectionWithCounts
+            {
+                Collection = c,
+                ItemCount = _db.CatalogItems.Count(ci => ci.CollectionId == c.Id)
+            })
             .ToListAsync();
     }
 

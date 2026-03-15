@@ -5,6 +5,7 @@ namespace GeekVault.Api.Repositories.Vault;
 public interface ICollectionsRepository
 {
     Task<List<Collection>> GetByUserIdAsync(string userId);
+    Task<List<CollectionWithCounts>> GetByUserIdWithCountsAsync(string userId);
     Task<Collection?> GetByIdAndUserIdAsync(int id, string userId);
     Task<Collection?> GetByIdAndUserIdWithTypeAsync(int id, string userId);
     Task<int> GetItemCountAsync(int collectionId);
@@ -12,6 +13,12 @@ public interface ICollectionsRepository
     Task SaveChangesAsync();
     void Remove(Collection collection);
     Task<List<CollectionSummary>> GetCollectionSummariesAsync(string userId);
+}
+
+public class CollectionWithCounts
+{
+    public Collection Collection { get; set; } = null!;
+    public int ItemCount { get; set; }
 }
 
 public class CollectionSummary

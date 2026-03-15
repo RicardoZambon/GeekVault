@@ -16,25 +16,22 @@ public class CollectionsService : ICollectionsService
 
     public async Task<List<CollectionResponse>> GetAllAsync(string userId)
     {
-        var collections = await _repository.GetByUserIdAsync(userId);
-        var responses = new List<CollectionResponse>();
-        foreach (var c in collections)
-        {
-            var itemCount = await _repository.GetItemCountAsync(c.Id);
-            responses.Add(new CollectionResponse(c.Id, c.Name, c.Description, c.CoverImage,
-                c.Visibility.ToString(), c.CollectionTypeId, itemCount, c.CreatedAt, c.UpdatedAt));
-        }
-        return responses;
+        var results = await _repository.GetByUserIdWithCountsAsync(userId);
+        return results.Select(r => new CollectionResponse(
+            r.Collection.Id, r.Collection.Name, r.Collection.Description, r.Collection.CoverImage,
+            r.Collection.Visibility.ToString(), r.Collection.CollectionTypeId,
+            r.Collection.CollectionType.Name, r.ItemCount,
+            r.Collection.CreatedAt, r.Collection.UpdatedAt)).ToList();
     }
 
     public async Task<CollectionResponse?> GetByIdAsync(int id, string userId)
     {
-        var c = await _repository.GetByIdAndUserIdAsync(id, userId);
+        var c = await _repository.GetByIdAndUserIdWithTypeAsync(id, userId);
         if (c == null) return null;
 
         var itemCount = await _repository.GetItemCountAsync(c.Id);
         return new CollectionResponse(c.Id, c.Name, c.Description, c.CoverImage,
-            c.Visibility.ToString(), c.CollectionTypeId, itemCount, c.CreatedAt, c.UpdatedAt);
+            c.Visibility.ToString(), c.CollectionTypeId, c.CollectionType.Name, itemCount, c.CreatedAt, c.UpdatedAt);
     }
 
     public async Task<CollectionResponse> CreateAsync(string userId, CreateCollectionRequest request)
@@ -55,13 +52,14 @@ public class CollectionsService : ICollectionsService
         await _repository.AddAsync(collection);
         await _repository.SaveChangesAsync();
 
-        return new CollectionResponse(collection.Id, collection.Name, collection.Description, collection.CoverImage,
-            collection.Visibility.ToString(), collection.CollectionTypeId, 0, collection.CreatedAt, collection.UpdatedAt);
+        var created = await _repository.GetByIdAndUserIdWithTypeAsync(collection.Id, userId);
+        return new CollectionResponse(created!.Id, created.Name, created.Description, created.CoverImage,
+            created.Visibility.ToString(), created.CollectionTypeId, created.CollectionType.Name, 0, created.CreatedAt, created.UpdatedAt);
     }
 
     public async Task<CollectionResponse?> UpdateAsync(int id, string userId, UpdateCollectionRequest request)
     {
-        var collection = await _repository.GetByIdAndUserIdAsync(id, userId);
+        var collection = await _repository.GetByIdAndUserIdWithTypeAsync(id, userId);
         if (collection == null) return null;
 
         collection.Name = request.Name ?? collection.Name;
@@ -74,7 +72,8 @@ public class CollectionsService : ICollectionsService
 
         var itemCount = await _repository.GetItemCountAsync(collection.Id);
         return new CollectionResponse(collection.Id, collection.Name, collection.Description,
-            collection.CoverImage, collection.Visibility.ToString(), collection.CollectionTypeId, itemCount,
+            collection.CoverImage, collection.Visibility.ToString(), collection.CollectionTypeId,
+            collection.CollectionType.Name, itemCount,
             collection.CreatedAt, collection.UpdatedAt);
     }
 
