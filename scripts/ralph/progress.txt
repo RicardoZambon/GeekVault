@@ -589,3 +589,23 @@ Started: Sun Mar 15 02:52:16 AM UTC 2026
   - For grid cards with images, overlay the drag handle on the card (absolute positioned with bg-black/40) rather than adding it inline, to preserve card layout
   - Click-through prevention: use onClick={(e) => e.stopPropagation()} on drag handle to prevent navigation when grabbing
 ---
+
+## 2026-03-15 - US-035
+- Responsive polish across all mobile breakpoints (375px, 768px, 1280px)
+- Dialog: Added w-[calc(100%-2rem)] for mobile margins, responsive padding (p-4 sm:p-6), rounded-lg always, close button sized to 32x32px with proper positioning
+- Button icon size: Changed from h-9 w-9 to h-11 w-11 sm:h-9 sm:w-9 for 44px touch targets on mobile
+- App layout: Responsive main padding px-4 py-6 sm:px-6
+- Command palette: w-[calc(100%-2rem)] sm:w-full for mobile margins, increased touch targets on items (min-h-[44px], py-3, px-3)
+- Header sidebar sheet: w-[75vw] max-w-72 to prevent overflow on small screens
+- Collection detail grid: grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 (single column on mobile)
+- Fixed-width selects: Changed w-[Npx] to w-full sm:w-[Npx] in collection detail and wishlist
+- Search input: min-w-0 sm:min-w-[180px] to prevent overflow on mobile
+- Profile avatar: Added loading="lazy"
+- Files changed: dialog.tsx, button.tsx, app-layout.tsx, command-palette.tsx, header.tsx, collection-detail-page.tsx, wishlist-page.tsx, profile-page.tsx
+- **Learnings for future iterations:**
+  - Use w-[calc(100%-2rem)] sm:w-full pattern for centered modals/overlays to maintain 1rem margin on mobile
+  - Button size="icon" is only 36px (h-9) — use h-11 w-11 sm:h-9 sm:w-9 for mobile touch targets
+  - All fixed-width elements (selects, inputs) should use w-full sm:w-[Npx] pattern
+  - Grids should start at grid-cols-1 and use sm: breakpoints for multi-column
+  - min-w on flex children can cause overflow — use min-w-0 on mobile
+---
