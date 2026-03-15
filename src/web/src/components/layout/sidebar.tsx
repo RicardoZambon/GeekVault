@@ -117,7 +117,7 @@ export function Sidebar() {
       </div>
 
       {/* Navigation */}
-      <nav className={cn("flex-1 overflow-y-auto", collapsed ? "p-3" : "p-2")}>
+      <nav className={cn("flex-1 overflow-y-auto", collapsed ? "p-3" : "px-2 py-4")}>
         <div className={cn("flex flex-col", collapsed ? "gap-0" : "gap-4")}>
           {navGroups.map((group, groupIndex) => (
             <div key={group.labelKey} className="flex flex-col gap-2">
