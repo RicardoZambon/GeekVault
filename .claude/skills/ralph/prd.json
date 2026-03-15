@@ -1,287 +1,331 @@
 {
   "project": "GeekVault",
-  "branchName": "ralph/sidebar-topbar-redesign",
-  "description": "Sidebar & Top Toolbar Redesign (Frontend Phase 2) - Modern SaaS navigation with grouped sidebar, user profile block, desktop toolbar with search/help/notifications/user menu",
+  "branchName": "ralph/collections-grid-redesign",
+  "description": "Collections Grid Redesign (Phase 3) - Netflix/Steam-inspired cover grid with sorting, completion %, cover-from-item, and drag-to-reorder",
   "userStories": [
     {
       "id": "US-001",
-      "title": "Add i18n keys for sidebar and toolbar redesign",
-      "description": "As a developer, I need all new UI strings added to both en.json and pt.json before building components that reference them.",
+      "title": "Add CreatedAt and UpdatedAt timestamps to Collection entity",
+      "description": "As a developer, I need CreatedAt and UpdatedAt timestamps on the Collection model so the frontend can display relative time metadata and the API can support date-based sorting.",
       "acceptanceCriteria": [
-        "Add nav group labels to both locale files: 'nav.groups.overview' (Overview/Visão Geral), 'nav.groups.collections' (Collections/Coleções), 'nav.groups.account' (Account/Conta)",
-        "Add 'app.tagline' key: 'Collection Manager' / 'Gerenciador de Coleções'",
-        "Add user menu keys: 'nav.userMenu.settings' (Settings/Configurações), 'nav.userMenu.help' (Help/Ajuda), 'nav.userMenu.profile' (Profile/Perfil), 'nav.userMenu.logout' (Logout/Sair)",
-        "Add toolbar keys: 'toolbar.search' (Search collections.../Buscar coleções...), 'toolbar.help' (Help/Ajuda), 'toolbar.helpComingSoon' (Coming soon/Em breve), 'toolbar.notifications' (Notifications/Notificações), 'toolbar.noNotifications' (No notifications/Sem notificações), 'toolbar.shortcut' for keyboard shortcut hint",
-        "No hardcoded strings — all new keys present in both en.json and pt.json",
-        "Typecheck passes"
+        "Add CreatedAt (DateTime, default UTC now) and UpdatedAt (DateTime?, nullable) to the Collection entity",
+        "Generate and apply EF Core migration — existing rows get CreatedAt = UTC now, UpdatedAt = null",
+        "CreatedAt is set on POST to /api/collections (in CollectionsService.CreateAsync)",
+        "UpdatedAt is set on PUT to /api/collections/{id} (in CollectionsService.UpdateAsync)",
+        "UpdatedAt is set on cover upload (in CollectionsService.UploadCoverAsync)",
+        "Both fields included in CollectionResponse DTO",
+        "Existing integration tests still pass (dotnet test)",
+        "Typecheck passes (dotnet build)"
       ],
       "priority": 1,
       "passes": true,
-      "notes": "Must be done first since all subsequent UI stories reference these keys."
+      "notes": ""
     },
     {
       "id": "US-002",
-      "title": "Add DropdownMenu shadcn/ui component",
-      "description": "As a developer, I need the DropdownMenu primitive from shadcn/ui available since the user profile block and toolbar user menu depend on it.",
+      "title": "Propagate UpdatedAt to parent Collection from child services",
+      "description": "As a developer, I need CatalogItemsService and OwnedCopiesService to update the parent Collection's UpdatedAt when items are added, removed, or reordered.",
       "acceptanceCriteria": [
-        "Add DropdownMenu component to src/web/src/components/ui/dropdown-menu.tsx following shadcn/ui pattern with Radix primitives (@radix-ui/react-dropdown-menu)",
-        "Export DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuLabel at minimum",
-        "Install @radix-ui/react-dropdown-menu if not already installed",
-        "Component uses existing design tokens (bg-popover, text-popover-foreground, border, etc.)",
-        "Typecheck passes"
+        "CatalogItemsService.CreateAsync sets UpdatedAt on the parent Collection",
+        "CatalogItemsService.DeleteAsync sets UpdatedAt on the parent Collection",
+        "CatalogItemsService.ReorderAsync sets UpdatedAt on the parent Collection",
+        "OwnedCopiesService.CreateAsync propagates UpdatedAt to the parent Collection (via CatalogItem → Collection)",
+        "OwnedCopiesService.DeleteAsync propagates UpdatedAt to the parent Collection (via CatalogItem → Collection)",
+        "Existing integration tests still pass (dotnet test)",
+        "Typecheck passes (dotnet build)"
       ],
       "priority": 2,
       "passes": true,
-      "notes": "Check if dropdown-menu.tsx already exists in components/ui/ or components/ds/ first. The ds/dropdown-menu.tsx barrel export exists — verify if it wraps Radix or is something else."
+      "notes": "For OwnedCopies, the chain is OwnedCopy → CatalogItem → Collection (two hops). Load the parent Collection via the CatalogItem's CollectionId."
     },
     {
       "id": "US-003",
-      "title": "Extract shared navigation group data structure",
-      "description": "As a developer, I need the navigation items and groups defined as a shared data structure so both Sidebar and MobileSidebarContent can use it without duplication.",
+      "title": "Add CollectionTypeName to CollectionResponse and fix N+1 query",
+      "description": "As a developer, I need CollectionTypeName in the response DTO and the N+1 item count query eliminated so sorting by itemCount can work at the DB level.",
       "acceptanceCriteria": [
-        "Create or update the navItems structure in sidebar.tsx to be grouped: { label: i18n key, items: NavItem[] } with three groups: Overview (Dashboard), Collections (Collections, Collection Types, Wishlist), Account (Profile)",
-        "Export the grouped nav structure so MobileSidebarContent can import it",
-        "Existing navItems flat array replaced with the grouped structure",
-        "No functional changes to navigation yet — just data restructuring",
-        "Typecheck passes"
+        "CollectionTypeName included in CollectionResponse DTO",
+        "CollectionsRepository.GetByUserIdAsync() adds .Include(c => c.CollectionType) and maps c.CollectionType.Name",
+        "Refactor CollectionsService.GetAllAsync to eliminate N+1 — replace per-collection GetItemCountAsync() loop with a single projected query returning collections with item counts in one DB round-trip",
+        "Existing integration tests still pass (dotnet test)",
+        "Typecheck passes (dotnet build)"
       ],
       "priority": 3,
       "passes": true,
-      "notes": "This is a refactor step. Navigation should still render the same items, just sourced from the new grouped structure."
+      "notes": "The projected query pattern (GroupJoin or subquery via .Select()) is needed for US-004 sort-by-itemCount to work."
     },
     {
       "id": "US-004",
-      "title": "Rebuild sidebar header with brand identity block",
-      "description": "As a user, I want the sidebar header to prominently display the GeekVault logo and tagline so the app feels like a polished product.",
+      "title": "Add server-side sort to collections API",
+      "description": "As a user, I want to sort my collections by name, last updated, most items, or recently added.",
       "acceptanceCriteria": [
-        "Expanded sidebar header shows vault icon + 'GeekVault' title text + 'Collection Manager' subtitle (using i18n key 'app.tagline')",
-        "Header height is 72px (h-[72px]) with proper vertical centering",
-        "Collapsed sidebar shows only the vault icon centered horizontally in 72px wide space",
-        "Title uses font-display (Nunito), subtitle uses smaller muted text",
-        "Logo area has consistent padding and no unbalanced empty space",
-        "Typecheck passes",
-        "Verify in browser using dev-browser skill"
+        "GET /api/collections accepts optional query params: sortBy (name | updatedAt | itemCount | createdAt) and sortDir (asc | desc)",
+        "Default sort: name ascending",
+        "Sorting is performed in the database query (not in-memory)",
+        "The itemCount sort option uses the DB-level count (not fetch all items to count in-memory)",
+        "Integration tests cover each sort option (name asc/desc, updatedAt, itemCount, createdAt)",
+        "Typecheck passes (dotnet build)"
       ],
       "priority": 4,
-      "passes": true,
-      "notes": "Use existing logo assets: vaultIcon for collapsed, and vaultIcon + text for expanded (not logoFull image)."
+      "passes": false,
+      "notes": "Depends on US-003 projected query refactor. Frontend sends ?sortBy=name&sortDir=asc."
     },
     {
       "id": "US-005",
-      "title": "Update sidebar dimensions and spacing",
-      "description": "As a user, I want the sidebar to feel more spacious and premium with proper sizing.",
+      "title": "Add completion percentage to CollectionResponse",
+      "description": "As a developer, I need OwnedCount and CompletionPercentage in the CollectionResponse DTO so the frontend can show collection progress.",
       "acceptanceCriteria": [
-        "Expanded sidebar width changed from w-64 (256px) to w-[260px]",
-        "Collapsed sidebar width changed from w-16 (64px) to w-[72px]",
-        "Nav item height is 44px (min-h-[44px] or py-[10px] with text)",
-        "Icon size increased from h-4 w-4 (16px) to h-5 w-5 (20px) for all nav icons",
-        "Gap between navigation groups is 16px (gap-4)",
-        "Overall padding and spacing feels balanced — not cramped",
-        "Typecheck passes",
-        "Verify in browser using dev-browser skill"
+        "CollectionResponse DTO includes OwnedCount (int) and CompletionPercentage (double, 0-100)",
+        "Completion calculated as (OwnedCount / ItemCount) * 100 — reuse the pattern from SetsService",
+        "Computed in the same projected query as item count (no extra round-trip)",
+        "If ItemCount is 0, CompletionPercentage is 0 (avoid division by zero)",
+        "Integration tests verify completion calculation",
+        "Typecheck passes (dotnet build)"
       ],
       "priority": 5,
-      "passes": true,
-      "notes": "Apply to both Sidebar and MobileSidebarContent."
+      "passes": false,
+      "notes": "Add OwnedCopies.Count() subquery to the existing projected query from US-003."
     },
     {
       "id": "US-006",
-      "title": "Render navigation groups with labels in sidebar",
-      "description": "As a user, I want sidebar navigation items grouped by category with visible group labels so I can quickly scan and find what I need.",
+      "title": "Add cover-from-item API endpoint",
+      "description": "As a user, I want to set a catalog item's image as my collection cover without uploading a separate image.",
       "acceptanceCriteria": [
-        "Navigation renders three groups: Overview (Dashboard), Collections (Collections, Collection Types, Wishlist), Account (Profile)",
-        "Group labels are small (text-xs), muted (text-sidebar-foreground/50), uppercase, and rendered above each group's items",
-        "Group labels are hidden when sidebar is collapsed",
-        "Gap of 16px between groups",
-        "In collapsed mode, groups are separated by subtle increased spacing or a thin horizontal line",
-        "Typecheck passes",
-        "Verify in browser using dev-browser skill"
+        "New endpoint: POST /api/collections/{id}/cover-from-item/{itemId}",
+        "Copies the item's image file to a new collection cover path (collection-{id}-{timestamp}.{ext})",
+        "Image is copied (not referenced) so deleting the catalog item doesn't break the cover",
+        "Validates that the item belongs to the collection and the collection belongs to the user",
+        "Returns 404 if item has no image",
+        "Sets UpdatedAt on the collection",
+        "Integration tests for: happy path, item-not-in-collection, item-has-no-image",
+        "Typecheck passes (dotnet build)"
       ],
       "priority": 6,
-      "passes": true,
-      "notes": "Uses the grouped nav structure from US-003 and i18n keys from US-001."
+      "passes": false,
+      "notes": "Reuse CollectionsService.UploadCoverAsync file-saving logic for the copy operation."
     },
     {
       "id": "US-007",
-      "title": "Improve active navigation item state",
-      "description": "As a user, I want the active navigation item to be clearly highlighted so I always know where I am.",
+      "title": "Add SortOrder field and reorder endpoint for collections",
+      "description": "As a developer, I need a SortOrder field on Collection and a reorder endpoint so the frontend can support drag-to-reorder.",
       "acceptanceCriteria": [
-        "Active item has a soft accent background fill (bg-sidebar-accent)",
-        "Active item has a 3px left border highlight using sidebar-primary color (border-l-[3px] border-sidebar-primary)",
-        "Active item icon is colored with sidebar-primary when active (not muted)",
-        "Hover state is visually distinct from active state (lighter background, no left border)",
-        "Works correctly in both expanded and collapsed modes",
-        "Typecheck passes",
-        "Verify in browser using dev-browser skill"
+        "Add SortOrder (int, default 0) to Collection entity; generate EF Core migration",
+        "New endpoint: POST /api/collections/reorder accepting ReorderCollectionsRequest(List<int> CollectionIds)",
+        "Follows the existing CatalogItemsService.ReorderAsync pattern",
+        "Default sort when sortBy is not specified changes from name to sortOrder",
+        "Integration test for reorder endpoint",
+        "Typecheck passes (dotnet build)"
       ],
       "priority": 7,
-      "passes": true,
-      "notes": "Current implementation already has border-l-2 — increase to 3px and ensure icon color changes on active."
+      "passes": false,
+      "notes": "Existing rows get SortOrder = 0 (will sort by creation order as tiebreaker)."
     },
     {
       "id": "US-008",
-      "title": "Fix collapsed sidebar dock behavior",
-      "description": "As a user, I want the collapsed sidebar to behave like a dock — centered icons, proper tooltips, and clear active states.",
+      "title": "Remove page subtitle and add i18n keys for toolbar and grid",
+      "description": "As a user, I want a cleaner page header without the subtitle, and all new i18n keys ready for the toolbar and grid UI.",
       "acceptanceCriteria": [
-        "Collapsed sidebar width is exactly 72px (w-[72px])",
-        "All nav icons are perfectly centered horizontally and vertically using flex justify-center items-center",
-        "Icon size is h-5 w-5 (20px) in collapsed mode",
-        "Every nav item shows a tooltip on hover (right side) with the page name",
-        "Active item in collapsed mode has the same visual treatment as expanded (background + left border + colored icon)",
-        "Navigation group separators visible as increased gaps between groups",
-        "Typecheck passes",
+        "Remove description prop from PageHeader on collections page (removes 'Manage your collectible collections.')",
+        "New Collection button remains in the actions slot, right-aligned",
+        "Add new i18n keys to both en.json and pt.json: sort options (collections.sort.name, collections.sort.lastUpdated, collections.sort.mostItems, collections.sort.recentlyAdded), toolbar labels (collections.toolbar.filters, collections.toolbar.sortBy), view toggle tooltips (collections.view.grid, collections.view.list), time-ago patterns (collections.updated, collections.complete), 'Use as Cover' label",
+        "Typecheck passes (npx tsc -b)",
         "Verify in browser using dev-browser skill"
       ],
       "priority": 8,
-      "passes": true,
-      "notes": "Tooltips already exist — verify they work correctly with the new sizing."
+      "passes": false,
+      "notes": "i18n key collections.description can remain in locale files (no breaking change) but is no longer rendered."
     },
     {
       "id": "US-009",
-      "title": "Remove bottom utility buttons and add sidebar collapse toggle to edge",
-      "description": "As a user, I want the sidebar bottom cleaned up (no logout/collapse buttons) and the collapse toggle moved to a hover-reveal chevron at the sidebar edge.",
+      "title": "Build collection toolbar with search, type filter, and sort",
+      "description": "As a user, I want a unified toolbar with search, type filter, sort dropdown, and CTA button so I can efficiently browse collections.",
       "acceptanceCriteria": [
-        "Logout button removed from sidebar bottom (both desktop Sidebar and MobileSidebarContent)",
-        "Collapse/expand chevron button removed from sidebar bottom",
-        "Small chevron button appears at the right edge of the sidebar, vertically centered",
-        "Chevron is hidden by default (opacity-0) and appears on hover over the sidebar (opacity-100 with transition)",
-        "Clicking chevron toggles sidebar between expanded (260px) and collapsed (72px)",
-        "Collapsed state persists in localStorage (existing STORAGE_KEY behavior preserved)",
-        "The toggle-sidebar custom event still works (for command palette integration)",
-        "Remove unused imports: LogOut, ChevronLeft, ChevronRight if only used for removed buttons (ChevronLeft/Right may be reused for edge toggle)",
-        "Typecheck passes",
+        "Toolbar is a horizontal flex container below the page header",
+        "Contains: search input (max-width 420px, search icon), type filter dropdown, sort dropdown, New Collection button (right-aligned via ml-auto)",
+        "Search filters collections by name (existing debounced behavior preserved)",
+        "Type filter options: All Types (default), plus all collection types from API",
+        "Sort dropdown options: Name, Last Updated, Most Items, Recently Added — triggers server-side sort via API query params",
+        "Sort default: Name ascending",
+        "Sort preference (sortBy + sortDir) persisted to localStorage and restored on page load",
+        "New Collection button moves from header actions slot into the toolbar (right side)",
+        "Typecheck passes (npx tsc -b)",
         "Verify in browser using dev-browser skill"
       ],
       "priority": 9,
-      "passes": true,
-      "notes": "Logout moves to the user profile dropdown menu (US-010). Keep ChevronLeft/ChevronRight imports for the edge toggle."
+      "passes": false,
+      "notes": "Uses i18n keys from US-008. Sort calls GET /api/collections?sortBy=X&sortDir=Y from US-004."
     },
     {
       "id": "US-010",
-      "title": "Add user profile block with dropdown menu at sidebar bottom",
-      "description": "As a user, I want to see my avatar, name, and email at the bottom of the sidebar and click it to access account actions.",
+      "title": "Collapsible mobile filter toolbar",
+      "description": "As a mobile user, I want filters hidden behind a Filters toggle so the toolbar doesn't consume too much vertical space.",
       "acceptanceCriteria": [
-        "Expanded sidebar bottom shows: default avatar icon (User icon from lucide or similar), display name, email — separated from nav by a top border",
-        "Clicking the user profile block opens a DropdownMenu with: Profile, Settings (disabled), Help (disabled), separator, Logout",
-        "Dropdown menu items have appropriate icons (User, Settings/Cog, HelpCircle, LogOut)",
-        "Profile navigates to /profile, Logout logs out and redirects to /login",
-        "Settings item is visually disabled (opacity-50, cursor-not-allowed, no click action)",
-        "Help item is visually disabled (opacity-50, cursor-not-allowed, no click action)",
-        "Collapsed sidebar shows only the avatar icon centered; clicking opens the same dropdown",
-        "Uses i18n keys from US-001 for all menu item labels",
-        "Typecheck passes",
+        "On mobile (< sm breakpoint): search input shown full-width; a Filters toggle button shown next to it",
+        "Tapping Filters reveals/hides the type filter + sort dropdown row with smooth animation",
+        "New Collection button remains always visible",
+        "On desktop (>= sm): all toolbar items shown inline, no toggle needed",
+        "Typecheck passes (npx tsc -b)",
         "Verify in browser using dev-browser skill"
       ],
       "priority": 10,
-      "passes": true,
-      "notes": "Extract a shared UserMenu component that can be reused in the top toolbar (US-013). Use DropdownMenu from US-002."
+      "passes": false,
+      "notes": "Uses i18n key collections.toolbar.filters from US-008."
     },
     {
       "id": "US-011",
-      "title": "Create desktop top toolbar shell",
-      "description": "As a user, I want a persistent top toolbar on desktop that provides a consistent header area above the content.",
+      "title": "Build CollectionCoverCard component",
+      "description": "As a user, I want each collection displayed as a visual cover tile (Netflix-style) so I can visually identify collections at a glance.",
       "acceptanceCriteria": [
-        "New TopToolbar component created at src/web/src/components/layout/top-toolbar.tsx",
-        "Top toolbar is visible on desktop (hidden on mobile via md:flex, hidden below md)",
-        "Toolbar height is 72px (h-[72px]) matching the sidebar header for visual alignment",
-        "Toolbar has a bottom border using border-b border-border",
-        "Toolbar uses flex layout with items-center and horizontal padding",
-        "Layout in app-layout.tsx updated: toolbar renders above main content area, inside the flex-1 column next to the sidebar",
-        "Mobile header remains unchanged — only visible below md breakpoint",
-        "Typecheck passes",
+        "New CollectionCoverCard component replaces current card markup",
+        "Card structure: full-bleed cover image (aspect-ratio 4/3, object-fit cover) with gradient overlay at bottom",
+        "Overlay contains: collection name (18px, semibold, white), metadata line (13px, white/85% opacity)",
+        "Gradient overlay: linear-gradient(transparent, rgba(0,0,0,0.7))",
+        "Fallback when no cover image: gradient placeholder with Library icon",
+        "Entire card is clickable — navigates to /collections/{id}",
+        "Card has border-radius 12px (rounded-xl) and overflow hidden",
+        "Remove: View button, CardFooter, CardContent wrapper, type Badge from card body",
+        "Cover images use loading='lazy' for off-screen cards",
+        "Typecheck passes (npx tsc -b)",
         "Verify in browser using dev-browser skill"
       ],
       "priority": 11,
-      "passes": true,
-      "notes": "This is just the shell. Search, icons, and user menu are added in subsequent stories."
+      "passes": false,
+      "notes": "Metadata line content depends on US-012. For now show '{count} items'."
     },
     {
       "id": "US-012",
-      "title": "Add search trigger to top toolbar",
-      "description": "As a user, I want a search input in the top toolbar that opens the command palette when clicked.",
+      "title": "Card metadata line with completion % and relative time",
+      "description": "As a user, I want to see item count, completion percentage, and last updated time on each collection cover.",
       "acceptanceCriteria": [
-        "Search input-like button on the left side of the toolbar with placeholder text from i18n key 'toolbar.search'",
-        "Clicking the search trigger opens the existing command palette by dispatching a Ctrl+K / Cmd+K keyboard event or by using shared state",
-        "Search trigger shows the keyboard shortcut hint ('⌘K' on Mac, 'Ctrl+K' on other) as a subtle kbd badge inside the input",
-        "Styled as a subtle, rounded field with muted text and a search icon (Search from lucide) — not a full-width bar, roughly 250-300px wide",
-        "Typecheck passes",
+        "Metadata line in overlay: '{count} items · {percent}% complete · Updated {timeAgo}'",
+        "Time displayed as relative (e.g. '2 days ago', 'just now') using Intl.RelativeTimeFormat or lightweight utility",
+        "If updatedAt is null, show only item count and completion %",
+        "If ItemCount is 0, show '0 items' without completion %",
+        "Metadata styled: 13px, white text, 85% opacity",
+        "Typecheck passes (npx tsc -b)",
         "Verify in browser using dev-browser skill"
       ],
       "priority": 12,
-      "passes": true,
-      "notes": "The command palette already listens for Ctrl/Cmd+K. Consider programmatically dispatching the event or exposing a setter for the open state."
+      "passes": false,
+      "notes": "Uses CompletionPercentage from backend US-005 and UpdatedAt from US-001. Do not add date-fns — use Intl.RelativeTimeFormat."
     },
     {
       "id": "US-013",
-      "title": "Add help, notifications, language toggle, and user menu to top toolbar",
-      "description": "As a user, I want help, notifications, language toggle icons, and a user avatar menu on the right side of the toolbar.",
+      "title": "Card hover interactions and quick actions",
+      "description": "As a user, I want hover feedback and quick action buttons on collection cover cards.",
       "acceptanceCriteria": [
-        "Right side of toolbar shows (in order): Help icon, Notifications bell, Language toggle, User avatar — with consistent spacing",
-        "Help icon (HelpCircle from lucide) uses ghost button variant; clicking shows tooltip 'Coming soon' (i18n)",
-        "Notifications bell (Bell from lucide) uses ghost button variant; clicking shows a small popover/dropdown with 'No notifications' text (i18n)",
-        "Language toggle button (Languages from lucide) toggles between en/pt, same as current mobile header behavior",
-        "User avatar at far right shows initials circle or default avatar icon; clicking opens DropdownMenu with: user name + email label, separator, Profile, Settings (disabled), Help (disabled), separator, Logout",
-        "Reuse or share the UserMenu dropdown logic from the sidebar user profile block (US-010)",
-        "Theme toggle (Sun/Moon) also present as a toolbar icon, or integrated into user menu — must remain accessible on desktop",
-        "All buttons use consistent sizing (size='icon' or equivalent)",
-        "Typecheck passes",
+        "On hover: card lifts with translateY(-4px) and increased box-shadow",
+        "On hover: quick action buttons appear over the cover (Open, Edit, three-dot menu)",
+        "Open navigates to collection detail, Edit opens the edit dialog",
+        "Three-dot menu provides Delete option (existing behavior)",
+        "Quick actions have a semi-transparent backdrop for readability",
+        "On touch devices, the three-dot menu is always visible",
+        "Transition duration ~200ms ease",
+        "Typecheck passes (npx tsc -b)",
         "Verify in browser using dev-browser skill"
       ],
       "priority": 13,
-      "passes": true,
-      "notes": "Move theme/language toggle from mobile-only header to the desktop toolbar. The layout order should be: Help | Notifications | Language | Theme | User."
+      "passes": false,
+      "notes": ""
     },
     {
       "id": "US-014",
-      "title": "Update mobile sidebar content to match new design",
-      "description": "As a user on mobile, I want the sheet-based sidebar to reflect the same grouped navigation and user profile block as the desktop sidebar.",
+      "title": "Responsive grid layout",
+      "description": "As a user, I want the collection grid to show 3 columns on desktop, 2 on tablet, and 1 on mobile.",
       "acceptanceCriteria": [
-        "MobileSidebarContent updated with the same navigation groups (Overview, Collections, Account) with group labels",
-        "User profile block at bottom with avatar, display name, email",
-        "Tapping user profile block shows the same DropdownMenu (Profile, Settings disabled, Help disabled, Logout)",
-        "Standalone logout button removed — only accessible via user profile dropdown",
-        "Mobile header remains unchanged (hamburger + logo + theme/language toggles)",
-        "Navigation items use the shared grouped nav data structure",
-        "Typecheck passes",
+        "Grid container uses CSS grid with repeat(auto-fill, minmax(320px, 1fr)) and gap 24px",
+        "Effectively shows ~3 cols desktop, ~2 tablet, 1 mobile",
+        "Page padding 32px or equivalent Tailwind spacing",
+        "Stagger animation preserved (Framer Motion StaggerChildren)",
+        "Typecheck passes (npx tsc -b)",
         "Verify in browser using dev-browser skill"
       ],
       "priority": 14,
-      "passes": true,
-      "notes": "Reuse the shared nav groups and UserMenu component."
+      "passes": false,
+      "notes": ""
     },
     {
       "id": "US-015",
-      "title": "Update existing tests for sidebar redesign",
-      "description": "As a developer, I need existing sidebar and header tests updated so the test suite passes with the new layout structure.",
+      "title": "Grid vs list view toggle",
+      "description": "As a user, I want to switch between a visual cover grid and a compact list view.",
       "acceptanceCriteria": [
-        "Existing sidebar tests updated to reflect grouped navigation structure (group labels rendered)",
-        "Tests no longer assert on removed elements (standalone logout button, collapse chevron at bottom)",
-        "Tests verify user profile block renders with display name at sidebar bottom",
-        "Existing header tests still pass (mobile header unchanged in behavior)",
-        "All tests pass: npm test exits cleanly",
-        "Typecheck passes"
+        "Toggle button (grid icon / list icon) in the toolbar, next to sort dropdown",
+        "Grid view: cover tile layout (default)",
+        "List view: compact table/row layout using DataTable DS component showing collection name, type, item count, updated date",
+        "Active view persisted to localStorage (key: collections-view-mode), restored on page load",
+        "Default: grid view",
+        "Typecheck passes (npx tsc -b)",
+        "Verify in browser using dev-browser skill"
       ],
       "priority": 15,
-      "passes": true,
-      "notes": "Focus on updating broken assertions. Don't add new component tests here — that's US-016."
+      "passes": false,
+      "notes": ""
     },
     {
       "id": "US-016",
-      "title": "Add tests for new TopToolbar and UserMenu components",
-      "description": "As a developer, I need tests for the new components to maintain test coverage.",
+      "title": "Skeleton loading state for cover grid",
+      "description": "As a user, I want skeleton placeholders that match the new cover card shape while collections load.",
       "acceptanceCriteria": [
-        "TopToolbar component has a co-located test file (top-toolbar.test.tsx) in components/layout/",
-        "Test verifies toolbar renders search trigger, help icon, notifications icon, language toggle, and user avatar",
-        "Test verifies search trigger interaction (opens command palette or dispatches event)",
-        "UserMenu component (if extracted as shared) has a co-located test file",
-        "Test verifies UserMenu shows Profile, Settings, Help, Logout items",
-        "Test verifies Logout calls logout function and navigates to /login",
-        "All tests pass: npm test exits cleanly",
-        "Typecheck passes"
+        "Loading state shows 6 skeleton cards in the same grid layout",
+        "Each skeleton: aspect-ratio 4/3, rounded-xl, animated pulse",
+        "Skeleton includes faint overlay area at bottom to mimic text placement",
+        "Typecheck passes (npx tsc -b)",
+        "Verify in browser using dev-browser skill"
       ],
       "priority": 16,
-      "passes": true,
-      "notes": "Follow existing test patterns in the codebase (vitest + testing-library). Check test-utils.tsx for render helpers."
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-017",
+      "title": "Add Use as Cover option to catalog item context menu",
+      "description": "As a user, I want to pick a catalog item's image as the collection cover from the collection detail page.",
+      "acceptanceCriteria": [
+        "On the collection detail page: add 'Use as Cover' option to the catalog item's context menu / three-dot dropdown",
+        "Clicking 'Use as Cover' calls POST /api/collections/{id}/cover-from-item/{itemId} from US-006",
+        "Shows success toast on completion",
+        "Collection cover updates immediately in the detail page header",
+        "Typecheck passes (npx tsc -b)",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 17,
+      "passes": false,
+      "notes": "Uses the API endpoint from US-006."
+    },
+    {
+      "id": "US-018",
+      "title": "Drag-to-reorder collections in grid view",
+      "description": "As a user, I want to drag collections to reorder them in the grid view.",
+      "acceptanceCriteria": [
+        "Wrap grid in SortableList component (already exists in DS) in grid view only",
+        "Drag handle visible on hover (GripVertical icon, same as collection-detail-page items)",
+        "Reorder calls POST /api/collections/reorder from US-007 with optimistic UI update and rollback on error",
+        "When user selects an explicit sort option (name, updatedAt, etc.), drag reorder is disabled and a visual indicator shows sorting is active",
+        "Drag-to-reorder disabled in list view",
+        "Typecheck passes (npx tsc -b)",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 18,
+      "passes": false,
+      "notes": "Uses SortableList from DS and reorder endpoint from US-007."
+    },
+    {
+      "id": "US-019",
+      "title": "Update existing tests for new collections page UI",
+      "description": "As a developer, I need existing tests updated and new tests added for the redesigned collections page.",
+      "acceptanceCriteria": [
+        "All existing test scenarios in collections-page.test.tsx updated to work with new markup",
+        "Tests cover: cover card rendering, card click navigation, hover quick actions, toolbar search/filter/sort, empty state, create/edit/delete dialogs",
+        "New test for sort dropdown triggering API call with query params",
+        "New test for mobile filter toggle",
+        "New test for grid/list view toggle and localStorage persistence",
+        "New test for completion percentage display on card",
+        "New test for drag-to-reorder (SortableList interaction)",
+        "All frontend tests pass (npm test)",
+        "Typecheck passes (npx tsc -b)"
+      ],
+      "priority": 19,
+      "passes": false,
+      "notes": ""
     }
   ]
 }
