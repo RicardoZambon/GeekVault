@@ -362,7 +362,8 @@
     "noResults": "Nenhum item corresponde aos filtros selecionados.",
     "updateSuccess": "Item da lista de desejos atualizado com sucesso.",
     "addSuccess": "Item adicionado à lista de desejos com sucesso.",
-    "deleteSuccess": "Item da lista de desejos excluído com sucesso."
+    "deleteSuccess": "Item da lista de desejos excluído com sucesso.",
+    "reorderFailed": "Falha ao reordenar itens da lista de desejos"
   },
   "profile": {
     "title": "Perfil",

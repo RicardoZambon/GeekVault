@@ -362,7 +362,8 @@
     "noResults": "No items match the selected filters.",
     "updateSuccess": "Wishlist item updated successfully.",
     "addSuccess": "Wishlist item added successfully.",
-    "deleteSuccess": "Wishlist item deleted successfully."
+    "deleteSuccess": "Wishlist item deleted successfully.",
+    "reorderFailed": "Failed to reorder wishlist items"
   },
   "profile": {
     "title": "Profile",

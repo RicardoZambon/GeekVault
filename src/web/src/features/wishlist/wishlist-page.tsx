@@ -12,6 +12,7 @@ import {
   DollarSign,
   FileText,
   Loader2,
+  GripVertical,
 } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 import {
@@ -29,10 +30,9 @@ import {
   SelectValue,
   SelectContent,
   SelectItem,
-  StaggerChildren,
-  staggerItemVariants,
   SkeletonRect,
   SkeletonText,
+  SortableList,
   toast,
 } from "@/components/ds"
 import { FadeIn } from "@/components/ds"
@@ -352,6 +352,28 @@ export default function Wishlist() {
     }
   }
 
+  async function handleWishlistReorder(collectionId: number, newItems: WishlistItem[]) {
+    // Optimistic update
+    setGroups((prev) =>
+      prev.map((g) =>
+        g.collection.id === collectionId ? { ...g, items: newItems } : g
+      )
+    )
+
+    try {
+      const res = await fetch(`/api/collections/${collectionId}/wishlist/reorder`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ itemIds: newItems.map((i) => i.id) }),
+      })
+      if (!res.ok) throw new Error("Failed to reorder")
+    } catch {
+      toast.error(t("wishlist.reorderFailed"))
+      // Revert on failure
+      await fetchData()
+    }
+  }
+
   if (loading) {
     return (
       <FadeIn>
@@ -463,80 +485,92 @@ export default function Wishlist() {
                         transition={{ duration: 0.2, ease: "easeInOut" }}
                         className="overflow-hidden"
                       >
-                        <StaggerChildren className="mt-3 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                          {group.items.map((item) => (
-                            <motion.div key={item.id} variants={staggerItemVariants}>
-                              <Card className="group relative h-full">
-                                <CardContent className="p-4">
-                                  {/* Header: name + priority badge */}
-                                  <div className="flex items-start justify-between gap-2">
-                                    <div className="min-w-0 flex-1">
-                                      <div className="flex items-center gap-2">
-                                        <span className="truncate font-semibold text-foreground">
-                                          {item.name}
-                                        </span>
-                                        {item.catalogItemId && (
-                                          <Link className="h-3.5 w-3.5 shrink-0 text-accent" />
-                                        )}
-                                      </div>
-                                      <Badge
-                                        variant={getPriorityVariant(item.priority)}
-                                        size="sm"
-                                        className="mt-1.5"
+                        <SortableList
+                          items={group.items}
+                          keyExtractor={(item) => item.id}
+                          layout="grid"
+                          gridClassName="mt-3 grid gap-4 sm:grid-cols-2 lg:grid-cols-3"
+                          onReorder={(newItems) =>
+                            handleWishlistReorder(group.collection.id, newItems)
+                          }
+                          renderItem={(item, { dragHandleProps, isDragging }) => (
+                            <Card className={`group relative h-full ${isDragging ? "ring-2 ring-accent" : ""}`}>
+                              <CardContent className="p-4">
+                                {/* Header: drag handle + name + priority badge */}
+                                <div className="flex items-start justify-between gap-2">
+                                  <div className="min-w-0 flex-1">
+                                    <div className="flex items-center gap-2">
+                                      <button
+                                        type="button"
+                                        className="cursor-grab touch-none text-muted-foreground hover:text-foreground shrink-0"
+                                        {...dragHandleProps}
                                       >
-                                        {getPriorityLabel(item.priority, t)}
-                                      </Badge>
+                                        <GripVertical className="h-4 w-4" />
+                                      </button>
+                                      <span className="truncate font-semibold text-foreground">
+                                        {item.name}
+                                      </span>
+                                      {item.catalogItemId && (
+                                        <Link className="h-3.5 w-3.5 shrink-0 text-accent" />
+                                      )}
                                     </div>
-
-                                    {/* Actions dropdown */}
-                                    <DropdownMenu>
-                                      <DropdownMenuTrigger asChild>
-                                        <Button
-                                          variant="ghost"
-                                          size="icon"
-                                          className="h-8 w-8 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
-                                        >
-                                          <MoreVertical className="h-4 w-4" />
-                                        </Button>
-                                      </DropdownMenuTrigger>
-                                      <DropdownMenuContent align="end">
-                                        <DropdownMenuItem onClick={() => openEdit(item)}>
-                                          <Pencil className="mr-2 h-4 w-4" />
-                                          {t("wishlist.edit")}
-                                        </DropdownMenuItem>
-                                        <DropdownMenuItem
-                                          onClick={() => setDeleteItem(item)}
-                                          className="text-destructive focus:text-destructive"
-                                        >
-                                          <Trash2 className="mr-2 h-4 w-4" />
-                                          {t("wishlist.delete")}
-                                        </DropdownMenuItem>
-                                      </DropdownMenuContent>
-                                    </DropdownMenu>
+                                    <Badge
+                                      variant={getPriorityVariant(item.priority)}
+                                      size="sm"
+                                      className="mt-1.5 ml-6"
+                                    >
+                                      {getPriorityLabel(item.priority, t)}
+                                    </Badge>
                                   </div>
 
-                                  {/* Target price */}
-                                  {item.targetPrice != null && (
-                                    <div className="mt-3 flex items-center gap-1.5 text-sm text-muted-foreground">
-                                      <DollarSign className="h-3.5 w-3.5" />
-                                      <span>
-                                        {t("wishlist.targetPrice")}: ${item.targetPrice.toFixed(2)}
-                                      </span>
-                                    </div>
-                                  )}
+                                  {/* Actions dropdown */}
+                                  <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-8 w-8 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                                      >
+                                        <MoreVertical className="h-4 w-4" />
+                                      </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end">
+                                      <DropdownMenuItem onClick={() => openEdit(item)}>
+                                        <Pencil className="mr-2 h-4 w-4" />
+                                        {t("wishlist.edit")}
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem
+                                        onClick={() => setDeleteItem(item)}
+                                        className="text-destructive focus:text-destructive"
+                                      >
+                                        <Trash2 className="mr-2 h-4 w-4" />
+                                        {t("wishlist.delete")}
+                                      </DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                  </DropdownMenu>
+                                </div>
 
-                                  {/* Notes */}
-                                  {item.notes && (
-                                    <div className="mt-2 flex items-start gap-1.5 text-sm text-muted-foreground">
-                                      <FileText className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-                                      <span className="line-clamp-2">{item.notes}</span>
-                                    </div>
-                                  )}
-                                </CardContent>
-                              </Card>
-                            </motion.div>
-                          ))}
-                        </StaggerChildren>
+                                {/* Target price */}
+                                {item.targetPrice != null && (
+                                  <div className="mt-3 flex items-center gap-1.5 text-sm text-muted-foreground">
+                                    <DollarSign className="h-3.5 w-3.5" />
+                                    <span>
+                                      {t("wishlist.targetPrice")}: ${item.targetPrice.toFixed(2)}
+                                    </span>
+                                  </div>
+                                )}
+
+                                {/* Notes */}
+                                {item.notes && (
+                                  <div className="mt-2 flex items-start gap-1.5 text-sm text-muted-foreground">
+                                    <FileText className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                                    <span className="line-clamp-2">{item.notes}</span>
+                                  </div>
+                                )}
+                              </CardContent>
+                            </Card>
+                          )}
+                        />
                       </motion.div>
                     )}
                   </AnimatePresence>
