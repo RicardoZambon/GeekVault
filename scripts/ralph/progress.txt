@@ -31,6 +31,11 @@ Started: Sun Mar 15 02:52:16 AM UTC 2026
 - Toast notifications: use `import { toast } from "@/components/ds"` then `toast.success()`, `toast.error()`, `toast.info()`, `toast.warning()`
 - `staggerItemVariants` is exported for use as variants on child `motion.div` elements inside `StaggerChildren`
 - Auth pages use `AuthLayout` wrapper from `@/features/auth/auth-layout` for split-screen brand layout (reuse for login/register)
+- Testing: use `vi.hoisted()` for variables referenced inside `vi.mock()` factories (hoisting prevents normal variable access)
+- Testing: mock Radix UI primitives as simple HTML (native select, always-visible divs/buttons) — they don't work in jsdom
+- Testing: mock framer-motion with `motion: { div: passthrough }`, `AnimatePresence`, `useSpring`, `useTransform`, `useMotionValue`
+- Testing: mock DS animation wrappers (StaggerChildren, FadeIn, PageTransition) as simple div passthroughs
+- Testing: skeleton loading uses `.animate-pulse` class — query with `container.querySelectorAll(".animate-pulse")`
 - Page components live in `src/features/{feature}/{name}-page.tsx`, layout components in `src/components/layout/`
 - App.tsx imports pages from `./features/{feature}/{name}-page`; layout from `./components/layout/app-layout`
 - TypeScript `erasableSyntaxOnly` is enabled — no parameter properties, no enums; use explicit field declarations
@@ -623,4 +628,21 @@ Started: Sun Mar 15 02:52:16 AM UTC 2026
   - Language switcher aria-labels showing native language names (e.g., "Português" when in EN mode) are intentional UX convention — don't translate these
   - Most required key namespaces (emptyStates.*, commandPalette.*, auth.*, profile.sections.*) were already added in earlier stories
   - Currency labels are good candidates for i18n since currency names differ between languages
+---
+
+## 2026-03-15 - US-037
+- Updated all 12 existing test file imports to reflect features/ folder paths
+- Fixed mocks for framer-motion, Radix UI (Select, DropdownMenu, Tabs, Tooltip), sonner toast, @dnd-kit SortableList, skeleton loading states
+- Created new ds-components.test.tsx with 46 render tests for Card, Badge, EmptyState, PageHeader, Skeleton, StatCard, DataTable, and Toaster
+- Files changed: App.test.tsx, Home.test.tsx, button.test.tsx, app-layout.test.tsx, login-page.test.tsx, register-page.test.tsx, collection-types-page.test.tsx, catalog-item-detail-page.test.tsx, collection-detail-page.test.tsx, collections-page.test.tsx, dashboard-page.test.tsx, profile-page.test.tsx, wishlist-page.test.tsx, ds-components.test.tsx (new)
+- All 23 test files pass (386 tests), typecheck clean
+- **Learnings for future iterations:**
+  - vi.mock() factories are hoisted above variable declarations — use vi.hoisted() for variables referenced inside mock factories
+  - Radix UI primitives (Select, DropdownMenu, Tabs, Tooltip) don't work in jsdom — mock them as simple HTML elements (native select, always-visible divs/buttons)
+  - When mocking DropdownMenu, render all items as visible buttons and use getAllByText() instead of clicking a trigger
+  - Text appearing in multiple places (breadcrumb + heading) requires getAllByText()[0] instead of getByText()
+  - framer-motion mock needs motion.div, AnimatePresence, useSpring, useTransform, useMotionValue stubs
+  - DS components (StaggerChildren, FadeIn, PageTransition, AnimatedNumber) must be mocked in test files that import from @/components/ds
+  - Skeleton loading states use .animate-pulse class — test with container.querySelectorAll(".animate-pulse")
+  - Toast (sonner) must be mocked via vi.hoisted() pattern for the mock object, then spread into the @/components/ds mock
 ---
