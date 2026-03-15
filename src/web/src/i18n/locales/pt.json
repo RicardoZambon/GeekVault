@@ -130,7 +130,13 @@
     "deleteFailed": "Falha ao excluir tipo de coleção",
     "saveFailed": "Falha ao salvar tipo de coleção",
     "fetchError": "Falha ao carregar tipos de coleção",
-    "empty": "Nenhum tipo de coleção ainda. Crie um para começar."
+    "empty": "Nenhum tipo de coleção ainda. Crie um para começar.",
+    "tabGeneral": "Geral",
+    "tabCustomFields": "Campos Personalizados",
+    "enumTagPlaceholder": "Digite e pressione Enter para adicionar",
+    "saveSuccess": "Tipo de coleção salvo com sucesso.",
+    "createSuccess": "Tipo de coleção criado com sucesso.",
+    "deleteSuccess": "Tipo de coleção excluído com sucesso."
   },
   "collectionDetail": {
     "fetchError": "Falha ao carregar coleção",

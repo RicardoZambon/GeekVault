@@ -130,7 +130,13 @@
     "deleteFailed": "Failed to delete collection type",
     "saveFailed": "Failed to save collection type",
     "fetchError": "Failed to load collection types",
-    "empty": "No collection types yet. Create one to get started."
+    "empty": "No collection types yet. Create one to get started.",
+    "tabGeneral": "General",
+    "tabCustomFields": "Custom Fields",
+    "enumTagPlaceholder": "Type and press Enter to add",
+    "saveSuccess": "Collection type saved successfully.",
+    "createSuccess": "Collection type created successfully.",
+    "deleteSuccess": "Collection type deleted successfully."
   },
   "collectionDetail": {
     "fetchError": "Failed to load collection",
