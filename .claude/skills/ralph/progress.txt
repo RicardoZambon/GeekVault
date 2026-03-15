@@ -166,3 +166,10 @@
   - When adding new components used by tested components, add mocks to the test file
   - Mock UserMenu as passthrough `({ children }) => <>{children}</>` to test the trigger UI without dropdown internals
 ---
+
+## 2026-03-15 - US-016
+- Created `top-toolbar.test.tsx` with 7 tests: search trigger, keyboard event dispatch, help icon, notifications, language toggle, theme toggle, user avatar
+- Created `user-menu.test.tsx` with 5 tests: trigger rendering, user name/email display, menu items present, Profile navigation, Logout with logout+navigate
+- All 506 tests pass across 37 test files
+- Files changed: `src/web/src/components/layout/top-toolbar.test.tsx` (new), `src/web/src/components/layout/user-menu.test.tsx` (new)
+---
