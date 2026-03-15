@@ -399,3 +399,21 @@ Started: Sun Mar 15 02:52:16 AM UTC 2026
   - Toast replaces inline error state — cleaner component code, no `importError` state needed
   - No browser testing tools available — manual verification needed
 ---
+
+## 2026-03-15 - US-025
+- Redesigned catalog item detail page with hero section layout (image left, info right on 5-column grid)
+- Added breadcrumb navigation: Collections > {Collection Name} > {Item Name} with clickable links
+- Action buttons (Edit, Delete, Add Owned Copy) in hero section
+- Custom fields rendered with proper type formatting: booleans as check/x icons, dates formatted, enums as badges
+- Description section with clean typography
+- Full skeleton loading state (not spinner) for initial page load
+- Replaced all inline error/success messages with toast notifications
+- Owned copies displayed as card grid with condition-colored badges
+- Added loading spinner to form submit buttons
+- Files changed: src/web/src/features/collections/catalog-item-detail-page.tsx, src/web/src/i18n/locales/en.json, src/web/src/i18n/locales/pt.json
+- **Learnings for future iterations:**
+  - Collection name for breadcrumbs requires fetching the collection object — already done in the load sequence, just need to store it in state
+  - Custom field type rendering: use the collectionType.customFields definitions to determine display format (boolean → icon, date → formatted, enum → badge)
+  - `FadeIn` wrapper from DS motion.tsx works well for page-level fade-in without needing full PageTransition
+  - Condition badge coloring pattern: Mint/NearMint → success, Excellent/Good → primary, Fair/Poor → warning
+---

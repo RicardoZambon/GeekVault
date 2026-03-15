@@ -242,7 +242,9 @@
     "estimatedValue": "Estimated Value",
     "acquisitionDate": "Acquisition Date",
     "acquisitionSource": "Source",
-    "notes": "Notes"
+    "notes": "Notes",
+    "updateSuccess": "Item updated successfully",
+    "deleteSuccess": "Item deleted successfully"
   },
   "ownedCopy": {
     "add": "Add Copy",
@@ -260,7 +262,10 @@
     "deleteTitle": "Delete Owned Copy",
     "deleteConfirm": "Are you sure you want to delete this owned copy?",
     "deleting": "Deleting...",
-    "deleteFailed": "Failed to delete owned copy"
+    "deleteFailed": "Failed to delete owned copy",
+    "updateSuccess": "Copy updated successfully",
+    "addSuccess": "Copy added successfully",
+    "deleteSuccess": "Copy deleted successfully"
   },
   "sets": {
     "title": "Sets",

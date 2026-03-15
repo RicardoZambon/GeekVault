@@ -1,7 +1,18 @@
 import { useState, useEffect, useCallback, type FormEvent } from "react"
-import { useParams, useNavigate } from "react-router-dom"
+import { useParams, useNavigate, Link } from "react-router-dom"
 import { useTranslation } from "react-i18next"
-import { ArrowLeft, Image, Pencil, Trash2, Package, Plus } from "lucide-react"
+import {
+  Image,
+  Pencil,
+  Trash2,
+  Package,
+  Plus,
+  ChevronRight,
+  Calendar,
+  Check,
+  X,
+  Loader2,
+} from "lucide-react"
 import { useAuth } from "@/components/auth-provider"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -14,6 +25,16 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog"
 import { ConfirmDialog } from "@/components/ui/confirm-dialog"
+import {
+  Card,
+  CardContent,
+  Badge,
+  PageHeader,
+  SkeletonRect,
+  SkeletonText,
+  FadeIn,
+  toast,
+} from "@/components/ds"
 
 const CONDITIONS = ["Mint", "NearMint", "Excellent", "Good", "Fair", "Poor"] as const
 
@@ -77,10 +98,10 @@ export default function CatalogItemDetail() {
   const navigate = useNavigate()
 
   const [item, setItem] = useState<CatalogItemFull | null>(null)
+  const [collection, setCollection] = useState<Collection | null>(null)
   const [copies, setCopies] = useState<OwnedCopy[]>([])
   const [collectionType, setCollectionType] = useState<CollectionTypeDetail | null>(null)
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState("")
 
   // Edit dialog
   const [editOpen, setEditOpen] = useState(false)
@@ -131,7 +152,7 @@ export default function CatalogItemDetail() {
       setItem(data)
       return data
     } catch {
-      setError(t("itemDetail.fetchError"))
+      toast.error(t("itemDetail.fetchError"))
       return null
     }
   }, [collectionId, itemId, token]) // eslint-disable-line react-hooks/exhaustive-deps
@@ -163,11 +184,11 @@ export default function CatalogItemDetail() {
       setLoading(true)
       const fetchedItem = await fetchItem()
       if (fetchedItem) {
-        // Fetch collection to get collectionTypeId
         try {
           const colRes = await fetch(`/api/collections/${collectionId}`, { headers })
           if (colRes.ok) {
             const col: Collection = await colRes.json()
+            setCollection(col)
             await fetchCollectionType(col.collectionTypeId)
           }
         } catch {
@@ -258,11 +279,12 @@ export default function CatalogItemDetail() {
           body: formData,
         })
         if (!imgRes.ok) {
-          setFormError(t("collectionDetail.imageUploadFailed"))
+          toast.error(t("collectionDetail.imageUploadFailed"))
         }
       }
 
       setEditOpen(false)
+      toast.success(t("itemDetail.updateSuccess"))
       await fetchItem()
     } catch (err) {
       setFormError(err instanceof Error ? err.message : t("collectionDetail.saveFailed"))
@@ -279,9 +301,10 @@ export default function CatalogItemDetail() {
         headers,
       })
       if (!res.ok) throw new Error("Failed")
+      toast.success(t("itemDetail.deleteSuccess"))
       navigate(`/collections/${collectionId}`)
     } catch {
-      setError(t("itemDetail.deleteFailed"))
+      toast.error(t("itemDetail.deleteFailed"))
       setDeleting(false)
       setDeleteOpen(false)
     }
@@ -356,11 +379,12 @@ export default function CatalogItemDetail() {
           })
         )
         if (uploadResults.some((r) => !r.ok)) {
-          setCopyError(t("ownedCopy.imageUploadFailed"))
+          toast.error(t("ownedCopy.imageUploadFailed"))
         }
       }
 
       setCopyDialogOpen(false)
+      toast.success(editingCopy ? t("ownedCopy.updateSuccess") : t("ownedCopy.addSuccess"))
       await fetchCopies()
     } catch (err) {
       setCopyError(err instanceof Error ? err.message : t("ownedCopy.saveFailed"))
@@ -380,24 +404,103 @@ export default function CatalogItemDetail() {
       if (!res.ok) throw new Error("Failed")
       setDeleteCopyOpen(false)
       setCopyToDelete(null)
+      toast.success(t("ownedCopy.deleteSuccess"))
       await fetchCopies()
     } catch {
-      setCopyError(t("ownedCopy.deleteFailed"))
+      toast.error(t("ownedCopy.deleteFailed"))
       setDeletingCopy(false)
       setDeleteCopyOpen(false)
     }
   }
 
   function formatCondition(condition: string): string {
-    // Convert NearMint -> Near Mint, etc.
     return condition.replace(/([a-z])([A-Z])/g, "$1 $2")
   }
 
+  function formatDate(dateStr: string): string {
+    try {
+      return new Date(dateStr).toLocaleDateString(undefined, {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+      })
+    } catch {
+      return dateStr
+    }
+  }
+
+  function renderCustomFieldValue(field: CustomFieldDefinition | undefined, value: string) {
+    if (!field) return <span className="text-sm text-foreground">{value}</span>
+
+    switch (field.type) {
+      case "boolean":
+        return value === "true" ? (
+          <Check className="h-4 w-4 text-success" />
+        ) : (
+          <X className="h-4 w-4 text-muted-foreground" />
+        )
+      case "date":
+        return <span className="text-sm text-foreground">{formatDate(value)}</span>
+      case "enum":
+        return <Badge variant="outline" size="sm">{value}</Badge>
+      default:
+        return <span className="text-sm text-foreground">{value}</span>
+    }
+  }
+
+  // Skeleton loading state
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-12">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
-      </div>
+      <FadeIn>
+        <div className="space-y-6">
+          {/* Breadcrumb skeleton */}
+          <SkeletonRect width="240px" height="16px" />
+
+          {/* Hero skeleton */}
+          <div className="grid gap-8 lg:grid-cols-5">
+            <div className="lg:col-span-2">
+              <SkeletonRect className="aspect-square w-full rounded-lg" />
+            </div>
+            <div className="lg:col-span-3 space-y-4">
+              <SkeletonRect width="60%" height="32px" />
+              <SkeletonRect width="40%" height="20px" />
+              <div className="flex gap-2 mt-4">
+                <SkeletonRect width="80px" height="36px" className="rounded-md" />
+                <SkeletonRect width="80px" height="36px" className="rounded-md" />
+                <SkeletonRect width="100px" height="36px" className="rounded-md" />
+              </div>
+              <div className="mt-6">
+                <SkeletonText lines={3} />
+              </div>
+            </div>
+          </div>
+
+          {/* Fields skeleton */}
+          <Card variant="flat">
+            <CardContent className="p-6">
+              <SkeletonRect width="120px" height="20px" className="mb-4" />
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {Array.from({ length: 4 }).map((_, i) => (
+                  <div key={i} className="space-y-2">
+                    <SkeletonRect width="80px" height="12px" />
+                    <SkeletonRect width="120px" height="16px" />
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Copies skeleton */}
+          <div>
+            <SkeletonRect width="160px" height="24px" className="mb-4" />
+            <div className="grid gap-4 sm:grid-cols-2">
+              {Array.from({ length: 2 }).map((_, i) => (
+                <SkeletonRect key={i} className="h-40 rounded-lg" />
+              ))}
+            </div>
+          </div>
+        </div>
+      </FadeIn>
     )
   }
 
@@ -406,147 +509,203 @@ export default function CatalogItemDetail() {
       <div className="text-center py-12">
         <p className="text-muted-foreground">{t("itemDetail.notFound")}</p>
         <Button variant="outline" className="mt-4" onClick={() => navigate(`/collections/${collectionId}`)}>
-          <ArrowLeft className="h-4 w-4" />
           {t("itemDetail.backToCollection")}
         </Button>
       </div>
     )
   }
 
+  const fieldDefinitionMap = new Map(
+    (collectionType?.customFields ?? []).map((f) => [f.name, f])
+  )
+
   return (
-    <div>
-      {/* Back button */}
-      <Button
-        variant="ghost"
-        size="sm"
-        className="mb-4"
-        onClick={() => navigate(`/collections/${collectionId}`)}
-      >
-        <ArrowLeft className="h-4 w-4" />
-        {t("itemDetail.backToCollection")}
-      </Button>
+    <FadeIn>
+      <div className="space-y-6">
+        {/* Breadcrumb navigation */}
+        <nav className="flex items-center gap-1.5 text-sm text-muted-foreground">
+          <Link
+            to="/collections"
+            className="hover:text-foreground transition-colors"
+          >
+            {t("nav.collections")}
+          </Link>
+          <ChevronRight className="h-3.5 w-3.5" />
+          <Link
+            to={`/collections/${collectionId}`}
+            className="hover:text-foreground transition-colors"
+          >
+            {collection?.name ?? t("itemDetail.backToCollection")}
+          </Link>
+          <ChevronRight className="h-3.5 w-3.5" />
+          <span className="text-foreground font-medium truncate max-w-[200px]">
+            {item.name}
+          </span>
+        </nav>
 
-      {error && (
-        <div className="mb-4 rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive-foreground">
-          {error}
-        </div>
-      )}
-
-      <div className="grid gap-6 lg:grid-cols-3">
-        {/* Left: Image */}
-        <div className="lg:col-span-1">
-          <div className="overflow-hidden rounded-lg border bg-card">
-            <div className="aspect-square bg-muted">
-              {item.image ? (
-                <img
-                  src={item.image}
-                  alt={item.name}
-                  className="h-full w-full object-cover"
-                />
-              ) : (
-                <div className="flex h-full items-center justify-center">
-                  <Image className="h-16 w-16 text-muted-foreground/40" />
-                </div>
-              )}
-            </div>
+        {/* Hero section */}
+        <div className="grid gap-8 lg:grid-cols-5">
+          {/* Left: Image */}
+          <div className="lg:col-span-2">
+            <Card variant="flat" className="overflow-hidden">
+              <div className="aspect-square bg-muted">
+                {item.image ? (
+                  <img
+                    src={item.image}
+                    alt={item.name}
+                    className="h-full w-full object-cover"
+                    loading="lazy"
+                  />
+                ) : (
+                  <div className="flex h-full items-center justify-center">
+                    <Image className="h-16 w-16 text-muted-foreground/30" />
+                  </div>
+                )}
+              </div>
+            </Card>
           </div>
-        </div>
 
-        {/* Right: Details */}
-        <div className="lg:col-span-2 space-y-6">
-          {/* Header + actions */}
-          <div className="flex items-start justify-between gap-4">
+          {/* Right: Item name, identifier, actions */}
+          <div className="lg:col-span-3 space-y-4">
             <div>
-              <h1 className="text-2xl font-bold tracking-tight">{item.name}</h1>
-              <p className="mt-1 text-sm text-muted-foreground">{item.identifier}</p>
+              <h1 className="font-display text-3xl font-bold tracking-tight text-foreground">
+                {item.name}
+              </h1>
+              <p className="mt-1 text-base text-muted-foreground">{item.identifier}</p>
             </div>
-            <div className="flex gap-2">
+
+            {/* Action buttons */}
+            <div className="flex flex-wrap gap-2">
               <Button variant="outline" size="sm" onClick={openEdit}>
-                <Pencil className="h-4 w-4" />
+                <Pencil className="h-4 w-4 mr-1.5" />
                 {t("itemDetail.edit")}
               </Button>
-              <Button variant="outline" size="sm" onClick={() => setDeleteOpen(true)} className="text-destructive hover:text-destructive">
-                <Trash2 className="h-4 w-4" />
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setDeleteOpen(true)}
+                className="text-destructive hover:text-destructive"
+              >
+                <Trash2 className="h-4 w-4 mr-1.5" />
                 {t("itemDetail.delete")}
               </Button>
+              <Button size="sm" className="bg-accent text-accent-foreground hover:bg-accent/90" onClick={openAddCopy}>
+                <Plus className="h-4 w-4 mr-1.5" />
+                {t("ownedCopy.add")}
+              </Button>
             </div>
-          </div>
 
-          {/* Core fields */}
-          <div className="rounded-lg border bg-card p-4 space-y-3">
+            {/* Description */}
             {item.description && (
-              <div>
-                <span className="text-xs font-medium text-muted-foreground">{t("collectionDetail.descriptionLabel")}</span>
-                <p className="text-sm">{item.description}</p>
+              <div className="pt-2">
+                <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1.5">
+                  {t("collectionDetail.descriptionLabel")}
+                </h3>
+                <p className="text-sm leading-relaxed text-foreground">{item.description}</p>
               </div>
             )}
-            <div className="grid gap-3 sm:grid-cols-2">
+
+            {/* Core info fields */}
+            <div className="grid gap-x-6 gap-y-3 sm:grid-cols-2">
               {item.manufacturer && (
                 <div>
-                  <span className="text-xs font-medium text-muted-foreground">{t("collectionDetail.manufacturerLabel")}</span>
-                  <p className="text-sm">{item.manufacturer}</p>
+                  <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    {t("collectionDetail.manufacturerLabel")}
+                  </span>
+                  <p className="text-sm text-foreground mt-0.5">{item.manufacturer}</p>
                 </div>
               )}
               {item.releaseDate && (
                 <div>
-                  <span className="text-xs font-medium text-muted-foreground">{t("collectionDetail.releaseDateLabel")}</span>
-                  <p className="text-sm">{item.releaseDate}</p>
+                  <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    {t("collectionDetail.releaseDateLabel")}
+                  </span>
+                  <p className="text-sm text-foreground mt-0.5 flex items-center gap-1.5">
+                    <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
+                    {formatDate(item.releaseDate)}
+                  </p>
                 </div>
               )}
               {item.referenceCode && (
                 <div>
-                  <span className="text-xs font-medium text-muted-foreground">{t("collectionDetail.referenceCodeLabel")}</span>
-                  <p className="text-sm">{item.referenceCode}</p>
+                  <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    {t("collectionDetail.referenceCodeLabel")}
+                  </span>
+                  <p className="text-sm text-foreground mt-0.5">{item.referenceCode}</p>
                 </div>
               )}
               {item.rarity && (
                 <div>
-                  <span className="text-xs font-medium text-muted-foreground">{t("collectionDetail.rarityLabel")}</span>
-                  <p className="text-sm">{item.rarity}</p>
+                  <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    {t("collectionDetail.rarityLabel")}
+                  </span>
+                  <p className="mt-0.5">
+                    <Badge variant="accent" size="sm">{item.rarity}</Badge>
+                  </p>
                 </div>
               )}
             </div>
           </div>
+        </div>
 
-          {/* Custom field values */}
-          {item.customFieldValues && item.customFieldValues.length > 0 && (
-            <div className="rounded-lg border bg-card p-4">
-              <h3 className="text-sm font-semibold mb-3">{t("collectionDetail.customFields")}</h3>
-              <div className="grid gap-3 sm:grid-cols-2">
+        {/* Custom field values */}
+        {item.customFieldValues && item.customFieldValues.length > 0 && (
+          <Card variant="flat">
+            <CardContent className="p-6">
+              <h3 className="font-display text-base font-semibold mb-4">{t("collectionDetail.customFields")}</h3>
+              <div className="grid gap-x-6 gap-y-4 sm:grid-cols-2 lg:grid-cols-3">
                 {item.customFieldValues.map((fv) => (
                   <div key={fv.name}>
-                    <span className="text-xs font-medium text-muted-foreground">{fv.name}</span>
-                    <p className="text-sm">{fv.value}</p>
+                    <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                      {fv.name}
+                    </span>
+                    <div className="mt-1">
+                      {renderCustomFieldValue(fieldDefinitionMap.get(fv.name), fv.value)}
+                    </div>
                   </div>
                 ))}
               </div>
-            </div>
-          )}
+            </CardContent>
+          </Card>
+        )}
 
-          {/* Owned copies */}
-          <div>
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-lg font-semibold">{t("itemDetail.ownedCopies")}</h3>
-              <Button size="sm" onClick={openAddCopy}>
-                <Plus className="h-4 w-4" />
+        {/* Owned copies */}
+        <div>
+          <PageHeader
+            title={t("itemDetail.ownedCopies")}
+            actions={
+              <Button size="sm" className="bg-accent text-accent-foreground hover:bg-accent/90" onClick={openAddCopy}>
+                <Plus className="h-4 w-4 mr-1.5" />
                 {t("ownedCopy.add")}
               </Button>
-            </div>
-            {copies.length === 0 ? (
-              <div className="rounded-lg border bg-card p-6 text-center">
-                <Package className="mx-auto h-10 w-10 text-muted-foreground/40" />
-                <p className="mt-2 text-sm text-muted-foreground">{t("itemDetail.noCopies")}</p>
+            }
+            className="mb-4"
+          />
+          {copies.length === 0 ? (
+            <Card variant="flat" className="py-8">
+              <div className="flex flex-col items-center justify-center text-center px-4">
+                <Package className="h-10 w-10 text-muted-foreground/30 mb-3" />
+                <p className="text-sm text-muted-foreground">{t("itemDetail.noCopies")}</p>
               </div>
-            ) : (
-              <div className="space-y-3">
-                {copies.map((copy) => (
-                  <div key={copy.id} className="rounded-lg border bg-card p-4">
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <span className="inline-block rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-medium text-primary">
-                          {formatCondition(copy.condition)}
-                        </span>
-                      </div>
+            </Card>
+          ) : (
+            <div className="grid gap-4 sm:grid-cols-2">
+              {copies.map((copy) => (
+                <Card key={copy.id} variant="flat">
+                  <CardContent className="p-5">
+                    <div className="flex items-start justify-between mb-3">
+                      <Badge
+                        variant={
+                          copy.condition === "Mint" || copy.condition === "NearMint"
+                            ? "success"
+                            : copy.condition === "Excellent" || copy.condition === "Good"
+                              ? "primary"
+                              : "warning"
+                        }
+                        size="sm"
+                      >
+                        {formatCondition(copy.condition)}
+                      </Badge>
                       <div className="flex gap-1">
                         <Button variant="ghost" size="sm" onClick={() => openEditCopy(copy)}>
                           <Pencil className="h-3.5 w-3.5" />
@@ -561,23 +720,24 @@ export default function CatalogItemDetail() {
                         </Button>
                       </div>
                     </div>
-                    <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+
+                    <div className="grid gap-3 sm:grid-cols-2">
                       {copy.purchasePrice != null && (
                         <div>
                           <span className="text-xs font-medium text-muted-foreground">{t("itemDetail.purchasePrice")}</span>
-                          <p className="text-sm">${copy.purchasePrice.toFixed(2)}</p>
+                          <p className="text-sm font-medium">${copy.purchasePrice.toFixed(2)}</p>
                         </div>
                       )}
                       {copy.estimatedValue != null && (
                         <div>
                           <span className="text-xs font-medium text-muted-foreground">{t("itemDetail.estimatedValue")}</span>
-                          <p className="text-sm">${copy.estimatedValue.toFixed(2)}</p>
+                          <p className="text-sm font-medium">${copy.estimatedValue.toFixed(2)}</p>
                         </div>
                       )}
                       {copy.acquisitionDate && (
                         <div>
                           <span className="text-xs font-medium text-muted-foreground">{t("itemDetail.acquisitionDate")}</span>
-                          <p className="text-sm">{copy.acquisitionDate}</p>
+                          <p className="text-sm">{formatDate(copy.acquisitionDate)}</p>
                         </div>
                       )}
                       {copy.acquisitionSource && (
@@ -587,29 +747,32 @@ export default function CatalogItemDetail() {
                         </div>
                       )}
                     </div>
+
                     {copy.notes && (
-                      <div className="mt-2">
+                      <div className="mt-3 pt-3 border-t border-border">
                         <span className="text-xs font-medium text-muted-foreground">{t("itemDetail.notes")}</span>
-                        <p className="text-sm">{copy.notes}</p>
+                        <p className="text-sm mt-0.5">{copy.notes}</p>
                       </div>
                     )}
+
                     {copy.images.length > 0 && (
-                      <div className="mt-3 flex gap-2 flex-wrap">
+                      <div className="mt-3 pt-3 border-t border-border flex gap-2 flex-wrap">
                         {copy.images.map((img, idx) => (
                           <img
                             key={idx}
                             src={img}
                             alt={`${t("ownedCopy.imageAlt")} ${idx + 1}`}
-                            className="h-20 w-20 rounded border object-cover"
+                            className="h-16 w-16 rounded-md border object-cover"
+                            loading="lazy"
                           />
                         ))}
                       </div>
                     )}
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
@@ -791,6 +954,7 @@ export default function CatalogItemDetail() {
                 {t("collectionDetail.cancel")}
               </Button>
               <Button type="submit" disabled={submitting}>
+                {submitting && <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />}
                 {submitting ? t("collectionDetail.saving") : t("collectionDetail.save")}
               </Button>
             </div>
@@ -939,6 +1103,7 @@ export default function CatalogItemDetail() {
                 {t("collectionDetail.cancel")}
               </Button>
               <Button type="submit" disabled={copySubmitting}>
+                {copySubmitting && <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />}
                 {copySubmitting ? t("collectionDetail.saving") : t("collectionDetail.save")}
               </Button>
             </div>
@@ -958,6 +1123,6 @@ export default function CatalogItemDetail() {
         loading={deletingCopy}
         onConfirm={handleDeleteCopy}
       />
-    </div>
+    </FadeIn>
   )
 }

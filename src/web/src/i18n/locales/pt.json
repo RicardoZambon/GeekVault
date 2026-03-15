@@ -242,7 +242,9 @@
     "estimatedValue": "Valor Estimado",
     "acquisitionDate": "Data de Aquisição",
     "acquisitionSource": "Origem",
-    "notes": "Notas"
+    "notes": "Notas",
+    "updateSuccess": "Item atualizado com sucesso",
+    "deleteSuccess": "Item excluído com sucesso"
   },
   "ownedCopy": {
     "add": "Adicionar Cópia",
@@ -260,7 +262,10 @@
     "deleteTitle": "Excluir Cópia Possuída",
     "deleteConfirm": "Tem certeza de que deseja excluir esta cópia possuída?",
     "deleting": "Excluindo...",
-    "deleteFailed": "Falha ao excluir cópia possuída"
+    "deleteFailed": "Falha ao excluir cópia possuída",
+    "updateSuccess": "Cópia atualizada com sucesso",
+    "addSuccess": "Cópia adicionada com sucesso",
+    "deleteSuccess": "Cópia excluída com sucesso"
   },
   "sets": {
     "title": "Conjuntos",
