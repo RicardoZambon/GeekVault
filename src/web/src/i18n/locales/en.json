@@ -357,6 +357,7 @@
     "loggingIn": "Signing in...",
     "loginFailed": "Invalid email or password",
     "welcomeBack": "Welcome back",
+    "createYourVault": "Create your vault",
     "tagline": "Your ultimate collectible management vault. Track, organize, and showcase everything you love.",
     "register": "Create account",
     "registerDescription": "Create a new account to get started",
