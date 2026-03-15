@@ -117,7 +117,7 @@ export function Sidebar() {
       </div>
 
       {/* Navigation */}
-      <nav className={cn("flex-1 overflow-y-auto", collapsed ? "p-1.5" : "p-2")}>
+      <nav className={cn("flex-1 overflow-y-auto", collapsed ? "p-3" : "p-2")}>
         <div className={cn("flex flex-col", collapsed ? "gap-0" : "gap-4")}>
           {navGroups.map((group, groupIndex) => (
             <div key={group.labelKey} className="flex flex-col gap-1">
@@ -138,8 +138,8 @@ export function Sidebar() {
                     end={item.to === "/"}
                     className={({ isActive }) =>
                       cn(
-                        "rounded-lg font-medium transition-colors relative border-l-[3px]",
-                        collapsed ? "flex items-center justify-center w-full h-[48px] text-base" : "flex items-center gap-3 px-3 min-h-[44px] text-sm",
+                        "font-medium transition-colors relative border-l-[3px]",
+                        collapsed ? "flex items-center justify-center h-[48px] rounded-md" : "flex items-center gap-3 px-3 min-h-[44px] text-sm rounded-lg",
                         isActive
                           ? "bg-sidebar-accent text-sidebar-accent-foreground border-sidebar-primary"
                           : "border-transparent text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground"
