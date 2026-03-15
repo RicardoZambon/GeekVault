@@ -1,6 +1,7 @@
 {
   "app": {
-    "name": "GeekVault"
+    "name": "GeekVault",
+    "tagline": "Collection Manager"
   },
   "nav": {
     "dashboard": "Dashboard",
@@ -12,7 +13,27 @@
     "toggleTheme": "Toggle theme",
     "logout": "Logout",
     "expandSidebar": "Expand sidebar",
-    "collapseSidebar": "Collapse sidebar"
+    "collapseSidebar": "Collapse sidebar",
+    "groups": {
+      "overview": "Overview",
+      "collections": "Collections",
+      "account": "Account"
+    },
+    "userMenu": {
+      "settings": "Settings",
+      "help": "Help",
+      "profile": "Profile",
+      "logout": "Logout"
+    }
+  },
+  "toolbar": {
+    "search": "Search collections...",
+    "help": "Help",
+    "helpComingSoon": "Coming soon",
+    "notifications": "Notifications",
+    "noNotifications": "No notifications",
+    "shortcut": "{{key}}",
+    "userMenu": "Open user menu"
   },
   "dashboard": {
     "title": "Dashboard",

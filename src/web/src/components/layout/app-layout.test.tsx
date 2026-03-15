@@ -11,6 +11,10 @@ vi.mock("./header", () => ({
   Header: () => <div data-testid="header">Header</div>,
 }))
 
+vi.mock("./top-toolbar", () => ({
+  TopToolbar: () => <div data-testid="top-toolbar">Top Toolbar</div>,
+}))
+
 vi.mock("./command-palette", () => ({
   CommandPalette: () => <div data-testid="command-palette">Command Palette</div>,
 }))
@@ -36,6 +40,15 @@ describe("AppLayout", () => {
       </MemoryRouter>
     )
     expect(screen.getByTestId("header")).toBeInTheDocument()
+  })
+
+  it("renders top toolbar", () => {
+    render(
+      <MemoryRouter>
+        <AppLayout />
+      </MemoryRouter>
+    )
+    expect(screen.getByTestId("top-toolbar")).toBeInTheDocument()
   })
 
   it("renders main content area with animated outlet", () => {

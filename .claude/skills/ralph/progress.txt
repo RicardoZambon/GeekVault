@@ -1,0 +1,175 @@
+## Codebase Patterns
+- i18n: All UI strings go in both `src/web/src/i18n/locales/en.json` and `pt.json` — nested keys under feature namespaces
+- Typecheck: `cd src/web && npx tsc -b` must pass before committing
+- Frontend tests: `cd src/web && npm test` to run all tests
+
+---
+
+## 2026-03-15 - US-001
+- Added i18n keys for sidebar and toolbar redesign to both en.json and pt.json
+- Keys added: `app.tagline`, `nav.groups.*`, `nav.userMenu.*`, `toolbar.*`
+- Files changed: `src/web/src/i18n/locales/en.json`, `src/web/src/i18n/locales/pt.json`
+- **Learnings for future iterations:**
+  - The locale files are plain JSON with nested namespaces — follow existing grouping conventions
+  - Both locale files must stay in sync — same keys, translated values
+---
+
+## 2026-03-15 - US-002
+- DropdownMenu component already existed at `src/web/src/components/ds/dropdown-menu.tsx`
+- It wraps `@radix-ui/react-dropdown-menu` (already installed) and exports all required primitives
+- Barrel export in `ds/index.ts` already includes all DropdownMenu exports
+- No code changes needed — verified existing implementation meets all acceptance criteria
+- Files changed: none (just PRD update)
+- **Learnings for future iterations:**
+  - The `components/ds/` directory is where shadcn/ui-style components live (not `components/ui/`)
+  - `components/ui/` has lower-level primitives (button, dialog, input, label, sheet)
+  - Always check existing components before creating new ones — the PRD notes hint at this
+---
+
+## 2026-03-15 - US-003
+- Replaced flat `navItems` array with exported `navGroups: NavGroup[]` structure in sidebar.tsx
+- Three groups: Overview (Dashboard), Collections (Collections, Collection Types, Wishlist), Account (Profile)
+- Both `Sidebar` and `MobileSidebarContent` now iterate over `navGroups` instead of `navItems`
+- Added `NavItem` and `NavGroup` interfaces
+- No functional changes — same nav items render in the same order
+- Files changed: `src/web/src/components/layout/sidebar.tsx`
+- **Learnings for future iterations:**
+  - `navGroups` is exported from sidebar.tsx for shared use
+  - Each group has a `labelKey` (i18n) and `items` array
+  - Both desktop and mobile sidebar components consume the same data structure
+---
+
+## 2026-03-15 - US-004
+- Rebuilt sidebar header to show vault icon + "GeekVault" title (font-display) + tagline subtitle (i18n `app.tagline`)
+- Header height changed from h-14 to h-[72px] with proper vertical centering
+- Collapsed mode shows only vault icon centered; expanded shows icon + text block with gap-3
+- Removed logoFull image usage from desktop sidebar (still used by MobileSidebarContent)
+- Files changed: `src/web/src/components/layout/sidebar.tsx`
+- **Learnings for future iterations:**
+  - `font-display` maps to Nunito font (defined in index.css as `--font-display`)
+  - `vaultIcon` asset is the small square icon, `logoFull` is the full horizontal logo image
+  - Sidebar header and top toolbar should both be h-[72px] for visual alignment
+---
+
+## 2026-03-15 - US-005
+- Updated sidebar dimensions: expanded w-[260px], collapsed w-[72px]
+- Nav items now min-h-[44px] for comfortable touch targets
+- Icons increased from h-4 w-4 to h-5 w-5 for all nav items
+- Gap between navigation groups changed to gap-4 (16px)
+- Applied to both Sidebar and MobileSidebarContent
+- Files changed: `src/web/src/components/layout/sidebar.tsx`
+- **Learnings for future iterations:**
+  - Sidebar widths are only defined in sidebar.tsx — no external references to update
+  - The nav group wrapping div with gap-4 also prepares for group labels in US-006
+---
+
+## 2026-03-15 - US-006
+- Added group labels (text-xs, uppercase, muted) above each navigation group in expanded mode
+- Collapsed mode shows thin horizontal separator lines between groups instead of labels
+- Mobile sidebar also shows group labels (always expanded)
+- Files changed: `src/web/src/components/layout/sidebar.tsx`
+- **Learnings for future iterations:**
+  - Collapsed mode uses border-t separators between groups instead of text labels
+  - Group labels use `font-semibold uppercase text-sidebar-foreground/50`
+- Edge collapse toggle uses `group/sidebar` on aside + `group-hover/sidebar:opacity-100` pattern for hover-reveal
+
+---
+
+## 2026-03-15 - US-007
+- Active nav item now has 3px left border (border-l-[3px]) instead of 2px
+- Active icon colored with sidebar-primary color
+- Hover state uses lighter bg (bg-sidebar-accent/50) without left border — distinct from active
+- Used NavLink render function children pattern to conditionally color icons
+- Applied to both Sidebar and MobileSidebarContent
+- Files changed: `src/web/src/components/layout/sidebar.tsx`
+- **Learnings for future iterations:**
+  - NavLink in react-router-dom v7 supports both `className` and `children` as render functions simultaneously
+  - Use `{({ isActive }) => (...)}` as children to conditionally style inner elements
+---
+
+## 2026-03-15 - US-008
+- All acceptance criteria already met by previous stories (US-005, US-006, US-007)
+- Collapsed width 72px, centered icons h-5 w-5, tooltips on right, active state with bg + 3px border + colored icon, group separators
+- No code changes needed
+- Files changed: none (just PRD update)
+---
+
+## 2026-03-15 - US-009
+- Removed logout button from both desktop Sidebar and MobileSidebarContent
+- Removed bottom collapse/expand chevron button
+- Added hover-reveal chevron at sidebar right edge, vertically centered (absolute positioning)
+- Used `group/sidebar` + `group-hover/sidebar:opacity-100` for hover reveal
+- Removed unused imports: LogOut, useNavigate; removed handleLogout from both components
+- Files changed: `src/web/src/components/layout/sidebar.tsx`
+- **Learnings for future iterations:**
+  - Logout will be in the user profile dropdown (US-010)
+  - The edge toggle uses absolute positioning with translate-x-1/2 to sit on the sidebar edge
+  - `group/sidebar` is a named Tailwind group for scoped hover
+- UserMenu shared component at `src/web/src/components/layout/user-menu.tsx` — reusable in toolbar and sidebar
+---
+
+## 2026-03-15 - US-010
+- Created shared `UserMenu` component at `components/layout/user-menu.tsx`
+- UserMenu wraps DropdownMenu with: user name/email label, Profile, Settings (disabled), Help (disabled), Logout
+- Desktop sidebar user block is now clickable and opens UserMenu dropdown
+- Collapsed sidebar shows avatar icon, clicks open the same dropdown
+- Mobile sidebar updated with same UserMenu dropdown
+- Email shown in both expanded profile block and dropdown label
+- Files changed: `src/web/src/components/layout/user-menu.tsx` (new), `src/web/src/components/layout/sidebar.tsx`
+- **Learnings for future iterations:**
+  - UserMenu accepts `side` and `align` props for positioning flexibility
+  - Uses `children` as trigger via DropdownMenuTrigger asChild
+  - Settings and Help items are disabled with opacity-50 and cursor-not-allowed
+---
+
+## 2026-03-15 - US-011
+- Created `TopToolbar` component at `components/layout/top-toolbar.tsx`
+- Empty shell: 72px height, bottom border, hidden on mobile (md:flex), horizontal padding
+- Integrated into `app-layout.tsx` between Header and main content
+- Files changed: `src/web/src/components/layout/top-toolbar.tsx` (new), `src/web/src/components/layout/app-layout.tsx`
+---
+
+## 2026-03-15 - US-012
+- Added search trigger button to top toolbar left side
+- 280px wide, rounded with search icon, placeholder text from i18n, kbd shortcut hint
+- Opens command palette by dispatching Ctrl+K keyboard event
+- Detects Mac vs other platform for shortcut display (⌘K vs Ctrl+K)
+- Files changed: `src/web/src/components/layout/top-toolbar.tsx`
+- **Learnings for future iterations:**
+  - Command palette opens via dispatching `new KeyboardEvent("keydown", { key: "k", metaKey: true })` on document
+  - Use `navigator.platform` to detect Mac for keyboard shortcut display
+---
+
+## 2026-03-15 - US-013
+- Added right-side toolbar icons: Help (tooltip), Notifications (dropdown), Language toggle, Theme toggle, User avatar menu
+- Layout order: Help | Notifications | Language | Theme | User
+- Reuses shared UserMenu component from US-010
+- Help shows "Coming soon" tooltip, Notifications shows "No notifications" dropdown
+- Language/theme toggles follow same pattern as mobile header
+- All buttons use ghost variant with size="icon"
+- Files changed: `src/web/src/components/layout/top-toolbar.tsx`
+---
+
+## 2026-03-15 - US-014
+- All acceptance criteria already met by prior stories (US-003, US-006, US-009, US-010)
+- MobileSidebarContent has grouped nav with labels, UserMenu dropdown, no standalone logout
+- No code changes needed
+---
+
+## 2026-03-15 - US-015
+- Updated `sidebar.test.tsx`: added DropdownMenu mocks to `@/components/ds` mock, added `./user-menu` mock, removed logout assertions, updated logo test to check vault icon + brand text, added group label assertions
+- Updated `app-layout.test.tsx`: added TopToolbar mock, added toolbar render test
+- Removed obsolete test: "handles logout click" (logout now in UserMenu dropdown)
+- All 494 tests pass
+- Files changed: `src/web/src/components/layout/sidebar.test.tsx`, `src/web/src/components/layout/app-layout.test.tsx`
+- **Learnings for future iterations:**
+  - When adding new components used by tested components, add mocks to the test file
+  - Mock UserMenu as passthrough `({ children }) => <>{children}</>` to test the trigger UI without dropdown internals
+---
+
+## 2026-03-15 - US-016
+- Created `top-toolbar.test.tsx` with 7 tests: search trigger, keyboard event dispatch, help icon, notifications, language toggle, theme toggle, user avatar
+- Created `user-menu.test.tsx` with 5 tests: trigger rendering, user name/email display, menu items present, Profile navigation, Logout with logout+navigate
+- All 506 tests pass across 37 test files
+- Files changed: `src/web/src/components/layout/top-toolbar.test.tsx` (new), `src/web/src/components/layout/user-menu.test.tsx` (new)
+---
