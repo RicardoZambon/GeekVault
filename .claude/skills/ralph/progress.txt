@@ -155,3 +155,14 @@
 - MobileSidebarContent has grouped nav with labels, UserMenu dropdown, no standalone logout
 - No code changes needed
 ---
+
+## 2026-03-15 - US-015
+- Updated `sidebar.test.tsx`: added DropdownMenu mocks to `@/components/ds` mock, added `./user-menu` mock, removed logout assertions, updated logo test to check vault icon + brand text, added group label assertions
+- Updated `app-layout.test.tsx`: added TopToolbar mock, added toolbar render test
+- Removed obsolete test: "handles logout click" (logout now in UserMenu dropdown)
+- All 494 tests pass
+- Files changed: `src/web/src/components/layout/sidebar.test.tsx`, `src/web/src/components/layout/app-layout.test.tsx`
+- **Learnings for future iterations:**
+  - When adding new components used by tested components, add mocks to the test file
+  - Mock UserMenu as passthrough `({ children }) => <>{children}</>` to test the trigger UI without dropdown internals
+---

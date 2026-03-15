@@ -3,11 +3,9 @@ import { render, screen, fireEvent, act } from "@testing-library/react"
 import { MemoryRouter } from "react-router-dom"
 import { Sidebar, MobileSidebarContent } from "./sidebar"
 
-const mockNavigate = vi.fn()
-
 vi.mock("react-router-dom", async () => {
   const actual = await vi.importActual("react-router-dom")
-  return { ...actual, useNavigate: () => mockNavigate }
+  return { ...actual, useNavigate: () => vi.fn() }
 })
 
 vi.mock("@/components/auth-provider", () => ({
@@ -36,6 +34,16 @@ vi.mock("@/components/ds", () => ({
   Tooltip: ({ children }: any) => <>{children}</>,
   TooltipTrigger: ({ children }: any) => <>{children}</>,
   TooltipContent: ({ children }: any) => <span>{children}</span>,
+  DropdownMenu: ({ children }: any) => <>{children}</>,
+  DropdownMenuTrigger: ({ children }: any) => <>{children}</>,
+  DropdownMenuContent: ({ children }: any) => <div>{children}</div>,
+  DropdownMenuItem: ({ children, ...props }: any) => <button {...props}>{children}</button>,
+  DropdownMenuSeparator: () => <hr />,
+  DropdownMenuLabel: ({ children }: any) => <div>{children}</div>,
+}))
+
+vi.mock("./user-menu", () => ({
+  UserMenu: ({ children }: any) => <>{children}</>,
 }))
 
 vi.mock("@/assets/logo-full.png", () => ({ default: "logo-full.png" }))
@@ -60,6 +68,17 @@ describe("Sidebar", () => {
     expect(screen.getByText("nav.profile")).toBeInTheDocument()
   })
 
+  it("renders group labels", () => {
+    render(
+      <MemoryRouter>
+        <Sidebar />
+      </MemoryRouter>
+    )
+    expect(screen.getByText("nav.groups.overview")).toBeInTheDocument()
+    expect(screen.getByText("nav.groups.collections")).toBeInTheDocument()
+    expect(screen.getByText("nav.groups.account")).toBeInTheDocument()
+  })
+
   it("renders user display name and initials", () => {
     render(
       <MemoryRouter>
@@ -70,17 +89,19 @@ describe("Sidebar", () => {
     expect(screen.getByText("JD")).toBeInTheDocument()
   })
 
-  it("renders full logo when expanded (desktop default)", () => {
+  it("renders vault icon and brand text when expanded", () => {
     render(
       <MemoryRouter>
         <Sidebar />
       </MemoryRouter>
     )
     const logo = screen.getByAltText("GeekVault")
-    expect(logo).toHaveAttribute("src", "logo-full.png")
+    expect(logo).toHaveAttribute("src", "vault-icon.png")
+    expect(screen.getByText("GeekVault")).toBeInTheDocument()
+    expect(screen.getByText("app.tagline")).toBeInTheDocument()
   })
 
-  it("toggles collapsed state on toggle button click", () => {
+  it("toggles collapsed state via edge chevron", () => {
     render(
       <MemoryRouter>
         <Sidebar />
@@ -88,7 +109,6 @@ describe("Sidebar", () => {
     )
     const toggleBtn = screen.getByLabelText("nav.collapseSidebar")
     fireEvent.click(toggleBtn)
-    // After collapse, the expand label should appear
     expect(screen.getByLabelText("nav.expandSidebar")).toBeInTheDocument()
   })
 
@@ -119,7 +139,6 @@ describe("Sidebar", () => {
         <Sidebar />
       </MemoryRouter>
     )
-    // Initially expanded
     expect(screen.getByLabelText("nav.collapseSidebar")).toBeInTheDocument()
     act(() => {
       window.dispatchEvent(new Event("toggle-sidebar"))
@@ -127,17 +146,7 @@ describe("Sidebar", () => {
     expect(screen.getByLabelText("nav.expandSidebar")).toBeInTheDocument()
   })
 
-  it("handles logout click", () => {
-    render(
-      <MemoryRouter>
-        <Sidebar />
-      </MemoryRouter>
-    )
-    fireEvent.click(screen.getByText("nav.logout"))
-    expect(mockNavigate).toHaveBeenCalledWith("/login", { replace: true })
-  })
-
-  it("renders collapsed sidebar with vault icon", () => {
+  it("renders collapsed sidebar with vault icon only", () => {
     localStorage.setItem("geekvault-sidebar-collapsed", "true")
     render(
       <MemoryRouter>
@@ -167,6 +176,17 @@ describe("MobileSidebarContent", () => {
     expect(screen.getByText("nav.wishlist")).toBeInTheDocument()
   })
 
+  it("renders group labels", () => {
+    render(
+      <MemoryRouter>
+        <MobileSidebarContent onClose={onClose} />
+      </MemoryRouter>
+    )
+    expect(screen.getByText("nav.groups.overview")).toBeInTheDocument()
+    expect(screen.getByText("nav.groups.collections")).toBeInTheDocument()
+    expect(screen.getByText("nav.groups.account")).toBeInTheDocument()
+  })
+
   it("renders user initials and display name", () => {
     render(
       <MemoryRouter>
@@ -175,17 +195,6 @@ describe("MobileSidebarContent", () => {
     )
     expect(screen.getByText("JD")).toBeInTheDocument()
     expect(screen.getByText("John Doe")).toBeInTheDocument()
-  })
-
-  it("calls onClose and navigates on logout", () => {
-    render(
-      <MemoryRouter>
-        <MobileSidebarContent onClose={onClose} />
-      </MemoryRouter>
-    )
-    fireEvent.click(screen.getByText("nav.logout"))
-    expect(mockNavigate).toHaveBeenCalledWith("/login", { replace: true })
-    expect(onClose).toHaveBeenCalled()
   })
 
   it("renders full logo", () => {

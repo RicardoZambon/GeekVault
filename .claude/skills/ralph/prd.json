@@ -262,7 +262,7 @@
         "Typecheck passes"
       ],
       "priority": 15,
-      "passes": false,
+      "passes": true,
       "notes": "Focus on updating broken assertions. Don't add new component tests here — that's US-016."
     },
     {
