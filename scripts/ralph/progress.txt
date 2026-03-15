@@ -43,6 +43,8 @@ Started: Sun Mar 15 02:52:16 AM UTC 2026
 - View mode toggle persisted per-entity to localStorage: `geekvault-view-{id}` — use same pattern for any page needing grid/table toggle
 - DS Select requires non-empty string values — use `"all"` as sentinel and handle in `updateParam` to delete URL param when selected
 - Accordion pattern: use `AnimatePresence` + `motion.div` with `height: 0/auto` + `opacity: 0/1` for expand/collapse; track expanded IDs in `Set<number>`
+- Drag-and-drop file upload: `onDragOver`/`onDragLeave`/`onDrop` on a div + hidden `<input type="file" ref={fileInputRef}>` + `onClick={() => fileInputRef.current?.click()}`
+- Multi-step wizard: numeric `step` state + step config array `[{ num, label }]` for rendering step indicator with numbered circles and connector lines
 ---
 
 ## 2026-03-15 - US-002
@@ -377,5 +379,23 @@ Started: Sun Mar 15 02:52:16 AM UTC 2026
   - `setDetails` map caches fetched set details to avoid refetching on collapse/expand
   - `group` + `group-hover:opacity-100` pattern used for revealing per-item actions on hover
   - When removing set items from accordion view, must set `selectedSet` before calling `confirmRemoveSetItem` since `handleRemoveSetItem` uses `selectedSet`
+  - No browser testing tools available — manual verification needed
+---
+
+## 2026-03-15 - US-024
+- Redesigned import flow as a multi-step wizard with drag-and-drop file upload
+- Extracted ImportWizard component to `src/features/collections/components/import-wizard.tsx`
+- Step 1: Drag-and-drop zone with dashed border, file icon, size display, click-to-browse fallback
+- Step 2: Preview table with DS Badge for valid/error counts, Back button to re-upload
+- Step 3: Success state with checkmark icon and Done button
+- Step indicator at top showing numbered circles with progress lines (completed steps turn green)
+- Replaced inline error messages with toast notifications
+- Added i18n keys: importNext, importDone, importStepUpload, importStepPreview, importStepConfirm, importDropHere, importOrBrowse, importClickToChange, importConfirmCount, importCompleteToast
+- Files changed: collection-detail-page.tsx (simplified, removed import state/functions), import-wizard.tsx (new), en.json, pt.json
+- **Learnings for future iterations:**
+  - Feature sub-components go in `src/features/{feature}/components/` — import-wizard is first component extracted for collections feature
+  - Drag-and-drop file upload uses `onDragOver`/`onDragLeave`/`onDrop` events with `e.preventDefault()` + hidden `<input type="file">` + `useRef` for click-to-browse
+  - Step wizard pattern: use numeric `step` state (1/2/3) + step config array for rendering indicator
+  - Toast replaces inline error state — cleaner component code, no `importError` state needed
   - No browser testing tools available — manual verification needed
 ---
