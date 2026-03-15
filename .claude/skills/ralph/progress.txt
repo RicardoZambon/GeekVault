@@ -50,3 +50,15 @@
   - `vaultIcon` asset is the small square icon, `logoFull` is the full horizontal logo image
   - Sidebar header and top toolbar should both be h-[72px] for visual alignment
 ---
+
+## 2026-03-15 - US-005
+- Updated sidebar dimensions: expanded w-[260px], collapsed w-[72px]
+- Nav items now min-h-[44px] for comfortable touch targets
+- Icons increased from h-4 w-4 to h-5 w-5 for all nav items
+- Gap between navigation groups changed to gap-4 (16px)
+- Applied to both Sidebar and MobileSidebarContent
+- Files changed: `src/web/src/components/layout/sidebar.tsx`
+- **Learnings for future iterations:**
+  - Sidebar widths are only defined in sidebar.tsx — no external references to update
+  - The nav group wrapping div with gap-4 also prepares for group labels in US-006
+---

@@ -99,7 +99,7 @@ export function Sidebar() {
     <aside
       className={cn(
         "hidden shrink-0 bg-sidebar-background md:flex flex-col transition-all duration-250 ease-in-out",
-        collapsed ? "w-16" : "w-64"
+        collapsed ? "w-[72px]" : "w-[260px]"
       )}
     >
       {/* Logo */}
@@ -124,41 +124,43 @@ export function Sidebar() {
 
       {/* Navigation */}
       <nav className="flex-1 overflow-y-auto p-2">
-        <div className="flex flex-col gap-1">
-          {navGroups.map((group) =>
-            group.items.map((item) => {
-              const link = (
-                <NavLink
-                  key={item.to}
-                  to={item.to}
-                  end={item.to === "/"}
-                  className={({ isActive }) =>
-                    cn(
-                      "flex items-center rounded-lg text-sm font-medium transition-colors relative",
-                      collapsed ? "justify-center px-2 py-2.5" : "gap-3 px-3 py-2",
-                      isActive
-                        ? "bg-sidebar-accent text-sidebar-accent-foreground border-l-2 border-sidebar-primary"
-                        : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground border-l-2 border-transparent"
-                    )
-                  }
-                >
-                  <item.icon className="h-4 w-4 shrink-0" />
-                  {!collapsed && <span>{t(item.labelKey)}</span>}
-                </NavLink>
-              )
-
-              if (collapsed) {
-                return (
-                  <Tooltip key={item.to} delayDuration={0}>
-                    <TooltipTrigger asChild>{link}</TooltipTrigger>
-                    <TooltipContent side="right">{t(item.labelKey)}</TooltipContent>
-                  </Tooltip>
+        <div className="flex flex-col gap-4">
+          {navGroups.map((group) => (
+            <div key={group.labelKey} className="flex flex-col gap-1">
+              {group.items.map((item) => {
+                const link = (
+                  <NavLink
+                    key={item.to}
+                    to={item.to}
+                    end={item.to === "/"}
+                    className={({ isActive }) =>
+                      cn(
+                        "flex items-center rounded-lg text-sm font-medium transition-colors relative min-h-[44px]",
+                        collapsed ? "justify-center px-2" : "gap-3 px-3",
+                        isActive
+                          ? "bg-sidebar-accent text-sidebar-accent-foreground border-l-2 border-sidebar-primary"
+                          : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground border-l-2 border-transparent"
+                      )
+                    }
+                  >
+                    <item.icon className="h-5 w-5 shrink-0" />
+                    {!collapsed && <span>{t(item.labelKey)}</span>}
+                  </NavLink>
                 )
-              }
 
-              return link
-            })
-          )}
+                if (collapsed) {
+                  return (
+                    <Tooltip key={item.to} delayDuration={0}>
+                      <TooltipTrigger asChild>{link}</TooltipTrigger>
+                      <TooltipContent side="right">{t(item.labelKey)}</TooltipContent>
+                    </Tooltip>
+                  )
+                }
+
+                return link
+              })}
+            </div>
+          ))}
         </div>
       </nav>
 
@@ -260,28 +262,30 @@ export function MobileSidebarContent({ onClose }: { onClose: () => void }) {
 
       {/* Navigation */}
       <nav className="flex-1 overflow-y-auto p-4">
-        <div className="flex flex-col gap-1">
-          {navGroups.map((group) =>
-            group.items.map((item) => (
-              <NavLink
-                key={item.to}
-                to={item.to}
-                end={item.to === "/"}
-                onClick={onClose}
-                className={({ isActive }) =>
-                  cn(
-                    "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors border-l-2",
-                    isActive
-                      ? "bg-sidebar-accent text-sidebar-accent-foreground border-sidebar-primary"
-                      : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground border-transparent"
-                  )
-                }
-              >
-                <item.icon className="h-4 w-4" />
-                {t(item.labelKey)}
-              </NavLink>
-            ))
-          )}
+        <div className="flex flex-col gap-4">
+          {navGroups.map((group) => (
+            <div key={group.labelKey} className="flex flex-col gap-1">
+              {group.items.map((item) => (
+                <NavLink
+                  key={item.to}
+                  to={item.to}
+                  end={item.to === "/"}
+                  onClick={onClose}
+                  className={({ isActive }) =>
+                    cn(
+                      "flex items-center gap-3 rounded-lg px-3 text-sm font-medium transition-colors border-l-2 min-h-[44px]",
+                      isActive
+                        ? "bg-sidebar-accent text-sidebar-accent-foreground border-sidebar-primary"
+                        : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground border-transparent"
+                    )
+                  }
+                >
+                  <item.icon className="h-5 w-5" />
+                  {t(item.labelKey)}
+                </NavLink>
+              ))}
+            </div>
+          ))}
         </div>
       </nav>
 
