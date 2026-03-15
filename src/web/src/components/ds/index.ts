@@ -42,3 +42,4 @@ export { PageTransition, FadeIn, StaggerChildren, ScaleIn, staggerItemVariants }
 export type { PageTransitionProps, FadeInProps, StaggerChildrenProps, ScaleInProps } from "./motion"
 export { AnimatedNumber } from "./animated-number"
 export type { AnimatedNumberProps } from "./animated-number"
+export { Toaster, toast } from "./toaster"

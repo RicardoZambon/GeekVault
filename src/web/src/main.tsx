@@ -6,6 +6,7 @@ import { AuthProvider } from './components/auth-provider.tsx'
 import './i18n/index.ts'
 import './index.css'
 import App from './App.tsx'
+import { Toaster } from './components/ds/toaster.tsx'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
@@ -13,6 +14,7 @@ createRoot(document.getElementById('root')!).render(
       <ThemeProvider defaultTheme="system" storageKey="geekvault-theme">
         <AuthProvider>
           <App />
+          <Toaster />
         </AuthProvider>
       </ThemeProvider>
     </BrowserRouter>
