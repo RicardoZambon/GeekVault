@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from "vitest"
+import { describe, it, expect, vi, beforeEach } from "vitest"
 import { render, screen, fireEvent } from "@testing-library/react"
 import { MemoryRouter } from "react-router-dom"
 import { TopToolbar } from "./top-toolbar"
@@ -6,21 +6,33 @@ import { TopToolbar } from "./top-toolbar"
 const mockChangeLanguage = vi.fn()
 const mockSetTheme = vi.fn()
 
+const mocks = vi.hoisted(() => ({
+  user: { displayName: "John Doe", email: "john@test.com", avatar: null as string | null },
+  theme: "light" as string,
+  language: "en" as string,
+}))
+
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({
     t: (key: string) => key,
-    i18n: { language: "en", changeLanguage: mockChangeLanguage },
+    i18n: {
+      get language() { return mocks.language },
+      changeLanguage: mockChangeLanguage,
+    },
   }),
 }))
 
 vi.mock("@/components/theme-provider", () => ({
-  useTheme: () => ({ theme: "light", setTheme: mockSetTheme }),
+  useTheme: () => ({
+    get theme() { return mocks.theme },
+    setTheme: mockSetTheme,
+  }),
 }))
 
 vi.mock("@/components/auth-provider", () => ({
   useAuth: () => ({
     token: "mock-token",
-    user: { displayName: "John Doe", email: "john@test.com", avatar: null },
+    get user() { return mocks.user },
     isLoading: false,
     login: vi.fn(),
     register: vi.fn(),
@@ -45,6 +57,13 @@ vi.mock("./user-menu", () => ({
 }))
 
 describe("TopToolbar", () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    mocks.user = { displayName: "John Doe", email: "john@test.com", avatar: null }
+    mocks.theme = "light"
+    mocks.language = "en"
+  })
+
   it("renders search trigger with placeholder text", () => {
     render(
       <MemoryRouter>
@@ -86,7 +105,7 @@ describe("TopToolbar", () => {
     expect(screen.getByText("toolbar.noNotifications")).toBeInTheDocument()
   })
 
-  it("renders language toggle", () => {
+  it("renders language toggle and switches to pt", () => {
     render(
       <MemoryRouter>
         <TopToolbar />
@@ -97,7 +116,19 @@ describe("TopToolbar", () => {
     expect(mockChangeLanguage).toHaveBeenCalledWith("pt")
   })
 
-  it("renders theme toggle", () => {
+  it("renders language toggle in pt mode and switches to en", () => {
+    mocks.language = "pt"
+    render(
+      <MemoryRouter>
+        <TopToolbar />
+      </MemoryRouter>
+    )
+    const langBtn = screen.getByLabelText("English")
+    fireEvent.click(langBtn)
+    expect(mockChangeLanguage).toHaveBeenCalledWith("en")
+  })
+
+  it("renders theme toggle and switches to dark", () => {
     render(
       <MemoryRouter>
         <TopToolbar />
@@ -108,6 +139,18 @@ describe("TopToolbar", () => {
     expect(mockSetTheme).toHaveBeenCalledWith("dark")
   })
 
+  it("renders theme toggle in dark mode and switches to light", () => {
+    mocks.theme = "dark"
+    render(
+      <MemoryRouter>
+        <TopToolbar />
+      </MemoryRouter>
+    )
+    const themeBtn = screen.getByLabelText("nav.toggleTheme")
+    fireEvent.click(themeBtn)
+    expect(mockSetTheme).toHaveBeenCalledWith("light")
+  })
+
   it("renders user avatar with initials", () => {
     render(
       <MemoryRouter>
@@ -115,5 +158,26 @@ describe("TopToolbar", () => {
       </MemoryRouter>
     )
     expect(screen.getByText("JD")).toBeInTheDocument()
+  })
+
+  it("renders user avatar image when avatar url exists", () => {
+    mocks.user = { displayName: "John Doe", email: "john@test.com", avatar: "/uploads/avatar.jpg" }
+    const { container } = render(
+      <MemoryRouter>
+        <TopToolbar />
+      </MemoryRouter>
+    )
+    const img = container.querySelector('img[src="/uploads/avatar.jpg"]')
+    expect(img).toBeInTheDocument()
+  })
+
+  it("renders fallback initials when displayName is missing", () => {
+    mocks.user = { displayName: "", email: "john@test.com", avatar: null }
+    render(
+      <MemoryRouter>
+        <TopToolbar />
+      </MemoryRouter>
+    )
+    expect(screen.getByText("?")).toBeInTheDocument()
   })
 })

@@ -8,10 +8,14 @@ vi.mock("react-router-dom", async () => {
   return { ...actual, useNavigate: () => vi.fn() }
 })
 
+const mocks = vi.hoisted(() => ({
+  user: { displayName: "John Doe", email: "john@test.com", avatar: null as string | null },
+}))
+
 vi.mock("@/components/auth-provider", () => ({
   useAuth: () => ({
     token: "mock-token",
-    user: { displayName: "John Doe", email: "john@test.com", avatar: null },
+    get user() { return mocks.user },
     isLoading: false,
     login: vi.fn(),
     register: vi.fn(),
@@ -53,6 +57,7 @@ describe("Sidebar", () => {
   beforeEach(() => {
     vi.clearAllMocks()
     localStorage.clear()
+    mocks.user = { displayName: "John Doe", email: "john@test.com", avatar: null }
   })
 
   it("renders navigation items", () => {
@@ -156,6 +161,27 @@ describe("Sidebar", () => {
     const logo = screen.getByAltText("GeekVault")
     expect(logo).toHaveAttribute("src", "vault-icon.png")
   })
+
+  it("renders user avatar image when avatar url exists", () => {
+    mocks.user = { displayName: "John Doe", email: "john@test.com", avatar: "/uploads/avatar.jpg" }
+    const { container } = render(
+      <MemoryRouter>
+        <Sidebar />
+      </MemoryRouter>
+    )
+    const img = container.querySelector('img[src="/uploads/avatar.jpg"]')
+    expect(img).toBeInTheDocument()
+  })
+
+  it("reads localStorage value 'false' as expanded", () => {
+    localStorage.setItem("geekvault-sidebar-collapsed", "false")
+    render(
+      <MemoryRouter>
+        <Sidebar />
+      </MemoryRouter>
+    )
+    expect(screen.getByLabelText("nav.collapseSidebar")).toBeInTheDocument()
+  })
 })
 
 describe("MobileSidebarContent", () => {
@@ -163,6 +189,7 @@ describe("MobileSidebarContent", () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
+    mocks.user = { displayName: "John Doe", email: "john@test.com", avatar: null }
   })
 
   it("renders all nav items", () => {
@@ -205,5 +232,26 @@ describe("MobileSidebarContent", () => {
     )
     const logo = screen.getByAltText("GeekVault")
     expect(logo).toHaveAttribute("src", "logo-full.png")
+  })
+
+  it("renders user avatar image when avatar url exists", () => {
+    mocks.user = { displayName: "John Doe", email: "john@test.com", avatar: "/uploads/avatar.jpg" }
+    const { container } = render(
+      <MemoryRouter>
+        <MobileSidebarContent onClose={onClose} />
+      </MemoryRouter>
+    )
+    const img = container.querySelector('img[src="/uploads/avatar.jpg"]')
+    expect(img).toBeInTheDocument()
+  })
+
+  it("renders fallback initials when displayName is missing", () => {
+    mocks.user = { displayName: "", email: "john@test.com", avatar: null }
+    render(
+      <MemoryRouter>
+        <MobileSidebarContent onClose={onClose} />
+      </MemoryRouter>
+    )
+    expect(screen.getByText("?")).toBeInTheDocument()
   })
 })
