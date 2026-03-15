@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback, type FormEvent } from "react"
 import { useParams, useNavigate, useSearchParams } from "react-router-dom"
 import { useTranslation } from "react-i18next"
-import { motion } from "framer-motion"
-import { Plus, ArrowLeft, Image, Package, Check, Trash2, Pencil, Search, CheckCircle2, Circle, ArrowUp, ArrowDown, Download, Upload, AlertCircle, CheckCircle, LayoutGrid, List } from "lucide-react"
+import { motion, AnimatePresence } from "framer-motion"
+import { Plus, ArrowLeft, Image, Package, Check, Trash2, Pencil, Search, CheckCircle2, Circle, ArrowUp, ArrowDown, Download, Upload, AlertCircle, CheckCircle, LayoutGrid, List, ChevronDown } from "lucide-react"
 import {
   EmptyState,
   PageHeader,
@@ -183,6 +183,8 @@ export default function CollectionDetail() {
   // Sets state
   const [sets, setSets] = useState<SetSummary[]>([])
   const [selectedSet, setSelectedSet] = useState<SetDetail | null>(null)
+  const [expandedSets, setExpandedSets] = useState<Set<number>>(new Set())
+  const [setDetails, setSetDetails] = useState<Record<number, SetDetail>>({})
   const [setsDialogOpen, setSetsDialogOpen] = useState(false)
   const [editingSet, setEditingSet] = useState<SetSummary | null>(null)
   const [setsFormName, setSetsFormName] = useState("")
@@ -295,10 +297,33 @@ export default function CollectionDetail() {
       if (!res.ok) return
       const data: SetDetail = await res.json()
       setSelectedSet(data)
+      setSetDetails((prev) => ({ ...prev, [setId]: data }))
     } catch {
       // non-critical
     }
   }, [id, token]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  function toggleSetExpanded(setId: number) {
+    setExpandedSets((prev) => {
+      const next = new Set(prev)
+      if (next.has(setId)) {
+        next.delete(setId)
+      } else {
+        next.add(setId)
+        // Fetch detail if not already loaded
+        if (!setDetails[setId]) {
+          fetchSetDetail(setId)
+        }
+      }
+      return next
+    })
+  }
+
+  function openAddItemsForSet(s: SetSummary) {
+    // Load set detail for the add items dialog
+    fetchSetDetail(s.id)
+    setAddItemsDialogOpen(true)
+  }
 
   useEffect(() => {
     async function load() {
@@ -476,6 +501,8 @@ export default function CollectionDetail() {
       if (!res.ok) throw new Error(t("sets.deleteFailed"))
       setDeleteSetDialogOpen(false)
       if (selectedSet?.id === deletingSetId) setSelectedSet(null)
+      setExpandedSets((prev) => { const next = new Set(prev); next.delete(deletingSetId); return next })
+      setSetDetails((prev) => { const next = { ...prev }; delete next[deletingSetId]; return next })
       await fetchSets()
     } catch {
       // show error inline if needed
@@ -1030,154 +1057,164 @@ export default function CollectionDetail() {
         <div className="mt-4">
           {/* Sets toolbar */}
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold">{t("sets.title")}</h2>
+            <h2 className="text-lg font-semibold font-display">{t("sets.title")}</h2>
             <Button onClick={openCreateSet}>
               <Plus className="h-4 w-4" />
               {t("sets.create")}
             </Button>
           </div>
 
-          {sets.length === 0 && !selectedSet ? (
-            <div className="mt-12 text-center text-muted-foreground">
-              <Package className="mx-auto h-12 w-12 text-muted-foreground/40" />
-              <p className="mt-3">{t("sets.empty")}</p>
-            </div>
+          {sets.length === 0 ? (
+            <EmptyState
+              icon={<Package />}
+              title={t("sets.empty")}
+              description={t("sets.emptyDescription")}
+              actionLabel={t("sets.create")}
+              onAction={openCreateSet}
+            />
           ) : (
-            <div className="mt-4 grid gap-4 md:grid-cols-3">
-              {/* Sets list */}
-              <div className="space-y-2 md:col-span-1">
-                {sets.map((s) => {
-                  const pct = s.completionPercentage ?? 0
-                  const isSelected = selectedSet?.id === s.id
-                  return (
-                    <div
-                      key={s.id}
-                      className={`cursor-pointer rounded-lg border p-3 transition-colors ${
-                        isSelected ? "border-primary bg-primary/5" : "bg-card hover:bg-muted/50"
-                      }`}
-                      onClick={() => fetchSetDetail(s.id)}
+            <div className="mt-4 space-y-3">
+              {sets.map((s) => {
+                const pct = s.completionPercentage ?? 0
+                const isExpanded = expandedSets.has(s.id)
+                const detail = setDetails[s.id]
+                return (
+                  <Card key={s.id} className="overflow-hidden">
+                    {/* Accordion header */}
+                    <button
+                      className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-muted/30"
+                      onClick={() => toggleSetExpanded(s.id)}
                     >
-                      <div className="flex items-start justify-between">
-                        <h3 className="text-sm font-medium">{s.name}</h3>
-                        <div className="flex gap-1">
-                          <button
-                            className="rounded p-1 text-muted-foreground hover:text-foreground"
-                            onClick={(e) => { e.stopPropagation(); openEditSet(s) }}
-                          >
-                            <Pencil className="h-3.5 w-3.5" />
-                          </button>
-                          <button
-                            className="rounded p-1 text-muted-foreground hover:text-destructive"
-                            onClick={(e) => { e.stopPropagation(); confirmDeleteSet(s.id) }}
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </button>
+                      <ChevronDown
+                        className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-200 ${
+                          isExpanded ? "rotate-0" : "-rotate-90"
+                        }`}
+                      />
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <h3 className="truncate text-sm font-semibold">{s.name}</h3>
+                          <span className="shrink-0 text-xs text-muted-foreground">
+                            {s.completedCount ?? 0}/{s.expectedItemCount} {t("sets.items")}
+                          </span>
+                        </div>
+                        {/* Progress bar */}
+                        <div className="mt-1.5 flex items-center gap-2">
+                          <div className="h-2 flex-1 overflow-hidden rounded-full bg-primary/10">
+                            <div
+                              className={`h-full rounded-full transition-all duration-500 ${
+                                pct >= 100 ? "bg-green-500" : "bg-accent"
+                              }`}
+                              style={{ width: `${Math.min(pct, 100)}%` }}
+                            />
+                          </div>
+                          <span className="shrink-0 text-xs font-medium tabular-nums text-muted-foreground">
+                            {pct.toFixed(0)}%
+                          </span>
                         </div>
                       </div>
-                      <p className="mt-1 text-xs text-muted-foreground">
-                        {s.completedCount ?? 0} / {s.expectedItemCount} {t("sets.completed")}
-                      </p>
-                      {/* Progress bar */}
-                      <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-muted">
-                        <div
-                          className={`h-full rounded-full transition-all ${
-                            pct >= 100 ? "bg-green-500" : pct > 0 ? "bg-primary" : "bg-muted-foreground/20"
-                          }`}
-                          style={{ width: `${Math.min(pct, 100)}%` }}
-                        />
+                      {/* Action buttons */}
+                      <div className="flex shrink-0 items-center gap-1">
+                        <button
+                          className="rounded p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                          onClick={(e) => { e.stopPropagation(); openAddItemsForSet(s) }}
+                          title={t("sets.addItems")}
+                        >
+                          <Plus className="h-3.5 w-3.5" />
+                        </button>
+                        <button
+                          className="rounded p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                          onClick={(e) => { e.stopPropagation(); openEditSet(s) }}
+                          title={t("sets.edit")}
+                        >
+                          <Pencil className="h-3.5 w-3.5" />
+                        </button>
+                        <button
+                          className="rounded p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-destructive"
+                          onClick={(e) => { e.stopPropagation(); confirmDeleteSet(s.id) }}
+                          title={t("sets.delete")}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
                       </div>
-                      <p className="mt-1 text-right text-xs text-muted-foreground">
-                        {pct.toFixed(0)}%
-                      </p>
-                    </div>
-                  )
-                })}
-              </div>
+                    </button>
 
-              {/* Set detail panel */}
-              <div className="md:col-span-2">
-                {selectedSet ? (
-                  <div className="rounded-lg border bg-card p-4">
-                    <div className="flex items-center justify-between">
-                      <h3 className="text-lg font-semibold">{selectedSet.name}</h3>
-                      <Button size="sm" onClick={() => setAddItemsDialogOpen(true)}>
-                        <Plus className="h-4 w-4" />
-                        {t("sets.addItems")}
-                      </Button>
-                    </div>
-
-                    {/* Progress */}
-                    <div className="mt-3">
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="text-muted-foreground">
-                          {selectedSet.completedCount ?? 0} / {selectedSet.expectedItemCount} {t("sets.completed")}
-                        </span>
-                        <span className="font-medium">
-                          {(selectedSet.completionPercentage ?? 0).toFixed(1)}%
-                        </span>
-                      </div>
-                      <div className="mt-1 h-3 w-full overflow-hidden rounded-full bg-muted">
-                        <div
-                          className={`h-full rounded-full transition-all ${
-                            (selectedSet.completionPercentage ?? 0) >= 100 ? "bg-green-500" : "bg-primary"
-                          }`}
-                          style={{ width: `${Math.min(selectedSet.completionPercentage ?? 0, 100)}%` }}
-                        />
-                      </div>
-                    </div>
-
-                    {/* Set items list */}
-                    {selectedSet.items && selectedSet.items.length > 0 ? (
-                      <ul className="mt-4 space-y-1">
-                        {selectedSet.items
-                          .sort((a, b) => a.sortOrder - b.sortOrder)
-                          .map((si) => {
-                            const owned = isSetItemOwned(si)
-                            return (
-                              <li
-                                key={si.id}
-                                className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-muted/50"
-                              >
-                                {owned ? (
-                                  <CheckCircle2 className="h-4 w-4 shrink-0 text-green-500" />
-                                ) : (
-                                  <Circle className="h-4 w-4 shrink-0 text-muted-foreground/40" />
-                                )}
-                                <span className={owned ? "text-foreground" : "text-muted-foreground"}>
-                                  {si.name}
-                                </span>
-                                <div className="ml-auto flex items-center gap-1">
-                                  {si.catalogItemId && (
-                                    <button
-                                      className="text-xs text-primary hover:underline"
-                                      onClick={() => navigate(`/collections/${id}/items/${si.catalogItemId}`)}
-                                    >
-                                      {t("sets.viewItem")}
-                                    </button>
-                                  )}
-                                  <button
-                                    className="rounded p-1 text-muted-foreground hover:text-destructive"
-                                    onClick={() => confirmRemoveSetItem(si.id)}
-                                  >
-                                    <Trash2 className="h-3.5 w-3.5" />
-                                  </button>
-                                </div>
-                              </li>
-                            )
-                          })}
-                      </ul>
-                    ) : (
-                      <p className="mt-4 text-center text-sm text-muted-foreground">
-                        {t("sets.emptyItems")}
-                      </p>
-                    )}
-                  </div>
-                ) : (
-                  <div className="flex h-full items-center justify-center rounded-lg border bg-card p-8">
-                    <p className="text-sm text-muted-foreground">{t("sets.selectSet")}</p>
-                  </div>
-                )}
-              </div>
+                    {/* Accordion content */}
+                    <AnimatePresence initial={false}>
+                      {isExpanded && (
+                        <motion.div
+                          key={`set-content-${s.id}`}
+                          initial={{ height: 0, opacity: 0 }}
+                          animate={{ height: "auto", opacity: 1 }}
+                          exit={{ height: 0, opacity: 0 }}
+                          transition={{ duration: 0.2, ease: "easeInOut" }}
+                          className="overflow-hidden"
+                        >
+                          <CardContent className="border-t pt-3 pb-4">
+                            {!detail ? (
+                              /* Loading skeleton */
+                              <div className="space-y-2">
+                                {Array.from({ length: 3 }).map((_, i) => (
+                                  <div key={i} className="flex items-center gap-2 px-2 py-1.5">
+                                    <SkeletonRect width={16} height={16} className="rounded-full" />
+                                    <SkeletonRect width={`${60 + i * 10}%`} height={14} />
+                                  </div>
+                                ))}
+                              </div>
+                            ) : detail.items && detail.items.length > 0 ? (
+                              <ul className="space-y-0.5">
+                                {detail.items
+                                  .sort((a, b) => a.sortOrder - b.sortOrder)
+                                  .map((si) => {
+                                    const owned = isSetItemOwned(si)
+                                    return (
+                                      <li
+                                        key={si.id}
+                                        className="group flex items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors hover:bg-muted/50"
+                                      >
+                                        {owned ? (
+                                          <CheckCircle2 className="h-4 w-4 shrink-0 text-green-500" />
+                                        ) : (
+                                          <Circle className="h-4 w-4 shrink-0 text-muted-foreground/30" />
+                                        )}
+                                        <span className={`truncate ${owned ? "text-foreground" : "text-muted-foreground"}`}>
+                                          {si.name}
+                                        </span>
+                                        <div className="ml-auto flex shrink-0 items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+                                          {si.catalogItemId && (
+                                            <button
+                                              className="text-xs text-primary hover:underline"
+                                              onClick={() => navigate(`/collections/${id}/items/${si.catalogItemId}`)}
+                                            >
+                                              {t("sets.viewItem")}
+                                            </button>
+                                          )}
+                                          <button
+                                            className="rounded p-1 text-muted-foreground hover:text-destructive"
+                                            onClick={() => {
+                                              // Set selectedSet for the remove handler
+                                              setSelectedSet(detail)
+                                              confirmRemoveSetItem(si.id)
+                                            }}
+                                          >
+                                            <Trash2 className="h-3.5 w-3.5" />
+                                          </button>
+                                        </div>
+                                      </li>
+                                    )
+                                  })}
+                              </ul>
+                            ) : (
+                              <p className="py-4 text-center text-sm text-muted-foreground">
+                                {t("sets.emptyItems")}
+                              </p>
+                            )}
+                          </CardContent>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </Card>
+                )
+              })}
             </div>
           )}
         </div>
