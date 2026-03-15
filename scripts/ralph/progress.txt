@@ -480,3 +480,21 @@ Started: Sun Mar 15 02:52:16 AM UTC 2026
   - ConfirmDialog from `@/components/ui/confirm-dialog` is cleaner than manual Dialog for delete confirmations — use consistently across all pages
   - No browser testing tools available — manual verification needed
 ---
+
+## 2026-03-15 - US-029
+- Redesigned profile page with organized card sections: Avatar, Account Info, About, Preferences, Appearance
+- Avatar section: 120px circular avatar with camera icon overlay on hover, click to upload, loading indicator
+- Replaced native `<textarea>` with DS Textarea, native `<select>` with DS Select for language and currency
+- Added theme toggle as segmented control (light/dark/system) with Sun/Moon/Monitor icons using `useTheme` hook
+- Save button sticky at bottom on mobile (`sticky bottom-4` on sm: static)
+- Full skeleton loading state using DS Card + Skeleton components
+- Replaced all inline error/success messages with toast notifications
+- Added `profile.sections.*` i18n keys (avatar, accountInfo, about, preferences, appearance, theme, themeLight/Dark/System) to both en.json and pt.json
+- Added `profile.avatarSuccess` i18n key for toast on successful avatar upload
+- Files changed: profile-page.tsx (rewritten), en.json, pt.json
+- **Learnings for future iterations:**
+  - `useTheme()` from `@/components/theme-provider` gives `{ theme, setTheme }` — theme is "light" | "dark" | "system"
+  - Segmented control pattern: `inline-flex rounded-lg border bg-muted/50 p-1` container + buttons with conditional `bg-background shadow-sm` for active
+  - DS Select works as drop-in replacement for native `<select>` — just change to `Select > SelectTrigger > SelectValue` + `SelectContent > SelectItem`
+  - No browser testing tools available — manual verification needed
+---
