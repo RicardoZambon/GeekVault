@@ -534,3 +534,28 @@ Started: Sun Mar 15 02:52:16 AM UTC 2026
   - Repository's `OrderBy(SortOrder)` is overridden by service-level sort switch — must also update default case in service
   - In-memory DB for tests doesn't require migration application — EF auto-creates schema
 ---
+
+## 2026-03-15 04:37 UTC - US-032
+- Added SortOrder (int, default 0) property to WishlistItem entity
+- Generated and applied EF Core migration AddWishlistItemSortOrder
+- Updated WishlistRepository to order by SortOrder (was Priority), added GetMaxSortOrderAsync and GetByIdsAndCollectionIdAsync
+- Added ReorderAsync to WishlistService/IWishlistService following CatalogItems reorder pattern
+- Added POST /api/collections/{collectionId}/wishlist/reorder endpoint with ReorderWishlistItemsRequest DTO
+- Updated CreateAsync to auto-assign SortOrder as max+1 for the collection
+- Added SortOrder to WishlistItemResponse DTO
+- Added reorder tests (success + not found) to WishlistEndpointsTests, updated ordering test
+- Files changed:
+  - src/api/GeekVault.Api/Entities/Vault/WishlistItem.cs
+  - src/api/GeekVault.Api/Migrations/*AddWishlistItemSortOrder*
+  - src/api/GeekVault.Api/Repositories/Vault/WishlistRepository.cs
+  - src/api/GeekVault.Api/Repositories/Vault/IWishlistRepository.cs
+  - src/api/GeekVault.Api/Services/Vault/WishlistService.cs
+  - src/api/GeekVault.Api/Services/Vault/IWishlistService.cs
+  - src/api/GeekVault.Api/Controllers/Vault/WishlistController.cs
+  - src/api/GeekVault.Api/DTOs/Vault/WishlistDtos.cs
+  - src/api/GeekVault.Api.Tests/WishlistEndpointsTests.cs
+- **Learnings for future iterations:**
+  - Wishlist reorder follows exact same pattern as CatalogItems reorder (US-031) — same tuple return type, same service logic
+  - When adding SortOrder to an entity, remember to update: entity, migration, repository (ordering + helpers), service (create auto-assign + reorder), controller (endpoint), DTOs (response + request), and tests (result record + ordering test)
+  - Existing ordering tests need to be updated when switching from Priority to SortOrder ordering
+---
