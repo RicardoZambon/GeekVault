@@ -118,12 +118,12 @@ export function Sidebar() {
 
       {/* Navigation */}
       <nav className={cn("flex-1 overflow-y-auto", collapsed ? "p-3" : "p-2")}>
-        <div className={cn("flex flex-col", collapsed ? "gap-0" : "gap-4")}>
+        <div className={cn("flex flex-col gap-2", collapsed ? "gap-0" : "gap-4")}>
           {navGroups.map((group, groupIndex) => (
             <div key={group.labelKey} className="flex flex-col">
               {collapsed ? (
                 groupIndex > 0 && (
-                  <div className="mx-2 my-3 border-t border-sidebar-border" />
+                  <div className="mx-2 mt-3 mb-1 border-t border-sidebar-border" />
                 )
               ) : (
                 <span className="px-3 pb-1 text-xs font-semibold uppercase text-sidebar-foreground/50">
@@ -138,11 +138,15 @@ export function Sidebar() {
                     end={item.to === "/"}
                     className={({ isActive }) =>
                       cn(
-                        "font-medium transition-colors relative block rounded-md",
-                        !collapsed && "rounded-lg",
-                        isActive
-                          ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                          : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground"
+                        "font-medium transition-colors relative block",
+                        collapsed
+                          ? "rounded-md"
+                          : cn(
+                              "rounded-lg",
+                              isActive
+                                ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                                : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground"
+                            )
                       )
                     }
                   >
