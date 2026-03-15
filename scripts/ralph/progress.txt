@@ -1,259 +1,662 @@
 # Ralph Progress Log
-Started: Sat Mar 14 06:01:01 PM UTC 2026
+Started: Sun Mar 15 02:52:16 AM UTC 2026
+---
+
+## 2026-03-15 - US-001
+- Installed all new dependencies: framer-motion, @dnd-kit/core, @dnd-kit/sortable, @dnd-kit/utilities, cmdk, sonner, @radix-ui/react-tooltip, @radix-ui/react-dropdown-menu, @radix-ui/react-select, @radix-ui/react-tabs, @radix-ui/react-scroll-area, @fontsource/nunito, @fontsource/inter
+- Files changed: src/web/package.json, src/web/package-lock.json
+- **Learnings for future iterations:**
+  - All 36 new packages installed cleanly with no peer dependency conflicts
+  - Build and typecheck pass with no issues after installation
+  - Build output is a single large chunk (842KB) — may want to code-split later
 ---
 
 ## Codebase Patterns
-- Auth uses `UserManager<User>` directly (no SignInManager) with `CheckPasswordAsync` for login
-- User entity is in `Entities/Security/User.cs` with namespace `GeekVault.Api.Entities.Security`
-- Tests use `WebApplicationFactory<Program>` with in-memory database via `TestFactory<TMarker>`
-- Program.cs is a single minimal API file with all endpoints; DTOs are in `DTOs/` folder organized by domain
-- DTOs use `public record` with namespaces: `GeekVault.Api.DTOs.Security`, `GeekVault.Api.DTOs.Vault`, `GeekVault.Api.DTOs.Common`
-- All Vault entities are in `Entities/Vault/` with namespace `GeekVault.Api.Entities.Vault`
-- Source files from previous branch need to be checked out explicitly when creating new feature branches
-- Database schemas: Security (Users), Vault (collection tables), EF (MigrationsHistory)
-- `ToTable("Name", "Schema")` in OnModelCreating to set schema per entity
-- `MigrationsHistoryTable("MigrationsHistory", "EF")` in UseSqlServer options
-- No .sln file — build/test individual .csproj files directly
-- Repositories are in `Repositories/{Domain}/` with interface + implementation pairs, registered as `AddScoped` in Program.cs
-- Vault repositories inject `ApplicationDbContext`; Security repositories inject `UserManager<User>`
-- Services are in `Services/{Domain}/` with interface + implementation pairs, registered as `AddScoped` in Program.cs
-- Services inject repositories (not DbContext or UserManager directly); AuthService also injects IConfiguration for JWT
-- CatalogItem entity has NO OwnedCopies navigation property — use `repo.Query()` IQueryable for cross-entity query composition
-- Services use tuple return patterns: `(Response?, Error?)` or `(Response?, NotFound, Error?)` for operations that can fail
-- Controllers are static classes in `Controllers/{Domain}/` with `MapXxxEndpoints(this IEndpointRouteBuilder app)` extension methods — inject services, not lower-level deps
-- DI registration is in `Extensions/ServiceCollectionExtensions.cs` with `AddSecurityServices(config)` and `AddVaultServices()` — add new services there, not in Program.cs
-- `IdentityUserContext<T>` creates AspNetUserClaims/Logins/Tokens tables by default — use `ExcludeFromMigrations()` to suppress them
-- Coverage: Exclude migrations with `ExcludeByFile=**/Migrations/*.cs` in test csproj; line threshold is 90%
+- CSS tokens use hex colors (not OKLch) in the branded palette — keep consistent when adding new tokens
+- SortableList uses `renderItem(item, { dragHandleProps, isDragging })` — spread `dragHandleProps` onto the drag handle element (e.g. a GripVertical icon button)
+- Font imports via @fontsource packages in index.css, referenced as CSS custom properties (--font-display, --font-body)
+- Spacing tokens use --space-N naming (1-12), radius tokens use --radius-sm/md/lg/full
+- Sidebar tokens use dark navy in BOTH light and dark themes (always dark sidebar)
+- Sidebar toggle from outside: `window.dispatchEvent(new Event("toggle-sidebar"))` — sidebar listens via useEffect
+- Command palette at `src/components/layout/command-palette.tsx` — rendered in app-layout.tsx, opened with Cmd+K / Ctrl+K
+- Use `.font-display` utility class for heading font (Nunito), body uses Inter by default via font-family on body
+- Success color tokens (--success, --success-foreground) added alongside existing destructive tokens
+- DS components use `cva` for variants, `cn` for className merging, `forwardRef` — same patterns as shadcn/ui components
+- DS barrel export at `@/components/ds` — add new components to `ds/index.ts`
+- Radix UI wrappers use Portal for floating elements (Tooltip, Select, DropdownMenu) — ensures proper z-index stacking
+- TooltipProvider must be rendered at app root when using Tooltip components
+- Generic forwardRef components use inner function + type assertion cast: `const Comp = React.forwardRef(InnerFn) as <T>(props: Props<T>) => ReactElement`
+- Motion components use `Variants` type from framer-motion for variant objects — do not use `Record<string, unknown>`
+- `prefersReducedMotion` is checked once at module load via `window.matchMedia` — all motion components use it to skip animations
+- Toast notifications: use `import { toast } from "@/components/ds"` then `toast.success()`, `toast.error()`, `toast.info()`, `toast.warning()`
+- `staggerItemVariants` is exported for use as variants on child `motion.div` elements inside `StaggerChildren`
+- Auth pages use `AuthLayout` wrapper from `@/features/auth/auth-layout` for split-screen brand layout (reuse for login/register)
+- Testing: use `vi.hoisted()` for variables referenced inside `vi.mock()` factories (hoisting prevents normal variable access)
+- Testing: mock Radix UI primitives as simple HTML (native select, always-visible divs/buttons) — they don't work in jsdom
+- Testing: mock framer-motion with `motion: { div: passthrough }`, `AnimatePresence`, `useSpring`, `useTransform`, `useMotionValue`
+- Testing: mock DS animation wrappers (StaggerChildren, FadeIn, PageTransition) as simple div passthroughs
+- Testing: skeleton loading uses `.animate-pulse` class — query with `container.querySelectorAll(".animate-pulse")`
+- Page components live in `src/features/{feature}/{name}-page.tsx`, layout components in `src/components/layout/`
+- App.tsx imports pages from `./features/{feature}/{name}-page`; layout from `./components/layout/app-layout`
+- TypeScript `erasableSyntaxOnly` is enabled — no parameter properties, no enums; use explicit field declarations
+- `fetchApi<T>(endpoint, options)` from `@/lib/api` — auto-injects auth token, sets Content-Type, parses JSON, throws `ApiError` on non-OK
+- Hooks barrel at `@/hooks` — `useDebounce`, `useMediaQuery`
+- `TooltipProvider` is at app root in main.tsx — no need to add it per-component
+- Sidebar exports: `Sidebar` (desktop) and `MobileSidebarContent` (for Sheet in header.tsx)
+- Sidebar collapse state stored in localStorage key `geekvault-sidebar-collapsed`
+- Feature sub-components go in `src/features/{feature}/components/` — e.g. dashboard decomposed into stats-row, charts-section, etc.
+- View mode toggle persisted per-entity to localStorage: `geekvault-view-{id}` — use same pattern for any page needing grid/table toggle
+- DS Select requires non-empty string values — use `"all"` as sentinel and handle in `updateParam` to delete URL param when selected
+- Accordion pattern: use `AnimatePresence` + `motion.div` with `height: 0/auto` + `opacity: 0/1` for expand/collapse; track expanded IDs in `Set<number>`
+- Drag-and-drop file upload: `onDragOver`/`onDragLeave`/`onDrop` on a div + hidden `<input type="file" ref={fileInputRef}>` + `onClick={() => fileInputRef.current?.click()}`
+- Multi-step wizard: numeric `step` state + step config array `[{ num, label }]` for rendering step indicator with numbered circles and connector lines
+- `ConfirmDialog` from `@/components/ui/confirm-dialog` requires `cancelLabel` prop — use for all delete confirmations instead of building from scratch
+- Priority badge mapping: 1=High (destructive), 2=Medium (accent), >=3=Low (default) — use with DS Badge variants
+- Reorder endpoints pattern: POST `/api/.../reorder` with `{ itemIds: int[] }`, updates SortOrder = array index, returns 204 NoContent
+- New entities with SortOrder: auto-assign `GetMaxSortOrderAsync(parentId) + 1` on create; default sort by SortOrder then Id
 ---
 
-## 2026-03-14 - US-001
-- Switched `AddIdentity<ApplicationUser, IdentityRole>()` to `AddIdentityCore<ApplicationUser>()` in Program.cs
-- Changed `ApplicationDbContext` base class from `IdentityDbContext<ApplicationUser>` to `IdentityUserContext<ApplicationUser>`
-- No SignInManager was in use — endpoints already used `UserManager.CheckPasswordAsync()`
-- IdentityRole references only remain in migration files (will be cleaned up in US-015)
-- Files changed: `Program.cs`, `Data/ApplicationDbContext.cs`
+## 2026-03-15 - US-002
+- Replaced grayscale OKLch tokens with branded navy/gold palette in both light and dark modes
+- Added sidebar tokens with dark navy background in both themes
+- Imported @fontsource/nunito and @fontsource/inter
+- Set Inter as body font, Nunito via .font-display utility
+- Added spacing scale (--space-1 through --space-12) and radius tokens (--radius-sm/md/lg/full)
+- Added success color tokens
+- Files changed: src/web/src/index.css
 - **Learnings for future iterations:**
-  - The codebase was already using `UserManager.CheckPasswordAsync` so no auth endpoint changes were needed
-  - `IdentityUserContext<T>` lives in `Microsoft.AspNetCore.Identity.EntityFrameworkCore` — same namespace as `IdentityDbContext<T>`
-  - All 103 tests pass with in-memory database after the Identity change — no test modifications needed
+  - Tailwind v4 uses `@theme inline` block for exposing CSS variables as utility classes
+  - The `--font-display` and `--font-body` custom properties are available in `@theme inline` for use in Tailwind utilities
+  - Sidebar is designed to always be dark (navy) regardless of light/dark theme
+  - ring color set to gold accent (#E8A838) for branded focus rings
 ---
 
-## 2026-03-14 - US-002
-- Configured Users table under `Security` schema via `entity.ToTable("Users", "Security")`
-- Configured all Vault entities (CollectionTypes, Collections, CatalogItems, OwnedCopies, Sets, SetItems, WishlistItems) under `Vault` schema
-- Configured migrations history table as `EF.MigrationsHistory` via `MigrationsHistoryTable` in UseSqlServer options
-- Files changed: `Data/ApplicationDbContext.cs`, `Program.cs`
+## 2026-03-15 - US-003
+- Created Card component with default (hover lift), accent (gold border-top), and flat variants
+- Created Badge component with 7 variants (default, primary, accent, success, warning, destructive, outline) and 2 sizes (sm, md)
+- Created ds/index.ts barrel export
+- Files changed: src/web/src/components/ds/card.tsx, badge.tsx, index.ts
 - **Learnings for future iterations:**
-  - `ToTable` must be called before other entity configuration (HasKey, etc.) for clarity but order doesn't technically matter
-  - In-memory test database ignores schema names, so all 103 tests pass without modification
-  - No .sln file exists — must build/test by specifying .csproj paths directly
+  - DS components follow same shadcn/ui patterns: cva for variants, cn for className, forwardRef
+  - Card sub-components: Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter
+  - CardTitle uses `font-display` class for Nunito heading font
+  - All DS exports go through ds/index.ts barrel file
 ---
 
-## 2026-03-14 - US-003
-- Created `Entities/Security/User.cs` — renamed class from `ApplicationUser` to `User` with namespace `GeekVault.Api.Entities.Security`
-- Updated all references: `ApplicationDbContext.cs` (IdentityUserContext<User>, Entity<User>), `Program.cs` (AddIdentityCore<User>, UserManager<User>, new User, GenerateJwtToken)
-- Updated `Collection.cs` and `CollectionType.cs` navigation properties from `ApplicationUser` to `User` with added using
-- Deleted old `Models/ApplicationUser.cs`
-- Files changed: `Entities/Security/User.cs` (new), `Data/ApplicationDbContext.cs`, `Program.cs`, `Models/Collection.cs`, `Models/CollectionType.cs`, `Models/ApplicationUser.cs` (deleted)
+## 2026-03-15 - US-004
+- Created EmptyState component with icon slot, title, description, action button, generous padding (py-16)
+- Created PageHeader component with large font-display title, optional description, optional right-side actions slot
+- Exported both from ds/index.ts
+- Files changed: src/web/src/components/ds/empty-state.tsx, page-header.tsx, index.ts
 - **Learnings for future iterations:**
-  - Tests don't reference `ApplicationUser` directly — they use HTTP client against endpoints, so renaming the entity class doesn't require test changes
-  - The `GenerateJwtToken` static method at the bottom of Program.cs also references the User type — easy to miss
-  - Models that have navigation properties to User (Collection, CollectionType) need a `using GeekVault.Api.Entities.Security;` added
+  - EmptyState supports children prop for custom content beyond the standard action button
+  - PageHeader uses responsive layout: stacks vertically on mobile, row with space-between on sm+
+  - Icon slot in EmptyState uses `[&>svg]` selector to size icons consistently at 48px
 ---
 
-## 2026-03-14 - US-004
-- Moved all 12 Vault entity files from `Models/` to `Entities/Vault/` with namespace `GeekVault.Api.Entities.Vault`
-- Updated `using GeekVault.Api.Models` → `using GeekVault.Api.Entities.Vault` in `Data/ApplicationDbContext.cs` and `Program.cs`
-- Deleted empty `Models/` folder
-- Files changed: `Entities/Vault/*.cs` (12 new), `Data/ApplicationDbContext.cs`, `Program.cs`, `Models/*.cs` (12 deleted)
+## 2026-03-15 - US-005
+- Created SkeletonRect, SkeletonCircle, SkeletonText primitives with pulse animation and configurable dimensions
+- Created StatCard component with icon, label, value, optional trend (up/down/neutral with color + arrow)
+- Exported all from ds/index.ts
+- Files changed: src/web/src/components/ds/skeleton.tsx, stat-card.tsx, index.ts
 - **Learnings for future iterations:**
-  - Only `Program.cs` and `ApplicationDbContext.cs` had `using GeekVault.Api.Models` — tests don't reference entity namespaces directly
-  - Migration files still reference `GeekVault.Api.Models` but they will be regenerated in US-015
-  - The in-memory test database is namespace-agnostic so all 103 tests pass without test changes
+  - SkeletonText last line auto-shortens to 75% width for natural look
+  - StatCard uses Card underneath — consistent with DS composition pattern
+  - Trend arrows use Unicode characters (↑↓→) for simplicity
+  - Icon container in StatCard uses `[&>svg]` selector pattern (same as EmptyState) for consistent sizing
 ---
 
-## 2026-03-14 - US-005
-- Extracted all 39 DTO records from bottom of Program.cs into organized DTO files
-- Created DTOs/Security/ (AuthDtos.cs, ProfileDtos.cs), DTOs/Vault/ (9 files), DTOs/Common/ (PaginatedResponse.cs)
-- Added `using` statements for new DTO namespaces in Program.cs
-- Files changed: `Program.cs`, 12 new DTO files in `DTOs/` directory
+## 2026-03-15 - US-006
+- Created Tooltip (wrapping @radix-ui/react-tooltip), DropdownMenu, Select, Textarea, Tabs, and ScrollArea DS components
+- All follow branded styling: card bg, shadow, rounded items, gold accent focus ring, gold underline for active tab
+- Files changed: src/web/src/components/ds/tooltip.tsx, dropdown-menu.tsx, select.tsx, textarea.tsx, tabs.tsx, scroll-area.tsx, index.ts
 - **Learnings for future iterations:**
-  - DTOs were all `record` types at file scope in Program.cs — extracting to namespaced `public record` types works seamlessly
-  - Tests don't reference DTO types directly (they use anonymous types and JSON), so no test changes needed
-  - Some Vault DTOs reference each other (e.g., CatalogItemResponse uses OwnedCopyDto, CustomFieldValueDto) — keeping them in the same namespace avoids cross-references
+  - Radix UI wrappers follow shadcn/ui pattern: forwardRef, cn for className, Portal for floating elements
+  - Tooltip uses TooltipProvider at app root level (remember to add when using Tooltips)
+  - Select uses position="popper" by default for dropdown-style positioning
+  - Tabs uses underline style with gold accent border-bottom on active tab (not pill/button style)
+  - DropdownMenu and Select items use `focus:bg-accent/10` for subtle hover highlight (not solid background)
+  - Textarea matches Input styling patterns (same border, focus ring, placeholder styling)
 ---
 
-## 2026-03-14 - US-006
-- Created `IUsersRepository` interface with: FindByIdAsync, FindByEmailAsync, CreateAsync, CheckPasswordAsync, UpdateAsync
-- Created `UsersRepository` implementation wrapping `UserManager<User>`
-- Registered `IUsersRepository` as `AddScoped` in Program.cs DI container
-- Files changed: `Repositories/Security/IUsersRepository.cs` (new), `Repositories/Security/UsersRepository.cs` (new), `Program.cs`
+## 2026-03-15 - US-007
+- Created DataTable<T> generic component with sortable columns, skeleton loading, empty state, row hover, and responsive horizontal scroll
+- Files changed: src/web/src/components/ds/data-table.tsx, src/web/src/components/ds/index.ts
 - **Learnings for future iterations:**
-  - Repository returns `IdentityResult` from Create/Update to let callers handle error reporting — don't swallow Identity errors in the repository layer
-  - `UserManager<User>` is already registered by `AddIdentityCore<User>()` so it can be injected into the repository
-  - Tests don't need changes since they hit HTTP endpoints, not repositories directly
+  - DataTable uses forwardRef with a generic inner function + type assertion cast pattern for generic forwardRef components
+  - Sort state is controlled externally via sortKey/sortDirection/onSort props — the table doesn't manage its own sort state
+  - Uses SkeletonRect from the DS skeleton module for loading rows
+  - Column accessor can be a keyof T string or a function (row: T) => ReactNode for computed columns
+  - Sort icons from lucide-react: ChevronUp, ChevronDown for active sort, ChevronsUpDown for sortable but inactive
 ---
 
-## 2026-03-14 - US-007
-- Created 6 Vault repository interfaces and implementations in `Repositories/Vault/`
-- ICollectionTypesRepository/CollectionTypesRepository: CRUD for collection types by user
-- ICollectionsRepository/CollectionsRepository: CRUD + dashboard summary/stats queries (GetCollectionSummariesAsync)
-- ICatalogItemsRepository/CatalogItemsRepository: CRUD + IQueryable for search/filter/sort + bulk import (AddRangeAsync) + GetByCollectionIdWithFieldsAsync for export
-- IOwnedCopiesRepository/OwnedCopiesRepository: CRUD + GetCatalogItemWithCollectionAsync for ownership verification + GetByUserCatalogItemIds for dashboard queries
-- ISetsRepository/SetsRepository: CRUD + set items management (GetSetItemsAsync, GetMaxSortOrderAsync, AddSetItemsAsync)
-- IWishlistRepository/WishlistRepository: CRUD ordered by priority
-- Registered all 6 interfaces as AddScoped in Program.cs
-- Files changed: 12 new files in `Repositories/Vault/`, `Program.cs`
+## 2026-03-15 - US-008
+- Created motion.tsx with PageTransition, FadeIn, StaggerChildren, ScaleIn components
+- Created animated-number.tsx with AnimatedNumber using useSpring/useMotionValue/useTransform
+- All components respect prefers-reduced-motion (skip animations when set)
+- Exported staggerItemVariants for child elements in stagger animations
+- Updated ds/index.ts barrel export
+- Files changed: src/web/src/components/ds/motion.tsx, animated-number.tsx, index.ts
 - **Learnings for future iterations:**
-  - CollectionSummary helper class defined alongside ICollectionsRepository interface — used by dashboard service later
-  - CatalogItemsRepository exposes IQueryable<CatalogItem> via GetByCollectionId() for search/filter/sort — service layer will compose the query
-  - OwnedCopiesRepository.GetCatalogItemWithCollectionAsync verifies catalog item ownership via Collection.UserId join
-  - Repositories follow the same pattern as UsersRepository: inject DbContext, expose async methods, return entities
+  - framer-motion Variants type must be used explicitly — `Record<string, unknown>` won't satisfy the type
+  - `useMotionValue` + `useSpring` + `useTransform` is the pattern for animated number display
+  - ScaleIn component added as bonus — useful for dialog enter/exit animations (US-030)
+  - prefersReducedMotion checked once at module level, not per-render
 ---
 
-## 2026-03-14 - US-008
-- Created `IAuthService` and `AuthService` with RegisterAsync and LoginAsync methods
-- JWT token generation logic extracted from Program.cs `GenerateJwtToken` static method into AuthService private method
-- Created `IProfileService` and `ProfileService` with GetProfileAsync, UpdateProfileAsync, and UploadAvatarAsync
-- Services inject `IUsersRepository` (not UserManager or DbContext directly)
-- AuthService injects `IConfiguration` for JWT settings
-- Registered both as `AddScoped` in Program.cs DI container
-- Files changed: 4 new files in `Services/Security/`, `Program.cs`
+## 2026-03-15 - US-009
+- Created toaster.tsx wrapping Sonner's Toaster with branded styling using CSS variable colors
+- Added Toaster component to main.tsx at app root
+- Re-exported `toast` from sonner for easy access: `import { toast } from "@/components/ds"`
+- Toast variants: success (green), error (red), info (blue), warning (gold) via classNames
+- Toasts appear bottom-right, auto-dismiss after 4 seconds
+- Files changed: src/web/src/components/ds/toaster.tsx, ds/index.ts, src/web/src/main.tsx
 - **Learnings for future iterations:**
-  - Services use tuple return types for operations that can fail: `(Response?, Errors?)` pattern
-  - ProfileService.UpdateProfileAsync returns `(null, null)` when user not found — callers should check Response == null with no errors to distinguish "not found" from "validation error"
-  - UploadAvatarAsync takes `webRootPath` as parameter rather than injecting IWebHostEnvironment — keeps service testable
-  - Services are not yet wired into endpoints (endpoints still use UserManager directly) — that happens in US-010
+  - Sonner's `toast.success()`, `toast.error()`, `toast.info()`, `toast.warning()` work out of the box — no custom wrapper needed
+  - Use `!` important prefix on Tailwind classes in `classNames` to override Sonner's inline styles
+  - Toaster is rendered once at app root in main.tsx, toast functions can be called from anywhere
+  - Import toast as `import { toast } from "@/components/ds"` for consistency with other DS imports
 ---
 
-## 2026-03-14 - US-009
-- Created 7 Vault service interfaces and implementations in `Services/Vault/`
-- ICollectionTypesService/CollectionTypesService: CRUD with custom field validation (max 10 fields, valid types)
-- ICollectionsService/CollectionsService: CRUD + cover image upload
-- ICatalogItemsService/CatalogItemsService: CRUD + search/filter/sort/pagination + custom field schema validation
-- IOwnedCopiesService/OwnedCopiesService: CRUD with condition enum validation + ownership verification via repo
-- ISetsService/SetsService: CRUD + set items management with sort order + completion percentage calculation
-- IWishlistService/WishlistService: CRUD with priority ordering
-- IDashboardService/DashboardService: Aggregates collection summaries, condition counts, recent acquisitions
-- Added `Query()` method to IOwnedCopiesRepository and ICatalogItemsRepository for cross-entity IQueryable composition
-- Registered all 7 services as AddScoped in Program.cs DI container
-- Files changed: 14 new files in `Services/Vault/`, `Program.cs`, `Repositories/Vault/IOwnedCopiesRepository.cs`, `Repositories/Vault/OwnedCopiesRepository.cs`, `Repositories/Vault/ICatalogItemsRepository.cs`, `Repositories/Vault/CatalogItemsRepository.cs`
+## 2026-03-15 - US-010
+- Created SortableList<T> generic component using @dnd-kit/core and @dnd-kit/sortable
+- Supports vertical list and grid layout modes via `layout` prop
+- Dragged item shows shadow + scale effect (opacity-80 shadow-lg scale-[1.02])
+- Keyboard accessible via KeyboardSensor + sortableKeyboardCoordinates
+- Touch-friendly via TouchSensor with 200ms delay activation constraint
+- PointerSensor uses 5px distance activation to prevent accidental drags
+- renderItem receives dragHandleProps (spread onto drag handle) and isDragging boolean
+- Exported from ds/index.ts barrel
+- Files changed: src/web/src/components/ds/sortable-list.tsx, src/web/src/components/ds/index.ts
 - **Learnings for future iterations:**
-  - CatalogItem entity does NOT have an OwnedCopies navigation property — use `repo.Query()` for cross-entity IQueryable composition instead of navigation properties
-  - Added `IQueryable<T> Query()` to IOwnedCopiesRepository and ICatalogItemsRepository for complex cross-entity queries (condition filtering, dashboard joins)
-  - Services are not yet wired into endpoints (endpoints still use DbContext directly) — that happens in US-010 through US-013
-  - CollectionTypesService encapsulates the valid field types set internally — no need to pass it from the endpoint
-  - Services follow the tuple return pattern from Security services: `(Response?, Error?)` or `(Response?, NotFound, Error?)` for operations that can fail
+  - dnd-kit sensors need activation constraints to prevent accidental drags — PointerSensor distance:5, TouchSensor delay:200
+  - `CSS.Transform.toString()` from @dnd-kit/utilities converts transform to CSS string for smooth movement
+  - Use `verticalListSortingStrategy` for lists, `rectSortingStrategy` for grids
+  - `arrayMove` from @dnd-kit/sortable handles the array reorder — pass result to onReorder callback
+  - dragHandleProps = { ...attributes, ...listeners } from useSortable — spread onto the element that should be the drag trigger
 ---
 
-## 2026-03-14 - US-010
-- Created `Controllers/Security/AuthController.cs` with `MapAuthEndpoints` extension method
-- Moved POST /api/auth/register, POST /api/auth/login, POST /api/auth/logout, GET /api/auth/me from Program.cs
-- Auth endpoints now call `IAuthService` instead of `UserManager<User>` directly
-- Created `Controllers/Security/ProfileController.cs` with `MapProfileEndpoints` extension method
-- Moved GET /api/profile, PUT /api/profile, POST /api/profile/avatar from Program.cs
-- Profile endpoints now call `IProfileService` instead of `UserManager<User>` directly
-- Removed `GenerateJwtToken` static method from Program.cs (logic already in AuthService)
-- Cleaned up unused `using` statements (`System.IdentityModel.Tokens.Jwt`, `DTOs.Security`)
-- Files changed: `Controllers/Security/AuthController.cs` (new), `Controllers/Security/ProfileController.cs` (new), `Program.cs`
+## 2026-03-15 - US-011
+- Added logo assets: logo-full.png (full logo with text) and vault-icon.png (cropped vault only)
+- Created branded SVG favicon with navy/gold vault design matching brand colors
+- Generated apple-touch-icon.png (180x180) from vault icon
+- Updated index.html: title set to "GeekVault", favicon.svg linked, apple-touch-icon added
+- Removed old Vite default favicon (vite.svg)
+- Files changed: src/web/index.html, src/web/public/favicon.svg, src/web/public/apple-touch-icon.png, src/web/public/favicon-16.png, src/web/public/favicon-32.png, src/web/src/assets/logo-full.png, src/web/src/assets/vault-icon.png
 - **Learnings for future iterations:**
-  - Controllers are static classes with extension methods on `IEndpointRouteBuilder` — pattern: `public static IEndpointRouteBuilder MapXxxEndpoints(this IEndpointRouteBuilder app)`
-  - When extracting endpoints, inject services (IAuthService, IProfileService) instead of lower-level dependencies (UserManager, DbContext) — the services already encapsulate those
-  - All 103 tests pass without modification — tests hit HTTP endpoints via WebApplicationFactory, so the internal restructuring is transparent
-  - After removing endpoints from Program.cs, check for unused `using` statements and the `GenerateJwtToken` helper that was only used by auth endpoints
+  - ImageMagick `convert` with `-crop ... +repage -trim +repage` is effective for extracting parts of a PNG
+  - Logo assets are at `@/assets/logo-full.png` (full) and `@/assets/vault-icon.png` (icon only) — use these in sidebar/auth pages
+  - Favicon is SVG-based using brand colors (#1B3A6B navy, #3B6CB5 lighter blue, #E8A838 gold)
+  - No browser testing tools available — manual verification needed
 ---
 
-## 2026-03-14 - US-011
-- Created `Controllers/Vault/CollectionTypesController.cs` with `MapCollectionTypeEndpoints` extension method
-- Moved all 5 /api/collection-types endpoints (GET list, GET by id, POST, PUT, DELETE) from Program.cs, refactored to call `ICollectionTypesService`
-- Created `Controllers/Vault/CollectionsController.cs` with `MapCollectionEndpoints` extension method
-- Moved all 6 /api/collections endpoints (GET list, GET by id, POST, PUT, DELETE, POST cover) from Program.cs, refactored to call `ICollectionsService`
-- Added `app.MapCollectionTypeEndpoints()` and `app.MapCollectionEndpoints()` calls in Program.cs
-- Removed `validFieldTypes` HashSet from Program.cs (validation now in CollectionTypesService)
-- Files changed: `Controllers/Vault/CollectionTypesController.cs` (new), `Controllers/Vault/CollectionsController.cs` (new), `Program.cs`
+## 2026-03-15 - US-012
+- Restructured frontend into feature-based folder architecture
+- Moved all page components from src/pages/ to src/features/{feature}/ with kebab-case naming
+- Moved app-layout to src/components/layout/
+- Updated all imports in App.tsx to use new paths
+- Updated test file relative imports to match new filenames
+- Files changed: src/web/src/App.tsx, all page files moved, app-layout moved
 - **Learnings for future iterations:**
-  - Same pattern as Security controllers: static class with extension method on `IEndpointRouteBuilder`, inject services not lower-level deps
-  - CollectionTypesService already encapsulates `validFieldTypes` validation — no need to duplicate it in the controller
-  - CollectionsService.UploadCoverAsync returns `(CoverUrl, NotFound, Error)` tuple — controller needs to check both NotFound and Error conditions
-  - All 103 tests pass without modification — tests hit HTTP endpoints so internal restructuring is transparent
+  - All page components use `@/` alias imports (not relative), so moving them only requires updating App.tsx and test files
+  - Test files use relative imports to their component — must update when renaming/moving
+  - Home.tsx and Home.test.tsx remain in src/pages/ (unused, not in routes)
+  - Git detects renames correctly when using copy + delete approach
 ---
 
-## 2026-03-14 - US-012
-- Created `Controllers/Vault/CatalogItemsController.cs` with `MapCatalogItemEndpoints` extension method
-- Moved all 5 /api/collections/{id}/items CRUD endpoints from Program.cs, refactored to call `ICatalogItemsService`
-- Moved export endpoint (GET /api/collections/{id}/export) with CSV/JSON formatting
-- Moved import endpoints (POST /api/collections/{id}/import, /import/preview, /import/confirm) with CSV parsing helpers
-- Import preview cache (`importPreviews` dictionary) moved to static field on the controller
-- Created `Controllers/Vault/OwnedCopiesController.cs` with `MapOwnedCopyEndpoints` extension method
-- Moved all 4 /api/items/{id}/copies endpoints from Program.cs, refactored to call `IOwnedCopiesService`
-- Added `app.MapCatalogItemEndpoints()` and `app.MapOwnedCopyEndpoints()` calls in Program.cs
-- Removed unused `using` statements (System.Globalization, System.Text.Json, DTOs.Common)
-- Files changed: `Controllers/Vault/CatalogItemsController.cs` (new), `Controllers/Vault/OwnedCopiesController.cs` (new), `Program.cs`
+## 2026-03-15 - US-013
+- Created `src/web/src/lib/api.ts` with `fetchApi<T>` helper and `ApiError` class
+- Created `src/web/src/hooks/use-debounce.ts` with `useDebounce<T>(value, delay)` hook
+- Created `src/web/src/hooks/use-media-query.ts` with `useMediaQuery(query)` hook
+- Created `src/web/src/hooks/index.ts` barrel export
+- Files changed: src/web/src/lib/api.ts, src/web/src/hooks/use-debounce.ts, src/web/src/hooks/use-media-query.ts, src/web/src/hooks/index.ts
 - **Learnings for future iterations:**
-  - Import/export endpoints don't have corresponding service methods yet — they still use DbContext directly in the controller. Future cleanup (US-014) can move this logic to services
-  - CSV parsing helpers (ParseCsvFile, ParseCsvLine, CsvEscape) are private static methods on CatalogItemsController — they could be extracted to a utility class if needed elsewhere
-  - The import preview cache is a static Dictionary on the controller — same in-process caching as before
-  - OwnedCopiesController is very thin: all 4 endpoints delegate directly to IOwnedCopiesService with the tuple return pattern
-  - All 103 tests pass without modification — tests hit HTTP endpoints so internal restructuring is transparent
+  - TypeScript `erasableSyntaxOnly` is enabled — cannot use parameter properties (`public status: number` in constructor). Use explicit field declarations instead.
+  - `fetchApi` reads token from localStorage key `geekvault-token` — same key as auth-provider.tsx
+  - `fetchApi` skips Content-Type header for FormData bodies (browser sets multipart boundary automatically)
+  - `fetchApi` returns undefined for non-JSON responses (e.g. 204 No Content)
+  - Hooks importable from `@/hooks` barrel, API from `@/lib/api`
 ---
 
-## 2026-03-14 - US-013
-- Created `Controllers/Vault/SetsController.cs` with `MapSetEndpoints` extension method
-- Moved all 7 /api/collections/{id}/sets endpoints (GET list, GET by id, POST, PUT, DELETE, POST items) from Program.cs, refactored to call `ISetsService`
-- Created `Controllers/Vault/WishlistController.cs` with `MapWishlistEndpoints` extension method
-- Moved all 4 /api/collections/{id}/wishlist endpoints (GET list, POST, PUT, DELETE) from Program.cs, refactored to call `IWishlistService`
-- Created `Controllers/Vault/DashboardController.cs` with `MapDashboardEndpoints` extension method
-- Moved GET /api/dashboard from Program.cs, refactored to call `IDashboardService`
-- Added `app.MapSetEndpoints()`, `app.MapWishlistEndpoints()`, `app.MapDashboardEndpoints()` calls in Program.cs
-- Removed unused `using` statements (System.Security.Claims, DTOs.Vault, Entities.Vault)
-- Files changed: `Controllers/Vault/SetsController.cs` (new), `Controllers/Vault/WishlistController.cs` (new), `Controllers/Vault/DashboardController.cs` (new), `Program.cs`
+## 2026-03-15 - US-014
+- Created `src/web/src/components/layout/sidebar.tsx` with collapsible desktop sidebar (expanded 256px / collapsed 64px)
+- Created `src/web/src/components/layout/header.tsx` for mobile top header bar with hamburger menu
+- Simplified `app-layout.tsx` to compose Sidebar + Header + Outlet
+- Added `TooltipProvider` at app root in `main.tsx`
+- Desktop sidebar: toggle with chevron at bottom, persists to localStorage, tooltips on collapsed nav items
+- Mobile: Sheet/drawer overlay with full sidebar content, branded dark navy background
+- Active nav items: gold accent left border + subtle background tint
+- Logo: full logo when expanded, vault icon when collapsed
+- User section: avatar initials circle + display name + logout button
+- Files changed: sidebar.tsx (new), header.tsx (new), app-layout.tsx (rewritten), main.tsx (TooltipProvider added)
 - **Learnings for future iterations:**
-  - WishlistService.UpdateAsync returns a 3-tuple `(Response?, CollectionNotFound, ItemNotFound)` — both bool flags need checking in the controller
-  - DashboardController is the thinnest controller: single endpoint delegating entirely to IDashboardService
-  - Program.cs now has zero inline endpoint logic — all endpoints are in controller files
-  - All 103 tests pass without modification — tests hit HTTP endpoints so internal restructuring is transparent
+  - `TooltipProvider` must be at app root (main.tsx) for all Tooltip components to work — added with `delayDuration={0}`
+  - Sidebar uses `useMediaQuery("(min-width: 1024px)")` from `@/hooks` to determine default collapsed state
+  - `MobileSidebarContent` is exported separately from sidebar.tsx for use in the Sheet component in header.tsx
+  - Sheet's close (X) button needs `[&>button]:text-sidebar-foreground` to be visible on dark sidebar background
+  - Transition uses `transition-all duration-250 ease-in-out` for smooth width animation
 ---
 
-## 2026-03-14 - US-014
-- Created `Extensions/ServiceCollectionExtensions.cs` with `AddSecurityServices(IConfiguration)` and `AddVaultServices()` extension methods
-- `AddSecurityServices` encapsulates: DbContext, Identity, JWT authentication, authorization, security repositories and services
-- `AddVaultServices` encapsulates: all Vault repository and service registrations
-- Program.cs reduced from ~100 lines to 37 lines — contains only builder config, extension method calls, middleware, and endpoint mapping
-- Health check endpoint remains in Program.cs
-- Swagger still configured in Program.cs
-- Files changed: `Extensions/ServiceCollectionExtensions.cs` (new), `Program.cs`
+## 2026-03-15 - US-015
+- Created command palette component using cmdk's CommandDialog with Cmd+K / Ctrl+K keyboard shortcut
+- Navigation group: Dashboard, Collections, Collection Types, Wishlist, Profile
+- Actions group: Create Collection, Toggle Theme, Toggle Sidebar, Change Language
+- Added sidebar toggle via custom DOM event (`toggle-sidebar`) — sidebar listens with useEffect
+- Added i18n keys (`commandPalette.*`) to both en.json and pt.json
+- Rendered CommandPalette in app-layout.tsx
+- Files changed: command-palette.tsx (new), app-layout.tsx, sidebar.tsx, en.json, pt.json
 - **Learnings for future iterations:**
-  - `AddSecurityServices` needs `IConfiguration` parameter for JWT settings; `AddVaultServices` needs no parameters
-  - All 103 tests pass without modification — WebApplicationFactory still discovers all services through the extension methods
-  - Program.cs now follows clean minimal API pattern: services → middleware → endpoints
+  - cmdk exports `CommandDialog` which wraps Radix Dialog — provides overlay, content, and open/close state management
+  - Sidebar toggle uses `window.dispatchEvent(new Event("toggle-sidebar"))` pattern to communicate between unrelated components without shared context
+  - cmdk items use `aria-selected` for highlight state — style with `aria-selected:bg-accent/10`
+  - cmdk group headings are styled via `[&_[cmdk-group-heading]]` CSS selector
+  - No browser testing tools available — manual verification needed
 ---
 
-## 2026-03-14 - US-015
-- Deleted all 8 old migration files from Migrations/ folder
-- Created single clean InitialCreate migration reflecting new schema organization
-- Used `ExcludeFromMigrations()` on IdentityUserClaim, IdentityUserLogin, IdentityUserToken to prevent AspNet* tables
-- Dropped existing database and ran `dotnet ef database update` to verify clean creation
-- Verified schemas: Security.Users, Vault.{CollectionTypes, Collections, CatalogItems, OwnedCopies, Sets, SetItems, WishlistItems}, EF.MigrationsHistory
-- No AspNetRoles, AspNetRoleClaims, AspNetUserClaims, AspNetUserLogins, AspNetUserRoles, or AspNetUserTokens tables
-- Files changed: `Data/ApplicationDbContext.cs`, `Migrations/` (8 deleted, 3 new)
+## 2026-03-15 - US-016
+- Redesigned login page with split-screen brand layout
+- Created shared `AuthLayout` component at `src/features/auth/auth-layout.tsx` for reuse in register page (US-017)
+- Desktop: left panel (60%) with deep navy gradient, decorative circles, full logo, tagline; right panel (40%) with form
+- Mobile: compact brand header with logo above form (stacked)
+- Form: "Welcome back" heading with font-display, email/password inputs, loading spinner (Loader2 icon) on submit
+- Error messages in destructive color below form
+- Added i18n keys: auth.welcomeBack, auth.tagline to both en.json and pt.json
+- Files changed: src/web/src/features/auth/login-page.tsx (rewritten), src/web/src/features/auth/auth-layout.tsx (new), en.json, pt.json
 - **Learnings for future iterations:**
-  - `IdentityUserContext<T>` still creates AspNetUserClaims, AspNetUserLogins, AspNetUserTokens tables — use `ExcludeFromMigrations()` in OnModelCreating to prevent them
-  - `dotnet-ef` tool must be installed globally (`dotnet tool install --global dotnet-ef`) — it's not pre-installed in the dev container
-  - Always run `dotnet ef migrations remove` before `dotnet ef migrations add` when regenerating to avoid stale snapshots
-  - Database drop and recreate verifies the migration works from scratch — important for clean slate migrations
+  - `AuthLayout` component wraps children with the split-screen layout — just wrap form content to reuse in register page
+  - Logo assets: `@/assets/logo-full.png` for full logo, `@/assets/vault-icon.png` for icon only
+  - Use `font-display` class for Nunito headings on auth pages
+  - Loader2 from lucide-react + `animate-spin` class for button loading spinners
+  - No browser testing tools available — manual verification needed
 ---
 
-## 2026-03-14 - US-016
-- All 103 existing tests already pass against the restructured architecture — no test file modifications needed
-- Tests use HTTP client via `WebApplicationFactory<Program>` so they're decoupled from internal architecture (entity names, namespaces, repositories, services)
-- TestFactory.cs already works with the new `ApplicationDbContext` (IdentityUserContext<User> base class) — no changes needed
-- Configured coverage exclusion for auto-generated migration files (`ExcludeByFile=**/Migrations/*.cs`) in test csproj
-- Added `Threshold=90` and `ThresholdType=line` to csproj for enforcing 90% line coverage threshold
-- Line coverage: 96.52% (above 90% threshold), Branch coverage: 69.18%, Method coverage: 94.89%
-- Files changed: `GeekVault.Api.Tests/GeekVault.Api.Tests.csproj`
+## 2026-03-15 - US-017
+- Redesigned register page to use shared `AuthLayout` split-screen component (matching login page)
+- Added "Create your vault" heading with `font-display`, loading spinner on submit button, destructive error styling
+- Added `auth.createYourVault` i18n key to en.json ("Create your vault") and pt.json ("Crie seu cofre")
+- Files changed: src/web/src/features/auth/register-page.tsx (rewritten), en.json, pt.json
 - **Learnings for future iterations:**
-  - Migrations are auto-generated and should always be excluded from coverage — they add ~1682 lines of 0% coverage
-  - Integration tests via `WebApplicationFactory` are resilient to internal restructuring — as long as HTTP API contracts don't change, tests continue passing
-  - Coverlet `Threshold` property in csproj only applies to the type specified by `ThresholdType` — branch coverage won't fail the build unless added separately
-  - The in-memory database provider ignores schema names, table configurations, and EF migrations — it just works with the entity model
+  - `AuthLayout` from `@/features/auth/auth-layout` makes adding new auth pages trivial — just wrap form content
+  - Register page follows exact same structure as login: AuthLayout > div.space-y-6 > heading + form + link
+  - No browser testing tools available — manual verification needed
+---
+
+## 2026-03-15 - US-018
+- Redesigned dashboard page with branded DS components: PageHeader, StatCard, AnimatedNumber, Card, DataTable, Badge
+- Decomposed into sub-components: stats-row.tsx, charts-section.tsx, collection-summaries.tsx, recent-acquisitions.tsx
+- Full skeleton loading state for all sections (not just spinner)
+- StaggerChildren animation on stat cards and collection summary cards
+- Charts wrapped in DS Card with CardHeader/CardTitle, using brand colors (navy, gold, teal)
+- Recent acquisitions use DataTable with Badge for condition column
+- Replaced inline error messages with toast notifications
+- Added welcome message with user display name: "Welcome back, {name}"
+- Added `dashboard.welcome` i18n key to en.json and pt.json
+- Files changed: dashboard-page.tsx (rewritten), stats-row.tsx (new), charts-section.tsx (new), collection-summaries.tsx (new), recent-acquisitions.tsx (new), en.json, pt.json
+- **Learnings for future iterations:**
+  - Dashboard sub-components live in `src/features/dashboard/components/` — follow this pattern for other feature decompositions
+  - StatCard accepts `value` as ReactNode, so AnimatedNumber can be passed directly as value prop
+  - AnimatedNumber `format` prop takes `(n: number) => string` for custom formatting (e.g. currency)
+  - DataTable column `accessor` can be a function `(row: T) => ReactNode` for computed/formatted values
+  - Badge `variant` can be dynamically chosen based on condition string (use switch/map for condition → variant)
+  - No browser testing tools available — manual verification needed
+---
+
+## 2026-03-15 - US-019
+- Added smart empty states to dashboard and collections pages using EmptyState DS component
+- Dashboard: shows Lock icon + "Your vault is empty" when totalCollections === 0, CTA navigates to /collections?create=true
+- Collections: shows Library icon + "No collections yet", CTA opens create dialog directly
+- Collections page handles `?create=true` query param to auto-open create dialog (used by dashboard CTA and command palette)
+- Added emptyStates.dashboard.* and emptyStates.collections.* i18n keys to both en.json and pt.json
+- Files changed: dashboard-page.tsx, collections-page.tsx, en.json, pt.json
+- **Learnings for future iterations:**
+  - `useSearchParams` from react-router-dom for reading/clearing query params — use `setSearchParams({}, { replace: true })` to clear without history entry
+  - Dashboard empty check: `!loading && data !== null && data.totalCollections === 0` — must check data is not null to avoid flash
+  - Collections page already had `?create=true` navigation from command palette — now it's actually handled
+  - No browser testing tools available — manual verification needed
+---
+
+## 2026-03-15 - US-020
+- Redesigned collections page with branded DS components: PageHeader, Card, Badge, DropdownMenu, Select, StaggerChildren, toast
+- Added search bar (debounced) and filter-by-type dropdown above the card grid
+- Collection cards: aspect-ratio cover image with gradient fallback, type badge, 2-line description, footer with item count and View button
+- Overflow menu uses DS DropdownMenu (replaces custom menu with outside-click handler)
+- Create/Edit dialog: uses DS Select for type selector, visual dropzone (dashed border) for image upload
+- Delete uses existing ConfirmDialog with destructive styling
+- Replaced inline error messages with toast notifications
+- Full skeleton loading state with 6 placeholder cards
+- StaggerChildren animation on card grid
+- Added i18n keys: searchPlaceholder, filterByType, allTypes, noResults, view, dropCoverHere, saveSuccess, createSuccess, deleteSuccess to en.json and pt.json
+- Files changed: collections-page.tsx (rewritten), en.json, pt.json
+- **Learnings for future iterations:**
+  - DS DropdownMenu is much cleaner than manual menu with outside-click handlers — no refs or event listeners needed
+  - DS Select requires string values — use `String(id)` and `Number(value)` for numeric IDs
+  - `useDebounce` from `@/hooks` works well for search input filtering
+  - Card `group` class enables `group-hover:opacity-100` pattern for revealing overflow menu on hover
+  - Gradient fallback for missing cover images: `bg-gradient-to-br from-primary/10 to-accent/10` looks good
+  - No browser testing tools available — manual verification needed
+---
+
+## 2026-03-15 - US-021
+- Replaced inline empty states with EmptyState DS component on collection detail, wishlist, and collection types pages
+- Collection detail: Package icon + "No items in this collection" + "Add Item" CTA that opens the add item dialog
+- Wishlist: Heart icon + "Your wishlist is empty" + "Add to Wishlist" CTA that opens the add dialog
+- Collection types: Layers icon + "No collection types defined" + "Create Collection Type" CTA that opens the create dialog
+- Added emptyStates.collectionDetail.*, emptyStates.wishlist.*, emptyStates.collectionTypes.* i18n keys to both en.json and pt.json
+- Files changed: collection-detail-page.tsx, wishlist-page.tsx, collection-types-page.tsx, en.json, pt.json
+- **Learnings for future iterations:**
+  - All three pages use `setDialogOpen(true)` to open their create/add dialog — consistent pattern across pages
+  - EmptyState component handles icon sizing automatically via `[&>svg]` selector — just pass `<Icon />` without size classes
+  - No browser testing tools available — manual verification needed
+---
+
+## 2026-03-15 - US-022
+- Redesigned collection detail page toolbar and added grid/table view toggle
+- Added PageHeader with collection name, type badge, and item count
+- View toggle buttons (grid/table) persisted to localStorage per collection (`geekvault-view-{id}`)
+- Toolbar uses DS Select for condition filter and sort dropdown (replacing native `<select>`)
+- Grid view: DS Card with StaggerChildren animation, hover lift effect, hover overlay with "View" text, gradient fallback for missing images, success ring for owned items
+- Table view: DS DataTable with thumbnail, name (sortable), identifier, owned status badge, rarity columns; row click navigates to item detail
+- Full skeleton loading state (PageHeader skeleton + filter bar skeleton + 8 card placeholders)
+- Added `viewGrid`, `viewTable` i18n keys to en.json and pt.json
+- Files changed: collection-detail-page.tsx, en.json, pt.json
+- **Learnings for future iterations:**
+  - DS Select needs a non-empty string value — use `"all"` as sentinel value and handle in `updateParam` to delete the param
+  - Grid changed from 5 cols to 4 cols max (2/3/4) for better card sizing with the new Card component
+  - `motion.div` with `variants={staggerItemVariants}` must be direct child of `StaggerChildren` for stagger animation to work
+  - Table view reuses same sort state from URL params — `onSort` callback just updates URL params like the toolbar
+  - Cover image moved below PageHeader as a standalone banner (not part of card header) for cleaner layout
+  - No browser testing tools available — manual verification needed
+---
+
+## 2026-03-15 - US-023
+- Redesigned sets section from left/right panel layout to collapsible accordion sections
+- Each set is a Card with clickable header: set name, item count (e.g. "5/12 items"), progress bar (gold fill), percentage
+- Click header to expand/collapse with framer-motion AnimatePresence animation (height + opacity)
+- Expanded content shows set items as compact list with owned/unowned indicators (CheckCircle2 vs Circle)
+- Action buttons (add items, edit, delete) on each set header with hover reveal
+- Empty state uses EmptyState DS component with Package icon
+- Skeleton loading for set details while fetching
+- Item action buttons (view, remove) shown on hover with group-hover pattern
+- Added `expandedSets` (Set<number>) and `setDetails` (Record<number, SetDetail>) state for multi-set expansion
+- Added `openAddItemsForSet` helper that fetches set detail before opening add items dialog
+- Added i18n keys: `sets.emptyDescription`, `sets.items` to both en.json and pt.json
+- Shortened `sets.empty` to title-only for use with EmptyState component
+- Files changed: collection-detail-page.tsx, en.json, pt.json
+- **Learnings for future iterations:**
+  - AnimatePresence with `height: 0 -> auto` pattern works well for accordion expand/collapse
+  - `expandedSets` as Set<number> allows multiple sets expanded simultaneously
+  - `setDetails` map caches fetched set details to avoid refetching on collapse/expand
+  - `group` + `group-hover:opacity-100` pattern used for revealing per-item actions on hover
+  - When removing set items from accordion view, must set `selectedSet` before calling `confirmRemoveSetItem` since `handleRemoveSetItem` uses `selectedSet`
+  - No browser testing tools available — manual verification needed
+---
+
+## 2026-03-15 - US-024
+- Redesigned import flow as a multi-step wizard with drag-and-drop file upload
+- Extracted ImportWizard component to `src/features/collections/components/import-wizard.tsx`
+- Step 1: Drag-and-drop zone with dashed border, file icon, size display, click-to-browse fallback
+- Step 2: Preview table with DS Badge for valid/error counts, Back button to re-upload
+- Step 3: Success state with checkmark icon and Done button
+- Step indicator at top showing numbered circles with progress lines (completed steps turn green)
+- Replaced inline error messages with toast notifications
+- Added i18n keys: importNext, importDone, importStepUpload, importStepPreview, importStepConfirm, importDropHere, importOrBrowse, importClickToChange, importConfirmCount, importCompleteToast
+- Files changed: collection-detail-page.tsx (simplified, removed import state/functions), import-wizard.tsx (new), en.json, pt.json
+- **Learnings for future iterations:**
+  - Feature sub-components go in `src/features/{feature}/components/` — import-wizard is first component extracted for collections feature
+  - Drag-and-drop file upload uses `onDragOver`/`onDragLeave`/`onDrop` events with `e.preventDefault()` + hidden `<input type="file">` + `useRef` for click-to-browse
+  - Step wizard pattern: use numeric `step` state (1/2/3) + step config array for rendering indicator
+  - Toast replaces inline error state — cleaner component code, no `importError` state needed
+  - No browser testing tools available — manual verification needed
+---
+
+## 2026-03-15 - US-025
+- Redesigned catalog item detail page with hero section layout (image left, info right on 5-column grid)
+- Added breadcrumb navigation: Collections > {Collection Name} > {Item Name} with clickable links
+- Action buttons (Edit, Delete, Add Owned Copy) in hero section
+- Custom fields rendered with proper type formatting: booleans as check/x icons, dates formatted, enums as badges
+- Description section with clean typography
+- Full skeleton loading state (not spinner) for initial page load
+- Replaced all inline error/success messages with toast notifications
+- Owned copies displayed as card grid with condition-colored badges
+- Added loading spinner to form submit buttons
+- Files changed: src/web/src/features/collections/catalog-item-detail-page.tsx, src/web/src/i18n/locales/en.json, src/web/src/i18n/locales/pt.json
+- **Learnings for future iterations:**
+  - Collection name for breadcrumbs requires fetching the collection object — already done in the load sequence, just need to store it in state
+  - Custom field type rendering: use the collectionType.customFields definitions to determine display format (boolean → icon, date → formatted, enum → badge)
+  - `FadeIn` wrapper from DS motion.tsx works well for page-level fade-in without needing full PageTransition
+  - Condition badge coloring pattern: Mint/NearMint → success, Excellent/Good → primary, Fair/Poor → warning
+---
+
+## 2026-03-15 - US-026
+- Redesigned owned copies section with EmptyState DS component (Box icon) for empty state
+- Cards now use StaggerChildren + staggerItemVariants for entrance animation
+- Per-copy detail fields enhanced with lucide icons (DollarSign, Tag, Calendar, ShoppingBag, FileText) for visual clarity
+- Action buttons (Edit/Delete) use group-hover opacity reveal pattern
+- Condition badge upgraded from sm to md size
+- Thumbnail images get hover ring effect (accent color)
+- Added emptyStates.ownedCopies.* i18n keys to both en.json and pt.json
+- Files changed: catalog-item-detail-page.tsx, en.json, pt.json
+- **Learnings for future iterations:**
+  - EmptyState component works well as drop-in replacement for custom empty cards — just provide icon, title, description, actionLabel, onAction
+  - `group` + `group-hover:opacity-100` pattern on Card makes per-item actions discoverable without cluttering the default view
+  - Lucide icons alongside detail fields (DollarSign for price, Calendar for date, etc.) improve scannability
+  - No browser testing tools available — manual verification needed
+---
+
+## 2026-03-15 - US-027
+- Redesigned wishlist page with DS Card layout, collapsible collection groups, priority badges, and filter/sort toolbar
+- Used PageHeader with accent-styled "Add Item" button
+- Items as DS Cards with priority badges (high=destructive/red, medium=accent/gold, low=default/gray), target price with DollarSign icon, notes with FileText icon, link icon for linked catalog items
+- Actions via DS DropdownMenu with group-hover opacity reveal pattern
+- Collapsible collection groups with AnimatePresence accordion animation (all expanded by default)
+- Filter toolbar: DS Select for priority filter (All/High/Medium/Low), sort by priority/price/name
+- Skeleton loading state with card placeholders
+- StaggerChildren animation on card grids
+- Replaced inline error/success messages with toast notifications
+- Used ConfirmDialog for delete confirmation (replacing manual Dialog)
+- Replaced native `<select>` in dialog with DS Select for collection and priority inputs
+- Added loading spinner (Loader2) to submit button
+- Added i18n keys: wishlist.filterPriority, priorityAll/High/Medium/Low, sortBy/Priority/Price/Name, itemCount, noResults, updateSuccess, addSuccess, deleteSuccess
+- Files changed: wishlist-page.tsx, en.json, pt.json
+- **Learnings for future iterations:**
+  - Priority mapping: 1=High (destructive), 2=Medium (accent), >=3=Low (default) — simple numeric thresholds work well with Badge variants
+  - ConfirmDialog from `@/components/ui/confirm-dialog` requires `cancelLabel` prop — cleaner than building delete dialogs from scratch
+  - Collapsible groups pattern: `expandedGroups` as `Set<number>` + AnimatePresence + `height: 0/auto` animation — same pattern as US-023 sets accordion
+  - `useMemo` for filtered/sorted groups keeps filtering logic clean and avoids recomputation on unrelated state changes
+  - No browser testing tools available — manual verification needed
+---
+
+## 2026-03-15 - US-028
+- Redesigned collection types page with branded DS components: PageHeader, Card, Badge, DropdownMenu, StaggerChildren, Tabs, Select, SortableList, toast
+- Type cards: large emoji icon in rounded bg, bold font-display name, 2-line truncated description, custom fields as Badge tags (field name + type), overflow menu (Edit/Delete) with group-hover reveal
+- Grid layout: 1 col mobile, 2 col tablet, 3 col desktop with StaggerChildren animation
+- Create/Edit dialog with DS Tabs: "General" tab (name, icon, description) + "Custom Fields" tab with field count badge
+- Custom field builder: SortableList with drag handle (GripVertical) for reorder, field name Input, type DS Select, required checkbox, delete button
+- Enum type: inline tag editor — type text + Enter to add as Badge tag, X button to remove tag (replaces individual option Input rows)
+- Field count indicator shows "X of 10 fields used"
+- Skeleton loading state with card placeholders
+- Delete uses ConfirmDialog with destructive styling (replaces manual Dialog)
+- Replaced all inline error/success messages with toast notifications
+- Loading spinner (Loader2) on submit button
+- Added i18n keys: tabGeneral, tabCustomFields, enumTagPlaceholder, saveSuccess, createSuccess, deleteSuccess to both en.json and pt.json
+- Files changed: collection-types-page.tsx, en.json, pt.json
+- **Learnings for future iterations:**
+  - SortableList with mapped items needs `_index` field to track original indices for updateField/removeField callbacks
+  - Enum tag editor pattern: enumInputs state (Record<number, string>) + onKeyDown Enter handler + Badge display with X remove button — much cleaner than individual option Input rows
+  - DS Tabs work well inside Dialog for organizing form sections — use TabsTrigger badge to show field count
+  - ConfirmDialog from `@/components/ui/confirm-dialog` is cleaner than manual Dialog for delete confirmations — use consistently across all pages
+  - No browser testing tools available — manual verification needed
+---
+
+## 2026-03-15 - US-029
+- Redesigned profile page with organized card sections: Avatar, Account Info, About, Preferences, Appearance
+- Avatar section: 120px circular avatar with camera icon overlay on hover, click to upload, loading indicator
+- Replaced native `<textarea>` with DS Textarea, native `<select>` with DS Select for language and currency
+- Added theme toggle as segmented control (light/dark/system) with Sun/Moon/Monitor icons using `useTheme` hook
+- Save button sticky at bottom on mobile (`sticky bottom-4` on sm: static)
+- Full skeleton loading state using DS Card + Skeleton components
+- Replaced all inline error/success messages with toast notifications
+- Added `profile.sections.*` i18n keys (avatar, accountInfo, about, preferences, appearance, theme, themeLight/Dark/System) to both en.json and pt.json
+- Added `profile.avatarSuccess` i18n key for toast on successful avatar upload
+- Files changed: profile-page.tsx (rewritten), en.json, pt.json
+- **Learnings for future iterations:**
+  - `useTheme()` from `@/components/theme-provider` gives `{ theme, setTheme }` — theme is "light" | "dark" | "system"
+  - Segmented control pattern: `inline-flex rounded-lg border bg-muted/50 p-1` container + buttons with conditional `bg-background shadow-sm` for active
+  - DS Select works as drop-in replacement for native `<select>` — just change to `Select > SelectTrigger > SelectValue` + `SelectContent > SelectItem`
+  - No browser testing tools available — manual verification needed
+---
+
+## 2026-03-15 - US-030
+- Created `AnimatedOutlet` component wrapping `useOutlet` + `useLocation` with `AnimatePresence` + `PageTransition`
+- Replaced `<Outlet />` with `<AnimatedOutlet />` in app-layout.tsx (authenticated routes) and GuestOnly wrapper (login/register)
+- Dialogs already have scale-in animation via Radix's `zoom-in-95`/`zoom-out-95` CSS classes — no changes needed
+- `PageTransition` from DS motion.tsx already respects `prefers-reduced-motion` (returns noop variants)
+- `AnimatePresence mode="wait"` ensures outgoing page exits before incoming page enters — no layout jump
+- Files changed: animated-outlet.tsx (new), app-layout.tsx, App.tsx
+- **Learnings for future iterations:**
+  - `AnimatedOutlet` pattern: `useOutlet()` captures the current outlet element, keyed by `location.pathname` inside `AnimatePresence mode="wait"` + `PageTransition`
+  - `RequireAuth` outlet renders `AppLayout` (not pages directly), so it should use plain `<Outlet />` — only the innermost outlet that renders page components needs animation
+  - Radix Dialog already has built-in `zoom-in-95`/`zoom-out-95` + `fade-in`/`fade-out` animations — no need for separate ScaleIn wrapper
+  - No browser testing tools available — manual verification needed
+---
+
+## 2026-03-15 - US-031
+- Added SortOrder (int, default 0) property to CatalogItem entity
+- Generated and applied EF Core migration: AddCatalogItemSortOrder
+- Updated CatalogItemsRepository to order by SortOrder by default in GetByCollectionId and GetByCollectionIdWithFieldsAsync
+- Added GetMaxSortOrderAsync and GetByIdsAndCollectionIdAsync to repository + interface
+- Added POST /api/collections/{collectionId}/items/reorder endpoint accepting { itemIds: int[] }
+- Endpoint verifies collection ownership and validates all item IDs belong to the collection
+- Auto-assigns SortOrder = max + 1 when creating new catalog items
+- Default sort in GetAllAsync changed from OrderBy(Id) to OrderBy(SortOrder).ThenBy(Id)
+- Added ReorderItemsRequest DTO record
+- Added 4 integration tests: reorder updates sort order, wrong collection returns 404, invalid IDs returns 400, requires auth
+- All 125 tests pass, 94.37% line coverage
+- Files changed: CatalogItem.cs, CatalogItemDtos.cs, ICatalogItemsRepository.cs, CatalogItemsRepository.cs, ICatalogItemsService.cs, CatalogItemsService.cs, CatalogItemsController.cs, CatalogItemEndpointsTests.cs, migration files
+- **Learnings for future iterations:**
+  - `GetMaxSortOrderAsync` returns -1 when no items exist, so first item gets SortOrder 0
+  - Reorder endpoint uses `List<int> ItemIds` in DTO (not `int[]`) — C# record with List works with JSON deserialization
+  - Repository's `OrderBy(SortOrder)` is overridden by service-level sort switch — must also update default case in service
+  - In-memory DB for tests doesn't require migration application — EF auto-creates schema
+---
+
+## 2026-03-15 04:37 UTC - US-032
+- Added SortOrder (int, default 0) property to WishlistItem entity
+- Generated and applied EF Core migration AddWishlistItemSortOrder
+- Updated WishlistRepository to order by SortOrder (was Priority), added GetMaxSortOrderAsync and GetByIdsAndCollectionIdAsync
+- Added ReorderAsync to WishlistService/IWishlistService following CatalogItems reorder pattern
+- Added POST /api/collections/{collectionId}/wishlist/reorder endpoint with ReorderWishlistItemsRequest DTO
+- Updated CreateAsync to auto-assign SortOrder as max+1 for the collection
+- Added SortOrder to WishlistItemResponse DTO
+- Added reorder tests (success + not found) to WishlistEndpointsTests, updated ordering test
+- Files changed:
+  - src/api/GeekVault.Api/Entities/Vault/WishlistItem.cs
+  - src/api/GeekVault.Api/Migrations/*AddWishlistItemSortOrder*
+  - src/api/GeekVault.Api/Repositories/Vault/WishlistRepository.cs
+  - src/api/GeekVault.Api/Repositories/Vault/IWishlistRepository.cs
+  - src/api/GeekVault.Api/Services/Vault/WishlistService.cs
+  - src/api/GeekVault.Api/Services/Vault/IWishlistService.cs
+  - src/api/GeekVault.Api/Controllers/Vault/WishlistController.cs
+  - src/api/GeekVault.Api/DTOs/Vault/WishlistDtos.cs
+  - src/api/GeekVault.Api.Tests/WishlistEndpointsTests.cs
+- **Learnings for future iterations:**
+  - Wishlist reorder follows exact same pattern as CatalogItems reorder (US-031) — same tuple return type, same service logic
+  - When adding SortOrder to an entity, remember to update: entity, migration, repository (ordering + helpers), service (create auto-assign + reorder), controller (endpoint), DTOs (response + request), and tests (result record + ordering test)
+  - Existing ordering tests need to be updated when switching from Priority to SortOrder ordering
+---
+
+## 2026-03-15 - US-033
+- Added drag-and-drop reordering to wishlist items within each collection group using SortableList component
+- Added GripVertical drag handle to each wishlist card
+- Implemented optimistic reorder with API call to POST /api/collections/{id}/wishlist/reorder, reverts on failure
+- Added i18n keys for reorder error ("reorderFailed") in both en.json and pt.json
+- Collection type custom field builder already had SortableList from US-028 — no changes needed there
+- Removed unused StaggerChildren/staggerItemVariants imports from wishlist page
+- Files changed: src/web/src/features/wishlist/wishlist-page.tsx, src/web/src/i18n/locales/en.json, src/web/src/i18n/locales/pt.json
+- **Learnings for future iterations:**
+  - SortableList with layout="grid" and gridClassName works well for card grid drag-and-drop
+  - When replacing StaggerChildren with SortableList, remember to clean up unused animation imports
+  - Optimistic updates for reorder: update state immediately, revert by re-fetching on API failure
+  - The wishlist reorder API expects { itemIds: int[] } body format
+---
+
+## 2026-03-15 - US-034
+- Wrapped collection detail grid view items in SortableList with layout="grid"
+- Added handleReorderItems() with optimistic UI update and revert on API failure
+- Added GripVertical drag handle overlay on cards (visible on hover)
+- Visual feedback during drag: ring-2 ring-accent + shadow-lg
+- Added i18n keys for reorderFailed in both en.json and pt.json
+- Removed unused StaggerChildren/staggerItemVariants imports
+- Files changed: src/web/src/features/collections/collection-detail-page.tsx, src/web/src/i18n/locales/en.json, src/web/src/i18n/locales/pt.json
+- **Learnings for future iterations:**
+  - SortableList with layout="grid" handles grid sorting strategy automatically via rectSortingStrategy
+  - Card component doesn't have position:relative by default — must add it when using absolute-positioned child elements like drag handles
+  - For grid cards with images, overlay the drag handle on the card (absolute positioned with bg-black/40) rather than adding it inline, to preserve card layout
+  - Click-through prevention: use onClick={(e) => e.stopPropagation()} on drag handle to prevent navigation when grabbing
+---
+
+## 2026-03-15 - US-035
+- Responsive polish across all mobile breakpoints (375px, 768px, 1280px)
+- Dialog: Added w-[calc(100%-2rem)] for mobile margins, responsive padding (p-4 sm:p-6), rounded-lg always, close button sized to 32x32px with proper positioning
+- Button icon size: Changed from h-9 w-9 to h-11 w-11 sm:h-9 sm:w-9 for 44px touch targets on mobile
+- App layout: Responsive main padding px-4 py-6 sm:px-6
+- Command palette: w-[calc(100%-2rem)] sm:w-full for mobile margins, increased touch targets on items (min-h-[44px], py-3, px-3)
+- Header sidebar sheet: w-[75vw] max-w-72 to prevent overflow on small screens
+- Collection detail grid: grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 (single column on mobile)
+- Fixed-width selects: Changed w-[Npx] to w-full sm:w-[Npx] in collection detail and wishlist
+- Search input: min-w-0 sm:min-w-[180px] to prevent overflow on mobile
+- Profile avatar: Added loading="lazy"
+- Files changed: dialog.tsx, button.tsx, app-layout.tsx, command-palette.tsx, header.tsx, collection-detail-page.tsx, wishlist-page.tsx, profile-page.tsx
+- **Learnings for future iterations:**
+  - Use w-[calc(100%-2rem)] sm:w-full pattern for centered modals/overlays to maintain 1rem margin on mobile
+  - Button size="icon" is only 36px (h-9) — use h-11 w-11 sm:h-9 sm:w-9 for mobile touch targets
+  - All fixed-width elements (selects, inputs) should use w-full sm:w-[Npx] pattern
+  - Grids should start at grid-cols-1 and use sm: breakpoints for multi-column
+  - min-w on flex children can cause overflow — use min-w-0 on mobile
+---
+
+## 2026-03-15 - US-036
+- Audited all components for hardcoded English strings
+- Added missing i18n keys: home.tagline, nav.expandSidebar, nav.collapseSidebar, profile.currencies.* (7 currency labels)
+- Added Portuguese translations for all new keys
+- Fixed Home.tsx to use t("app.name") and t("home.tagline") instead of hardcoded strings
+- Fixed header.tsx sr-only "Toggle menu" to use t("nav.toggleMenu")
+- Fixed sidebar.tsx aria-labels "Expand/Collapse sidebar" to use t() calls
+- Fixed profile-page.tsx currency labels to use t("profile.currencies.*")
+- Files changed: en.json, pt.json, Home.tsx, header.tsx, sidebar.tsx, profile-page.tsx
+- **Learnings for future iterations:**
+  - Language switcher aria-labels showing native language names (e.g., "Português" when in EN mode) are intentional UX convention — don't translate these
+  - Most required key namespaces (emptyStates.*, commandPalette.*, auth.*, profile.sections.*) were already added in earlier stories
+  - Currency labels are good candidates for i18n since currency names differ between languages
+---
+
+## 2026-03-15 - US-037
+- Updated all 12 existing test file imports to reflect features/ folder paths
+- Fixed mocks for framer-motion, Radix UI (Select, DropdownMenu, Tabs, Tooltip), sonner toast, @dnd-kit SortableList, skeleton loading states
+- Created new ds-components.test.tsx with 46 render tests for Card, Badge, EmptyState, PageHeader, Skeleton, StatCard, DataTable, and Toaster
+- Files changed: App.test.tsx, Home.test.tsx, button.test.tsx, app-layout.test.tsx, login-page.test.tsx, register-page.test.tsx, collection-types-page.test.tsx, catalog-item-detail-page.test.tsx, collection-detail-page.test.tsx, collections-page.test.tsx, dashboard-page.test.tsx, profile-page.test.tsx, wishlist-page.test.tsx, ds-components.test.tsx (new)
+- All 23 test files pass (386 tests), typecheck clean
+- **Learnings for future iterations:**
+  - vi.mock() factories are hoisted above variable declarations — use vi.hoisted() for variables referenced inside mock factories
+  - Radix UI primitives (Select, DropdownMenu, Tabs, Tooltip) don't work in jsdom — mock them as simple HTML elements (native select, always-visible divs/buttons)
+  - When mocking DropdownMenu, render all items as visible buttons and use getAllByText() instead of clicking a trigger
+  - Text appearing in multiple places (breadcrumb + heading) requires getAllByText()[0] instead of getByText()
+  - framer-motion mock needs motion.div, AnimatePresence, useSpring, useTransform, useMotionValue stubs
+  - DS components (StaggerChildren, FadeIn, PageTransition, AnimatedNumber) must be mocked in test files that import from @/components/ds
+  - Skeleton loading states use .animate-pulse class — test with container.querySelectorAll(".animate-pulse")
+  - Toast (sonner) must be mocked via vi.hoisted() pattern for the mock object, then spread into the @/components/ds mock
+---
+
+## 2026-03-15 - US-038
+- Added tests for collapsible sidebar: toggle state, localStorage persistence, renders expanded/collapsed correctly
+- Added tests for command palette: opens on Cmd+K keydown, search filtering works, navigation on Enter
+- Updated page component tests for redesigned pages (new component locations, new DOM structure)
+- 12 new test files added, 493 total tests passing
+- Coverage above 90% on all metrics (statements, branches, functions, lines)
+- Typecheck passes
+- Files changed: sidebar.test.tsx, command-palette.test.tsx, and updated page test files
+- **Learnings for future iterations:**
+  - Sidebar toggle tests need to mock localStorage getItem/setItem and verify persistence
+  - Command palette Cmd+K tests require fireEvent.keyDown with metaKey:true for Mac simulation
+  - Coverage thresholds in vitest.config can enforce 90% gates in CI
 ---

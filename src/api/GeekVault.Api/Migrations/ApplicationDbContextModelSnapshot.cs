@@ -146,6 +146,9 @@ namespace GeekVault.Api.Migrations
                     b.Property<DateTime?>("ReleaseDate")
                         .HasColumnType("datetime2");
 
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("int");
+
                     b.HasKey("Id");
 
                     b.HasIndex("CollectionId");
@@ -348,6 +351,9 @@ namespace GeekVault.Api.Migrations
                         .HasColumnType("nvarchar(2000)");
 
                     b.Property<int>("Priority")
+                        .HasColumnType("int");
+
+                    b.Property<int>("SortOrder")
                         .HasColumnType("int");
 
                     b.Property<decimal?>("TargetPrice")

@@ -17,19 +17,25 @@ vi.mock("react-i18next", () => ({
 }))
 
 // Mock all page components to simplify
-vi.mock("./pages/Dashboard", () => ({ default: () => <div>Dashboard Page</div> }))
-vi.mock("./pages/Collections", () => ({ default: () => <div>Collections Page</div> }))
-vi.mock("./pages/CollectionDetail", () => ({ default: () => <div>Collection Detail Page</div> }))
-vi.mock("./pages/CatalogItemDetail", () => ({ default: () => <div>Catalog Item Page</div> }))
-vi.mock("./pages/CollectionTypes", () => ({ default: () => <div>Collection Types Page</div> }))
-vi.mock("./pages/Wishlist", () => ({ default: () => <div>Wishlist Page</div> }))
-vi.mock("./pages/Profile", () => ({ default: () => <div>Profile Page</div> }))
-vi.mock("./pages/Login", () => ({ default: () => <div>Login Page</div> }))
-vi.mock("./pages/Register", () => ({ default: () => <div>Register Page</div> }))
-vi.mock("./components/app-layout", () => ({
+vi.mock("./features/dashboard/dashboard-page", () => ({ default: () => <div>Dashboard Page</div> }))
+vi.mock("./features/collections/collections-page", () => ({ default: () => <div>Collections Page</div> }))
+vi.mock("./features/collections/collection-detail-page", () => ({ default: () => <div>Collection Detail Page</div> }))
+vi.mock("./features/collections/catalog-item-detail-page", () => ({ default: () => <div>Catalog Item Page</div> }))
+vi.mock("./features/collection-types/collection-types-page", () => ({ default: () => <div>Collection Types Page</div> }))
+vi.mock("./features/wishlist/wishlist-page", () => ({ default: () => <div>Wishlist Page</div> }))
+vi.mock("./features/profile/profile-page", () => ({ default: () => <div>Profile Page</div> }))
+vi.mock("./features/auth/login-page", () => ({ default: () => <div>Login Page</div> }))
+vi.mock("./features/auth/register-page", () => ({ default: () => <div>Register Page</div> }))
+vi.mock("./components/layout/app-layout", () => ({
   default: () => {
     const { Outlet } = require("react-router-dom")
     return <div>Layout<Outlet /></div>
+  },
+}))
+vi.mock("./components/layout/animated-outlet", () => ({
+  AnimatedOutlet: () => {
+    const { Outlet } = require("react-router-dom")
+    return <Outlet />
   },
 }))
 

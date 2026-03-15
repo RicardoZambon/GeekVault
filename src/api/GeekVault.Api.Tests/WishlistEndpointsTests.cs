@@ -77,22 +77,25 @@ public class WishlistEndpointsTests : IClassFixture<TestFactory<WishlistEndpoint
     }
 
     [Fact]
-    public async Task ListWishlist_OrderedByPriority()
+    public async Task ListWishlist_OrderedBySortOrder()
     {
         var (client, collectionId) = await CreateAuthenticatedClientWithCollectionAsync("wishlist-order@example.com");
 
-        await client.PostAsJsonAsync($"/api/collections/{collectionId}/wishlist", new { Name = "Low Priority", Priority = 3 });
-        await client.PostAsJsonAsync($"/api/collections/{collectionId}/wishlist", new { Name = "High Priority", Priority = 1 });
-        await client.PostAsJsonAsync($"/api/collections/{collectionId}/wishlist", new { Name = "Mid Priority", Priority = 2 });
+        await client.PostAsJsonAsync($"/api/collections/{collectionId}/wishlist", new { Name = "First", Priority = 3 });
+        await client.PostAsJsonAsync($"/api/collections/{collectionId}/wishlist", new { Name = "Second", Priority = 1 });
+        await client.PostAsJsonAsync($"/api/collections/{collectionId}/wishlist", new { Name = "Third", Priority = 2 });
 
         var response = await client.GetAsync($"/api/collections/{collectionId}/wishlist");
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var items = await response.Content.ReadFromJsonAsync<List<WishlistResult>>();
         Assert.NotNull(items);
         Assert.Equal(3, items.Count);
-        Assert.Equal("High Priority", items[0].Name);
-        Assert.Equal("Mid Priority", items[1].Name);
-        Assert.Equal("Low Priority", items[2].Name);
+        Assert.Equal("First", items[0].Name);
+        Assert.Equal(0, items[0].SortOrder);
+        Assert.Equal("Second", items[1].Name);
+        Assert.Equal(1, items[1].SortOrder);
+        Assert.Equal("Third", items[2].Name);
+        Assert.Equal(2, items[2].SortOrder);
     }
 
     [Fact]
@@ -144,6 +147,68 @@ public class WishlistEndpointsTests : IClassFixture<TestFactory<WishlistEndpoint
     }
 
     [Fact]
+    public async Task ReorderWishlistItems_ReturnsNoContent()
+    {
+        var (client, collectionId) = await CreateAuthenticatedClientWithCollectionAsync("wishlist-reorder@example.com");
+
+        // Create three items
+        var r1 = await client.PostAsJsonAsync($"/api/collections/{collectionId}/wishlist", new { Name = "Item A", Priority = 1 });
+        var item1 = await r1.Content.ReadFromJsonAsync<WishlistResult>();
+        var r2 = await client.PostAsJsonAsync($"/api/collections/{collectionId}/wishlist", new { Name = "Item B", Priority = 2 });
+        var item2 = await r2.Content.ReadFromJsonAsync<WishlistResult>();
+        var r3 = await client.PostAsJsonAsync($"/api/collections/{collectionId}/wishlist", new { Name = "Item C", Priority = 3 });
+        var item3 = await r3.Content.ReadFromJsonAsync<WishlistResult>();
+
+        // Reorder: C, A, B
+        var reorderResponse = await client.PostAsJsonAsync($"/api/collections/{collectionId}/wishlist/reorder", new
+        {
+            ItemIds = new[] { item3!.Id, item1!.Id, item2!.Id }
+        });
+        Assert.Equal(HttpStatusCode.NoContent, reorderResponse.StatusCode);
+
+        // Verify new order
+        var listResponse = await client.GetAsync($"/api/collections/{collectionId}/wishlist");
+        var items = await listResponse.Content.ReadFromJsonAsync<List<WishlistResult>>();
+        Assert.NotNull(items);
+        Assert.Equal(3, items.Count);
+        Assert.Equal("Item C", items[0].Name);
+        Assert.Equal(0, items[0].SortOrder);
+        Assert.Equal("Item A", items[1].Name);
+        Assert.Equal(1, items[1].SortOrder);
+        Assert.Equal("Item B", items[2].Name);
+        Assert.Equal(2, items[2].SortOrder);
+    }
+
+    [Fact]
+    public async Task ReorderWishlistItems_WithInvalidItemIds_ReturnsBadRequest()
+    {
+        var (client, collectionId) = await CreateAuthenticatedClientWithCollectionAsync("wishlist-reorder-invalid@example.com");
+
+        var r1 = await client.PostAsJsonAsync($"/api/collections/{collectionId}/wishlist", new { Name = "Item A", Priority = 1 });
+        var item1 = await r1.Content.ReadFromJsonAsync<WishlistResult>();
+        var r2 = await client.PostAsJsonAsync($"/api/collections/{collectionId}/wishlist", new { Name = "Item B", Priority = 2 });
+        var item2 = await r2.Content.ReadFromJsonAsync<WishlistResult>();
+
+        // Include an ID that does not belong to the collection
+        var reorderResponse = await client.PostAsJsonAsync($"/api/collections/{collectionId}/wishlist/reorder", new
+        {
+            ItemIds = new[] { item1!.Id, 99999, item2!.Id }
+        });
+        Assert.Equal(HttpStatusCode.BadRequest, reorderResponse.StatusCode);
+    }
+
+    [Fact]
+    public async Task ReorderWishlistItems_WrongCollection_ReturnsNotFound()
+    {
+        var (client, _) = await CreateAuthenticatedClientWithCollectionAsync("wishlist-reorder-notfound@example.com");
+        var response = await client.PostAsJsonAsync("/api/collections/99999/wishlist/reorder", new
+        {
+            ItemIds = new[] { 1, 2, 3 }
+        });
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
+    [Fact]
     public async Task WishlistEndpoints_RequireAuth()
     {
         var client = _factory.CreateClient();
@@ -183,5 +248,5 @@ public class WishlistEndpointsTests : IClassFixture<TestFactory<WishlistEndpoint
 
     private record AuthResult(string Token, string UserId, string Email, string? DisplayName);
     private record IdResult(int Id);
-    private record WishlistResult(int Id, int CollectionId, int? CatalogItemId, string Name, int Priority, decimal? TargetPrice, string? Notes);
+    private record WishlistResult(int Id, int CollectionId, int? CatalogItemId, string Name, int Priority, decimal? TargetPrice, string? Notes, int SortOrder);
 }

@@ -8,4 +8,5 @@ public interface IWishlistService
     Task<WishlistItemResponse?> CreateAsync(int collectionId, string userId, CreateWishlistItemRequest request);
     Task<(WishlistItemResponse? Response, bool CollectionNotFound, bool ItemNotFound)> UpdateAsync(int collectionId, int id, string userId, UpdateWishlistItemRequest request);
     Task<bool?> DeleteAsync(int collectionId, int id, string userId);
+    Task<(bool Success, bool NotFound, string? Error)> ReorderAsync(int collectionId, string userId, List<int> itemIds);
 }

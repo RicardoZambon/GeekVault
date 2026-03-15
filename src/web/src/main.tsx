@@ -6,13 +6,18 @@ import { AuthProvider } from './components/auth-provider.tsx'
 import './i18n/index.ts'
 import './index.css'
 import App from './App.tsx'
+import { Toaster } from './components/ds/toaster.tsx'
+import { TooltipProvider } from './components/ds/tooltip.tsx'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <BrowserRouter>
       <ThemeProvider defaultTheme="system" storageKey="geekvault-theme">
         <AuthProvider>
-          <App />
+          <TooltipProvider delayDuration={0}>
+            <App />
+            <Toaster />
+          </TooltipProvider>
         </AuthProvider>
       </ThemeProvider>
     </BrowserRouter>

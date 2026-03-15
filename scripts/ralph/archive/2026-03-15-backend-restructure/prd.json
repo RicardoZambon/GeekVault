@@ -1,0 +1,715 @@
+{
+  "project": "GeekVault",
+  "branchName": "ralph/frontend-redesign",
+  "description": "Frontend Redesign — Bold & playful branded design system, collapsible sidebar, command palette, gallery views, drag-and-drop, animations, smart empty states, and full component restructure",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Install new dependencies for redesign",
+      "description": "As a developer, I need all new packages installed so that subsequent stories can use them.",
+      "acceptanceCriteria": [
+        "Install framer-motion for animations",
+        "Install @dnd-kit/core @dnd-kit/sortable @dnd-kit/utilities for drag-and-drop",
+        "Install cmdk for command palette",
+        "Install sonner for toast notifications",
+        "Install @radix-ui/react-tooltip @radix-ui/react-dropdown-menu @radix-ui/react-select @radix-ui/react-tabs @radix-ui/react-scroll-area as Radix primitives",
+        "Install @fontsource/nunito and @fontsource/inter for branded fonts",
+        "All packages install without errors",
+        "npm run build succeeds",
+        "Typecheck passes"
+      ],
+      "priority": 1,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-002",
+      "title": "Create branded color tokens and typography in index.css",
+      "description": "As a developer, I want branded design tokens so that all components use the GeekVault navy/gold palette.",
+      "acceptanceCriteria": [
+        "Replace grayscale OKLch tokens in src/web/src/index.css with branded palette: primary deep navy (#1B3A6B), accent gold (#E8A838), background warm white (#FAFAF8), card white, muted blue-gray, destructive red, success green",
+        "Dark mode tokens: background deep navy-black (#0D1B2A), card dark (#142237), muted navy (#1E3250), primary lighter navy (#3B6CB5), accent gold same",
+        "Sidebar tokens: dark navy gradient background in BOTH light and dark themes",
+        "Import @fontsource/nunito and @fontsource/inter in index.css",
+        "Set font-family: Nunito for headings via a .font-display utility, Inter for body text as default",
+        "Define spacing scale tokens: --space-1 (0.25rem) through --space-12 (3rem)",
+        "Define radius tokens: --radius-sm (0.375rem), --radius-md (0.625rem), --radius-lg (1rem), --radius-full (9999px)",
+        "npm run build succeeds",
+        "Typecheck passes"
+      ],
+      "priority": 2,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-003",
+      "title": "Create design system Card and Badge components",
+      "description": "As a developer, I want branded Card and Badge components so that pages use consistent visual building blocks.",
+      "acceptanceCriteria": [
+        "Create src/web/src/components/ds/card.tsx: Card component with subtle shadow, hover lift animation (transform + shadow transition), optional accent border-top (gold variant), supports className prop",
+        "Create src/web/src/components/ds/badge.tsx: Badge with variants default, primary, accent, success, warning, destructive, outline; sizes sm and md",
+        "Create src/web/src/components/ds/index.ts barrel export for all DS components",
+        "Both components respect light/dark theme via CSS variables",
+        "Typecheck passes"
+      ],
+      "priority": 3,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-004",
+      "title": "Create design system EmptyState and PageHeader components",
+      "description": "As a developer, I want reusable EmptyState and PageHeader components for consistent page structure.",
+      "acceptanceCriteria": [
+        "Create src/web/src/components/ds/empty-state.tsx: Centered layout with icon slot (ReactNode), title, description, action button (optional onClick + label), generous padding (py-16), brand colors",
+        "Create src/web/src/components/ds/page-header.tsx: Page title (large, font-display), optional description, optional right-side actions slot (ReactNode), consistent across all pages",
+        "Export both from ds/index.ts",
+        "Typecheck passes"
+      ],
+      "priority": 4,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-005",
+      "title": "Create design system Skeleton and StatCard components",
+      "description": "As a developer, I want Skeleton loaders and StatCard components for dashboard and loading states.",
+      "acceptanceCriteria": [
+        "Create src/web/src/components/ds/skeleton.tsx: Skeleton primitives — SkeletonRect, SkeletonCircle, SkeletonText (multiple lines) with pulse animation, configurable width/height",
+        "Create src/web/src/components/ds/stat-card.tsx: StatCard with icon (ReactNode), label, value, optional trend (up/down/neutral with color), uses branded Card underneath",
+        "Export both from ds/index.ts",
+        "Typecheck passes"
+      ],
+      "priority": 5,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-006",
+      "title": "Create design system Tooltip, DropdownMenu, Select, Textarea, Tabs, and ScrollArea",
+      "description": "As a developer, I want styled Radix-based primitives to replace native HTML elements throughout the app.",
+      "acceptanceCriteria": [
+        "Create src/web/src/components/ds/tooltip.tsx wrapping @radix-ui/react-tooltip with branded styling (dark bg, white text, rounded)",
+        "Create src/web/src/components/ds/dropdown-menu.tsx wrapping @radix-ui/react-dropdown-menu with branded styling (card bg, shadow, rounded items with hover state)",
+        "Create src/web/src/components/ds/select.tsx wrapping @radix-ui/react-select with branded styling (border, rounded, focus ring in gold accent)",
+        "Create src/web/src/components/ds/textarea.tsx matching the existing input.tsx design patterns",
+        "Create src/web/src/components/ds/tabs.tsx wrapping @radix-ui/react-tabs with branded styling (underline active tab in gold accent)",
+        "Create src/web/src/components/ds/scroll-area.tsx wrapping @radix-ui/react-scroll-area",
+        "Export all from ds/index.ts",
+        "Typecheck passes"
+      ],
+      "priority": 6,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-007",
+      "title": "Create design system DataTable component",
+      "description": "As a developer, I want a reusable DataTable component for sortable, filterable tables with loading and empty states.",
+      "acceptanceCriteria": [
+        "Create src/web/src/components/ds/data-table.tsx with generic typed API: DataTable<T>",
+        "Props: columns (header, accessor, sortable flag, render function), data array, onSort callback, loading boolean, emptyState ReactNode",
+        "Column headers are clickable when sortable — show sort direction arrow indicator",
+        "Loading state renders skeleton rows (use Skeleton component)",
+        "Empty state renders provided emptyState node when data is empty",
+        "Responsive: horizontal scroll wrapper on mobile",
+        "Row hover highlighting",
+        "Export from ds/index.ts",
+        "Typecheck passes"
+      ],
+      "priority": 7,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-008",
+      "title": "Create animation utilities with framer-motion",
+      "description": "As a developer, I want shared animation wrappers so that transitions feel consistent across the app.",
+      "acceptanceCriteria": [
+        "Create src/web/src/components/ds/motion.tsx with: PageTransition (fade-in + slide-up wrapper), FadeIn (configurable delay), StaggerChildren (parent that staggers child animations for lists/grids)",
+        "Create src/web/src/components/ds/animated-number.tsx: Smoothly animates number value changes using framer-motion's animate/useSpring",
+        "All motion components respect prefers-reduced-motion media query (skip animations if set)",
+        "Export from ds/index.ts",
+        "Typecheck passes"
+      ],
+      "priority": 8,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-009",
+      "title": "Create toast notification system with Sonner",
+      "description": "As a developer, I want a toast system for non-intrusive success/error feedback.",
+      "acceptanceCriteria": [
+        "Create src/web/src/components/ds/toaster.tsx wrapping Sonner's Toaster with branded styling (match brand colors)",
+        "Add Toaster component to main.tsx (rendered once at app root)",
+        "Toast variants available: success (green), error (red), info (blue), warning (gold)",
+        "Toasts appear at bottom-right, auto-dismiss after 4 seconds",
+        "Export a simple toast utility: toast.success(msg), toast.error(msg), toast.info(msg), toast.warning(msg)",
+        "Export from ds/index.ts",
+        "Typecheck passes"
+      ],
+      "priority": 9,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-010",
+      "title": "Create drag-and-drop SortableList component",
+      "description": "As a developer, I want a reusable SortableList component for drag-and-drop reordering.",
+      "acceptanceCriteria": [
+        "Create src/web/src/components/ds/sortable-list.tsx using @dnd-kit/core and @dnd-kit/sortable",
+        "Generic typed API: SortableList<T> with items array, renderItem function, onReorder(newOrder) callback, keyExtractor function",
+        "Supports both vertical list and grid layout modes",
+        "Dragged item shows shadow + slight scale effect, drop target area highlighted",
+        "Keyboard accessible (built into dnd-kit)",
+        "Touch-friendly for mobile",
+        "Export from ds/index.ts",
+        "Typecheck passes"
+      ],
+      "priority": 10,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-011",
+      "title": "Add logo assets and favicon",
+      "description": "As a user, I want the GeekVault brand visible in the browser tab and throughout the app.",
+      "acceptanceCriteria": [
+        "Create src/web/src/assets/ directory",
+        "Copy the logo image as src/web/src/assets/logo-full.png (full logo with text)",
+        "Create a cropped/extracted vault icon version as src/web/src/assets/vault-icon.png (just the vault, no text)",
+        "Generate favicon files: replace src/web/public/vite.svg with vault-icon based favicon.ico or favicon.svg",
+        "Update src/web/index.html: set favicon to vault icon, set page title to GeekVault",
+        "Add apple-touch-icon link in index.html head",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 11,
+      "passes": false,
+      "notes": "Use the ChatGPT Image Mar 14, 2026, 07_10_32 PM.png file from the project root for the logo. The vault is on the left side of the image and the text GeekVault is on the right."
+    },
+    {
+      "id": "US-012",
+      "title": "Restructure frontend into feature-based folder architecture",
+      "description": "As a developer, I want the frontend organized into features/ and components/layout/ folders for maintainability.",
+      "acceptanceCriteria": [
+        "Create directory structure: src/features/auth/, src/features/dashboard/, src/features/collections/, src/features/collection-types/, src/features/wishlist/, src/features/profile/",
+        "Create src/components/layout/ directory",
+        "Move src/pages/Login.tsx to src/features/auth/login-page.tsx (update component name if needed)",
+        "Move src/pages/Register.tsx to src/features/auth/register-page.tsx",
+        "Move src/pages/Dashboard.tsx to src/features/dashboard/dashboard-page.tsx",
+        "Move src/pages/Collections.tsx to src/features/collections/collections-page.tsx",
+        "Move src/pages/CollectionDetail.tsx to src/features/collections/collection-detail-page.tsx",
+        "Move src/pages/CatalogItemDetail.tsx to src/features/collections/catalog-item-detail-page.tsx",
+        "Move src/pages/CollectionTypes.tsx to src/features/collection-types/collection-types-page.tsx",
+        "Move src/pages/Wishlist.tsx to src/features/wishlist/wishlist-page.tsx",
+        "Move src/pages/Profile.tsx to src/features/profile/profile-page.tsx",
+        "Move src/components/app-layout.tsx to src/components/layout/app-layout.tsx",
+        "Update all imports in App.tsx to use new paths",
+        "Delete empty src/pages/ directory",
+        "npm run build succeeds",
+        "Typecheck passes"
+      ],
+      "priority": 12,
+      "passes": false,
+      "notes": "Keep the page components as-is for now — just move files. Decomposition into sub-components happens in later stories."
+    },
+    {
+      "id": "US-013",
+      "title": "Create shared API client and hooks",
+      "description": "As a developer, I want a centralized API client and shared hooks so that pages don't duplicate fetch logic.",
+      "acceptanceCriteria": [
+        "Create src/web/src/lib/api.ts with: a fetchApi helper that injects auth token from localStorage, sets Content-Type, handles base URL, parses JSON responses, throws on non-OK status",
+        "Create src/web/src/hooks/use-debounce.ts: useDebounce<T>(value, delay) hook",
+        "Create src/web/src/hooks/use-media-query.ts: useMediaQuery(query) hook returning boolean",
+        "Export hooks from src/web/src/hooks/index.ts barrel",
+        "Typecheck passes"
+      ],
+      "priority": 13,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-014",
+      "title": "Redesign sidebar as collapsible with brand styling",
+      "description": "As a user, I want a collapsible sidebar that I can shrink to icon-only mode for more screen space.",
+      "acceptanceCriteria": [
+        "Create src/web/src/components/layout/sidebar.tsx extracted from app-layout.tsx",
+        "Desktop sidebar has two states: expanded (~256px with logo+labels) and collapsed (~64px with icons only)",
+        "Toggle button (chevron icon) at bottom of sidebar switches between states",
+        "Sidebar state persists to localStorage key 'geekvault-sidebar-collapsed'",
+        "Default state on first visit: expanded on desktop (>=1024px), collapsed on tablet (768px-1023px)",
+        "Smooth width transition animation (200-300ms ease)",
+        "Collapsed state shows Tooltip on hover for each nav item (using DS Tooltip component)",
+        "Sidebar background: dark navy gradient in both light and dark themes (use sidebar CSS tokens from US-002)",
+        "Sidebar text/icons: white/light in both themes",
+        "Active nav item: gold accent left border + subtle background tint",
+        "Logo: show full logo when expanded, vault icon only when collapsed",
+        "User section at bottom: avatar + display name (hidden when collapsed) + logout button",
+        "Mobile: keep sheet/drawer behavior (hamburger opens full overlay sidebar, always expanded)",
+        "Update app-layout.tsx to use new Sidebar component",
+        "Create src/web/src/components/layout/header.tsx for the mobile top header bar",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 14,
+      "passes": false,
+      "notes": "Nav items: Dashboard (LayoutDashboard), Collections (Library), Collection Types (Layers), Wishlist (Heart), Profile (User)"
+    },
+    {
+      "id": "US-015",
+      "title": "Add command palette with Cmd+K",
+      "description": "As a user, I want to press Cmd+K to quickly search and navigate across the app.",
+      "acceptanceCriteria": [
+        "Create src/web/src/components/layout/command-palette.tsx using cmdk package",
+        "Cmd+K (Mac) / Ctrl+K (Windows/Linux) opens the command palette overlay",
+        "Search input at top with i18n placeholder text",
+        "Results grouped into sections: Navigation (Dashboard, Collections, Collection Types, Wishlist, Profile), Actions (Create Collection, Toggle Theme, Toggle Sidebar, Change Language)",
+        "Each result shows: icon + title",
+        "Enter navigates to selected result or executes action",
+        "Arrow keys navigate, Escape closes",
+        "Empty state shows 'No results found' message",
+        "Render CommandPalette in app-layout.tsx",
+        "All text uses i18n translation keys (add commandPalette.* keys to en.json and pt.json)",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 15,
+      "passes": false,
+      "notes": "For MVP, just do navigation + static actions. Collection/item search can be added later."
+    },
+    {
+      "id": "US-016",
+      "title": "Redesign login page with split-screen brand layout",
+      "description": "As a new user, I want a visually appealing login page that introduces the GeekVault brand.",
+      "acceptanceCriteria": [
+        "Desktop split-screen: left panel (60%) with deep navy gradient background, large centered GeekVault logo, tagline text; right panel (40%) with form card",
+        "Form card: 'Welcome back' heading, email input, password input, submit button (primary blue), link to register",
+        "Inputs use branded focus ring (gold/accent color)",
+        "Submit button shows loading spinner during API call",
+        "Error messages shown below form in destructive color",
+        "Mobile: compact brand header with logo above form (stacked vertically)",
+        "Add i18n keys for tagline (auth.tagline), heading (auth.welcomeBack), etc. to en.json and pt.json",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 16,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-017",
+      "title": "Redesign register page with split-screen brand layout",
+      "description": "As a new user, I want a visually appealing register page matching the login design.",
+      "acceptanceCriteria": [
+        "Same split-screen layout as login page (reuse the brand panel component)",
+        "Form card: 'Create your vault' heading, display name input, email input, password input, submit button, link to login",
+        "Same branded input styling as login",
+        "Submit button shows loading spinner during API call",
+        "Inline form validation with error messages",
+        "Mobile: same stacked layout as login",
+        "Add i18n keys for heading (auth.createYourVault) to en.json and pt.json",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 17,
+      "passes": false,
+      "notes": "Extract shared AuthLayout or BrandPanel component from login page to reuse here."
+    },
+    {
+      "id": "US-018",
+      "title": "Redesign dashboard page with branded stats and skeleton loaders",
+      "description": "As a user, I want a polished dashboard with animated stats, branded charts, and skeleton loading.",
+      "acceptanceCriteria": [
+        "Use PageHeader: 'Dashboard' title with welcome message 'Welcome back, {displayName}'",
+        "Stats row using StatCard components: Total Collections (Library icon), Total Items (Package icon), Owned Copies (Box icon), Estimated Value (DollarSign icon), Total Invested (TrendingUp icon)",
+        "Stat values use AnimatedNumber for smooth transitions",
+        "Charts section (2-column on desktop, stacked mobile): Pie chart (items by condition) and Bar chart (condition breakdown) using brand colors (navy, gold, teal variations)",
+        "Charts wrapped in DS Card components with headers",
+        "Collection summaries section: grid of DS Cards with cover image placeholder, name, item count, total value",
+        "Recent acquisitions section: use DataTable with columns Thumbnail, Name, Collection, Condition (Badge), Date, Price",
+        "Full skeleton loading state (not just spinner) while data loads",
+        "Use StaggerChildren animation for card grids on load",
+        "Replace inline success/error messages with toast notifications",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 18,
+      "passes": false,
+      "notes": "Decompose into sub-components in src/features/dashboard/components/: stats-row.tsx, charts-section.tsx, recent-acquisitions.tsx, collection-summaries.tsx"
+    },
+    {
+      "id": "US-019",
+      "title": "Add smart empty states to dashboard and collections pages",
+      "description": "As a new user, I want helpful empty states so I know what to do when pages have no data.",
+      "acceptanceCriteria": [
+        "Dashboard empty state (no collections): Vault icon, 'Your vault is empty', 'Start by creating your first collection to track your collectibles', CTA button 'Create Collection' navigates to /collections?create=true",
+        "Collections page empty state (no collections): Library icon, 'No collections yet', 'Collections organize your items by type — comics, cards, figures, and more', CTA 'Create Your First Collection' opens create dialog",
+        "All empty state text uses i18n keys: add emptyStates.dashboard.*, emptyStates.collections.* to en.json and pt.json",
+        "Use the EmptyState DS component",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 19,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-020",
+      "title": "Redesign collections page with branded cards and search/filter",
+      "description": "As a user, I want a polished collections page with visual cards and filtering.",
+      "acceptanceCriteria": [
+        "Use PageHeader: 'Collections' + 'Create Collection' button (accent/gold style)",
+        "Collection cards redesigned using DS Card: cover image (aspect-ratio 16/9) or gradient fallback with icon, name (bold), type badge (DS Badge), item count, description (2 lines truncated), footer with 'View' button + overflow menu (DS DropdownMenu for Edit/Delete)",
+        "Hover: subtle lift + shadow animation on cards",
+        "Grid: 1 col mobile, 2 col tablet, 3 col desktop",
+        "StaggerChildren animation on load",
+        "Search bar above grid: filter by collection name",
+        "Filter by type dropdown (DS Select)",
+        "Skeleton card placeholders while loading",
+        "Create/Edit dialog: use DS Select for type selector, image upload with visual dropzone (dashed border area)",
+        "Delete uses ConfirmDialog with destructive styling",
+        "Replace inline messages with toast notifications",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 20,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-021",
+      "title": "Add empty states to collection detail, wishlist, and collection types pages",
+      "description": "As a new user, I want empty states on all remaining pages with helpful CTAs.",
+      "acceptanceCriteria": [
+        "Collection detail (no items): Package icon, 'No items in this collection', 'Add your first catalog item to start tracking what you own', CTA 'Add Item'",
+        "Wishlist (empty): Heart icon, 'Your wishlist is empty', 'Save items you are looking for and track target prices', CTA 'Add to Wishlist'",
+        "Collection types (none): Layers icon, 'No collection types defined', 'Collection types let you customize fields for different kinds of collectibles', CTA 'Create Collection Type'",
+        "All empty state text added as i18n keys in both en.json and pt.json under emptyStates.*",
+        "Use the EmptyState DS component",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 21,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-022",
+      "title": "Redesign collection detail page toolbar and grid/table view toggle",
+      "description": "As a user, I want to switch between grid and table views for browsing items in a collection.",
+      "acceptanceCriteria": [
+        "Use PageHeader: collection name + type badge + action buttons (Add Item, Export, Import)",
+        "Add view toggle buttons in toolbar area: Grid icon and List icon, one active at a time",
+        "View preference persists to localStorage per collection",
+        "Toolbar includes: search input, condition filter (DS Select), owned status filter, sort dropdown",
+        "Grid view: responsive image-first cards (2 col mobile, 3 col tablet, 4 col desktop) — each card shows primary image/placeholder, item name, identifier, owned count badge. Hover reveals quick action overlay",
+        "Table view: use DS DataTable with columns Thumbnail, Name, Identifier, Condition summary, Owned copies count, Estimated value. Sortable columns, row click navigates to detail",
+        "Both views show skeleton loaders while data loads",
+        "StaggerChildren animation on grid cards",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 22,
+      "passes": false,
+      "notes": "This is a large page — focus on the toolbar + view toggle + basic grid/table rendering. Keep existing dialog/form logic intact, just restyle."
+    },
+    {
+      "id": "US-023",
+      "title": "Redesign collection detail sets section",
+      "description": "As a user, I want the sets section to use collapsible accordions with progress bars.",
+      "acceptanceCriteria": [
+        "Sets displayed below items as collapsible accordion sections",
+        "Each set header: set name, completion percentage as a progress bar (gold fill on navy track), item count text (e.g. '5/12 items')",
+        "Click header to expand/collapse set items list",
+        "Set items: compact list with visual owned/unowned indicator (checkmark vs empty circle)",
+        "Create set and add items to set dialogs remain functional (restyle with branded components)",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 23,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-024",
+      "title": "Redesign collection detail import flow",
+      "description": "As a user, I want a step-by-step import wizard with drag-and-drop file upload.",
+      "acceptanceCriteria": [
+        "Import button opens a multi-step dialog/wizard",
+        "Step 1: Drag-and-drop file upload zone (dashed border, icon, 'Drop CSV file here or click to browse' text)",
+        "Step 2: Preview imported data in a table showing parsed rows with validation errors highlighted in red",
+        "Step 3: Confirm button to save, showing count of items to be imported",
+        "Progress/step indicator at top of wizard (Step 1 of 3, Step 2 of 3, etc.)",
+        "Back/Next/Confirm buttons for navigation between steps",
+        "Replace inline messages with toast notifications on success/error",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 24,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-025",
+      "title": "Redesign catalog item detail hero and info sections",
+      "description": "As a user, I want a rich item detail page with a hero image area and clean field layout.",
+      "acceptanceCriteria": [
+        "Hero section: large primary image (or placeholder) on left, item name (large heading) + identifier subtitle + collection breadcrumb on right",
+        "Breadcrumb navigation at top: Collections > {Collection Name} > {Item Name} (clickable links)",
+        "Action buttons: Edit, Delete, Add Owned Copy",
+        "Custom fields section: clean key-value grid layout with proper type rendering (dates formatted, booleans as indicators, enums as badges)",
+        "Description section with proper text formatting",
+        "Skeleton loader for initial page load",
+        "Replace inline messages with toast notifications",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 25,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-026",
+      "title": "Redesign catalog item detail owned copies section",
+      "description": "As a user, I want owned copies displayed as visual cards with condition badges.",
+      "acceptanceCriteria": [
+        "Owned copies section: card-based layout (one DS Card per copy)",
+        "Each card: condition badge (colored, using DS Badge), purchase date, purchase price, estimated value, source, notes",
+        "Copy images shown as small thumbnail gallery within card",
+        "Per-copy actions: Edit and Delete buttons (Delete with confirmation dialog)",
+        "'Add Copy' button uses accent/gold styling",
+        "If no copies: show EmptyState component with Box icon and 'No copies owned yet' message",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 26,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-027",
+      "title": "Redesign wishlist page with cards, grouping, and filters",
+      "description": "As a user, I want a visually organized wishlist with card layout and filtering.",
+      "acceptanceCriteria": [
+        "Use PageHeader: 'Wishlist' + 'Add Item' button",
+        "Items displayed as DS Cards: item name, collection badge, priority badge (high=red, medium=gold, low=gray using DS Badge), target price, notes preview (2 lines)",
+        "If linked to catalog item: show small thumbnail + link icon",
+        "Actions per card: Edit, Delete via DS DropdownMenu",
+        "Group items by collection with collapsible section headers",
+        "Filter/sort toolbar: filter by priority (All/High/Medium/Low via DS Select), sort by priority/price/date/name",
+        "StaggerChildren animation on cards",
+        "Skeleton loaders while fetching",
+        "Replace inline messages with toast notifications",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 27,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-028",
+      "title": "Redesign collection types page with branded cards and field builder",
+      "description": "As a user, I want a polished collection types page with tag-style fields and drag-and-drop field builder.",
+      "acceptanceCriteria": [
+        "Use PageHeader: 'Collection Types' + 'Create Type' button",
+        "Type cards redesigned with DS Card: large emoji icon at top, type name (bold), description (2 lines truncated), custom fields as compact tag/badge list (field name + type), action buttons (Edit, Delete with confirmation)",
+        "Grid layout: 1 col mobile, 2 col tablet, 3 col desktop",
+        "Create/Edit dialog redesigned with DS Tabs: 'General' tab (name, description, icon) + 'Custom Fields' tab",
+        "Custom field builder: each field row has drag handle (using SortableList for reordering), field name input, type select (DS Select), required toggle, delete button",
+        "Enum type: inline tag editor (type text + Enter to add option, x to remove)",
+        "Field count indicator (e.g. '3/10 fields')",
+        "Replace inline messages with toast notifications",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 28,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-029",
+      "title": "Redesign profile page with sections and toast feedback",
+      "description": "As a user, I want a clean profile page with organized sections and non-blocking feedback.",
+      "acceptanceCriteria": [
+        "Use PageHeader: 'Profile'",
+        "Avatar section: large circular avatar (120px) with camera icon overlay on hover, click to upload, loading indicator during upload",
+        "Form organized in visual sections with dividers: Account Info (email disabled, display name), About (bio textarea using DS Textarea), Preferences (language DS Select, currency DS Select), Appearance (theme toggle as segmented control: light/dark/system with icons)",
+        "Save button: primary blue, sticky at bottom on mobile",
+        "Success/error feedback via toast notifications (remove inline messages)",
+        "Add i18n keys for section headers (profile.sections.*) to en.json and pt.json",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 29,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-030",
+      "title": "Add page transitions to all routes",
+      "description": "As a user, I want smooth transitions when navigating between pages.",
+      "acceptanceCriteria": [
+        "Wrap page content in PageTransition component (from DS motion.tsx) in App.tsx or app-layout.tsx",
+        "Each route change triggers a subtle fade-in + slide-up animation",
+        "Dialogs use scale-in animation (ScaleIn from motion.tsx or framer-motion AnimatePresence)",
+        "Respects prefers-reduced-motion: skip animations when set",
+        "No layout jump or flash during transitions",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 30,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-031",
+      "title": "Add SortOrder column to CatalogItems and reorder API endpoint",
+      "description": "As a developer, I need a SortOrder field on CatalogItems and a reorder endpoint so the frontend can persist drag-and-drop order.",
+      "acceptanceCriteria": [
+        "Add SortOrder (int, default 0) property to CatalogItem entity in src/api/GeekVault.Api/Entities/Vault/CatalogItem.cs",
+        "Generate and apply EF Core migration: dotnet ef migrations add AddCatalogItemSortOrder",
+        "Update CatalogItemsRepository to order by SortOrder by default when returning items for a collection",
+        "Add POST /api/collections/{collectionId}/items/reorder endpoint in CatalogItemsController",
+        "Endpoint accepts a JSON body: { itemIds: int[] } representing the new order",
+        "Endpoint updates SortOrder for each item based on array index position (0, 1, 2, ...)",
+        "Endpoint requires authentication and verifies collection ownership",
+        "When creating a new catalog item, auto-assign SortOrder as max + 1 for that collection",
+        "Add unit test for the reorder endpoint in CatalogItemEndpointsTests",
+        "dotnet build succeeds",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 31,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-032",
+      "title": "Add SortOrder column to WishlistItems and reorder API endpoint",
+      "description": "As a developer, I need a SortOrder field on WishlistItems and a reorder endpoint so the frontend can persist drag-and-drop order.",
+      "acceptanceCriteria": [
+        "Add SortOrder (int, default 0) property to WishlistItem entity in src/api/GeekVault.Api/Entities/Vault/WishlistItem.cs",
+        "Generate and apply EF Core migration: dotnet ef migrations add AddWishlistItemSortOrder",
+        "Update WishlistRepository to order by SortOrder by default when returning wishlist items",
+        "Add POST /api/collections/{collectionId}/wishlist/reorder endpoint in WishlistController",
+        "Endpoint accepts a JSON body: { itemIds: int[] } representing the new order",
+        "Endpoint updates SortOrder for each wishlist item based on array index position (0, 1, 2, ...)",
+        "Endpoint requires authentication and verifies collection ownership",
+        "When creating a new wishlist item, auto-assign SortOrder as max + 1 for that collection",
+        "Add unit test for the reorder endpoint in WishlistEndpointsTests",
+        "dotnet build succeeds",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 32,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-033",
+      "title": "Add drag-and-drop to custom field builder and wishlist",
+      "description": "As a user, I want to drag-and-drop to reorder custom fields in collection types and wishlist items.",
+      "acceptanceCriteria": [
+        "Collection type custom field builder uses SortableList component for reordering fields",
+        "Drag handle (GripVertical icon) on each field row is the drag trigger",
+        "Reordered fields persist when dialog is saved",
+        "Wishlist items within a collection group can be reordered via drag-and-drop",
+        "After wishlist reorder, call POST /api/collections/{id}/wishlist/reorder with new item ID order",
+        "Visual feedback during drag: shadow + slight scale on dragged item",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 33,
+      "passes": false,
+      "notes": "Depends on US-032 (wishlist reorder endpoint)"
+    },
+    {
+      "id": "US-034",
+      "title": "Add drag-and-drop reordering for collection items in grid view",
+      "description": "As a user, I want to drag-and-drop items in the collection grid view to reorder them, with the order persisted.",
+      "acceptanceCriteria": [
+        "Grid view items in collection detail are wrapped in SortableList component",
+        "User can drag items to reorder them within the grid",
+        "After drop, call POST /api/collections/{id}/items/reorder with the new item ID order",
+        "Optimistic UI update: items reorder immediately, revert if API call fails",
+        "Visual feedback during drag: shadow + scale on dragged card",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 34,
+      "passes": false,
+      "notes": "Depends on US-031 (catalog item reorder endpoint)"
+    },
+    {
+      "id": "US-035",
+      "title": "Responsive polish for mobile breakpoints",
+      "description": "As a mobile user, I want all pages to look good and be usable on small screens.",
+      "acceptanceCriteria": [
+        "All pages tested at mobile (375px), tablet (768px), and desktop (1280px) breakpoints",
+        "Dialogs render full-width on mobile (no side margins, max-w-full on sm:)",
+        "Touch targets are minimum 44x44px on all interactive elements",
+        "No horizontal overflow on any page at 375px width",
+        "Images use loading='lazy' attribute and proper aspect-ratio CSS",
+        "Command palette renders full-width on mobile",
+        "Cards stack to single column on mobile",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 35,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-036",
+      "title": "Complete i18n audit for all new UI strings",
+      "description": "As a developer, I want all new strings translated to keep the app fully bilingual.",
+      "acceptanceCriteria": [
+        "Audit all components for hardcoded English strings",
+        "Add all missing keys to en.json with English text",
+        "Add all missing keys to pt.json with Portuguese translations",
+        "Key namespaces: emptyStates.*, commandPalette.*, toast.*, auth.tagline, auth.welcomeBack, auth.createYourVault, profile.sections.*",
+        "Switch app to Portuguese and verify no untranslated strings are visible on any page",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 36,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-037",
+      "title": "Update test imports and add tests for design system components",
+      "description": "As a developer, I want tests updated for the new file structure and new DS components tested.",
+      "acceptanceCriteria": [
+        "Update all existing test file imports to reflect features/ folder paths",
+        "All existing tests pass after import updates",
+        "Add render tests for DS components: Card, Badge, EmptyState, PageHeader, Skeleton, StatCard, DataTable (renders with data, renders empty state, renders loading)",
+        "Add test for toast system: renders toast on trigger",
+        "Typecheck passes",
+        "Tests pass: npm test"
+      ],
+      "priority": 37,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-038",
+      "title": "Add tests for sidebar, command palette, and page redesigns",
+      "description": "As a developer, I want tests for the new interactive features to maintain 90%+ coverage.",
+      "acceptanceCriteria": [
+        "Add tests for collapsible sidebar: toggle state, localStorage persistence, renders expanded/collapsed correctly",
+        "Add tests for command palette: opens on Cmd+K keydown, search filtering works, navigation on Enter",
+        "Update page component tests for redesigned pages (new component locations, new DOM structure)",
+        "All tests pass: npm test",
+        "Coverage at or above 90%: npm run test:coverage",
+        "Typecheck passes"
+      ],
+      "priority": 38,
+      "passes": false,
+      "notes": ""
+    }
+  ]
+}

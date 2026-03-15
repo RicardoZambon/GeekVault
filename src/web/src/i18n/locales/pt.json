@@ -10,11 +10,14 @@
     "profile": "Perfil",
     "toggleMenu": "Alternar menu",
     "toggleTheme": "Alternar tema",
-    "logout": "Sair"
+    "logout": "Sair",
+    "expandSidebar": "Expandir barra lateral",
+    "collapseSidebar": "Recolher barra lateral"
   },
   "dashboard": {
     "title": "Painel",
     "description": "Visão geral das suas coleções e estatísticas.",
+    "welcome": "Bem-vindo de volta, {{name}}",
     "loading": "Carregando painel...",
     "fetchError": "Falha ao carregar dados do painel",
     "totalCollections": "Coleções",
@@ -69,7 +72,16 @@
     "empty": "Nenhuma coleção ainda. Crie uma para começar.",
     "itemCount_one": "{{count}} item",
     "itemCount_other": "{{count}} itens",
-    "itemCount": "{{count}} itens"
+    "itemCount": "{{count}} itens",
+    "searchPlaceholder": "Buscar coleções...",
+    "filterByType": "Filtrar por tipo",
+    "allTypes": "Todos os Tipos",
+    "noResults": "Nenhuma coleção corresponde à sua busca.",
+    "view": "Ver",
+    "dropCoverHere": "Solte uma imagem aqui ou clique para procurar",
+    "saveSuccess": "Coleção salva com sucesso.",
+    "createSuccess": "Coleção criada com sucesso.",
+    "deleteSuccess": "Coleção excluída com sucesso."
   },
   "collectionTypes": {
     "title": "Tipos de Coleção",
@@ -120,7 +132,13 @@
     "deleteFailed": "Falha ao excluir tipo de coleção",
     "saveFailed": "Falha ao salvar tipo de coleção",
     "fetchError": "Falha ao carregar tipos de coleção",
-    "empty": "Nenhum tipo de coleção ainda. Crie um para começar."
+    "empty": "Nenhum tipo de coleção ainda. Crie um para começar.",
+    "tabGeneral": "Geral",
+    "tabCustomFields": "Campos Personalizados",
+    "enumTagPlaceholder": "Digite e pressione Enter para adicionar",
+    "saveSuccess": "Tipo de coleção salvo com sucesso.",
+    "createSuccess": "Tipo de coleção criado com sucesso.",
+    "deleteSuccess": "Tipo de coleção excluído com sucesso."
   },
   "collectionDetail": {
     "fetchError": "Falha ao carregar coleção",
@@ -168,6 +186,7 @@
     "ownedAll": "Todos",
     "ownedOwned": "Possuídos",
     "ownedUnowned": "Não Possuídos",
+    "sortCustom": "Personalizado",
     "sortName": "Nome",
     "sortPrice": "Preço",
     "sortValue": "Valor",
@@ -175,6 +194,8 @@
     "sortRarity": "Raridade",
     "sortAsc": "Crescente",
     "sortDesc": "Decrescente",
+    "viewGrid": "Visualização em grade",
+    "viewTable": "Visualização em tabela",
     "export": "Exportar",
     "exportTitle": "Exportar Coleção",
     "exportDescription": "Baixe os dados da sua coleção como CSV ou JSON.",
@@ -200,7 +221,18 @@
     "importValidRows": "{{count}} linhas válidas",
     "importErrorRows": "{{count}} linhas com erros",
     "importBack": "Voltar",
-    "importCancel": "Cancelar"
+    "importCancel": "Cancelar",
+    "importNext": "Próximo",
+    "importDone": "Concluído",
+    "importStepUpload": "Upload",
+    "importStepPreview": "Pré-visualizar",
+    "importStepConfirm": "Confirmar",
+    "importDropHere": "Arraste o arquivo CSV aqui ou clique para procurar",
+    "importOrBrowse": "Suporta arquivos .csv",
+    "importClickToChange": "Clique para escolher outro arquivo",
+    "importConfirmCount": "Importar {{count}} itens",
+    "importCompleteToast": "Importação concluída com sucesso",
+    "reorderFailed": "Falha ao reordenar itens"
   },
   "itemDetail": {
     "fetchError": "Falha ao carregar item",
@@ -220,7 +252,9 @@
     "estimatedValue": "Valor Estimado",
     "acquisitionDate": "Data de Aquisição",
     "acquisitionSource": "Origem",
-    "notes": "Notas"
+    "notes": "Notas",
+    "updateSuccess": "Item atualizado com sucesso",
+    "deleteSuccess": "Item excluído com sucesso"
   },
   "ownedCopy": {
     "add": "Adicionar Cópia",
@@ -238,7 +272,10 @@
     "deleteTitle": "Excluir Cópia Possuída",
     "deleteConfirm": "Tem certeza de que deseja excluir esta cópia possuída?",
     "deleting": "Excluindo...",
-    "deleteFailed": "Falha ao excluir cópia possuída"
+    "deleteFailed": "Falha ao excluir cópia possuída",
+    "updateSuccess": "Cópia atualizada com sucesso",
+    "addSuccess": "Cópia adicionada com sucesso",
+    "deleteSuccess": "Cópia excluída com sucesso"
   },
   "sets": {
     "title": "Conjuntos",
@@ -260,9 +297,11 @@
     "deleting": "Excluindo...",
     "deleteFailed": "Falha ao excluir conjunto",
     "saveFailed": "Falha ao salvar conjunto",
-    "empty": "Nenhum conjunto ainda. Crie um para acompanhar o progresso.",
+    "empty": "Nenhum conjunto ainda",
+    "emptyDescription": "Crie um conjunto para acompanhar o progresso dos itens da sua coleção.",
     "selectSet": "Selecione um conjunto para ver seus itens.",
     "completed": "concluídos",
+    "items": "itens",
     "addItems": "Adicionar Itens",
     "addItemsTitle": "Adicionar Itens ao Conjunto",
     "addItemsDescription": "Busque itens existentes do catálogo ou adicione por nome.",
@@ -313,7 +352,22 @@
     "deleteFailed": "Falha ao excluir item da lista de desejos",
     "saveFailed": "Falha ao salvar item da lista de desejos",
     "fetchError": "Falha ao carregar lista de desejos",
-    "empty": "Sua lista de desejos está vazia. Adicione itens que deseja adquirir."
+    "empty": "Sua lista de desejos está vazia. Adicione itens que deseja adquirir.",
+    "filterPriority": "Filtrar por prioridade",
+    "priorityAll": "Todas as Prioridades",
+    "priorityHigh": "Alta",
+    "priorityMedium": "Média",
+    "priorityLow": "Baixa",
+    "sortBy": "Ordenar por",
+    "sortPriority": "Prioridade",
+    "sortPrice": "Preço",
+    "sortName": "Nome",
+    "itemCount": "{{count}} itens",
+    "noResults": "Nenhum item corresponde aos filtros selecionados.",
+    "updateSuccess": "Item da lista de desejos atualizado com sucesso.",
+    "addSuccess": "Item adicionado à lista de desejos com sucesso.",
+    "deleteSuccess": "Item da lista de desejos excluído com sucesso.",
+    "reorderFailed": "Falha ao reordenar itens da lista de desejos"
   },
   "profile": {
     "title": "Perfil",
@@ -327,24 +381,94 @@
     "bioPlaceholder": "Conte-nos sobre você",
     "languageLabel": "Idioma Preferido",
     "currencyLabel": "Moeda Preferida",
+    "currencies": {
+      "USD": "USD - Dólar Americano",
+      "EUR": "EUR - Euro",
+      "GBP": "GBP - Libra Esterlina",
+      "BRL": "BRL - Real Brasileiro",
+      "JPY": "JPY - Iene Japonês",
+      "CAD": "CAD - Dólar Canadense",
+      "AUD": "AUD - Dólar Australiano"
+    },
     "avatarLabel": "Avatar",
     "uploadAvatar": "Enviar Avatar",
     "avatarFailed": "Falha ao enviar avatar",
+    "avatarSuccess": "Avatar atualizado com sucesso.",
     "save": "Salvar Alterações",
     "saving": "Salvando...",
     "saveSuccess": "Perfil atualizado com sucesso.",
-    "saveFailed": "Falha ao salvar perfil"
+    "saveFailed": "Falha ao salvar perfil",
+    "sections": {
+      "avatar": "Avatar",
+      "accountInfo": "Informações da Conta",
+      "about": "Sobre",
+      "preferences": "Preferências",
+      "appearance": "Aparência",
+      "theme": "Tema",
+      "themeLight": "Claro",
+      "themeDark": "Escuro",
+      "themeSystem": "Sistema"
+    }
   },
   "language": {
     "label": "Idioma",
     "en": "Inglês",
     "pt": "Português"
   },
+  "commandPalette": {
+    "label": "Paleta de comandos",
+    "placeholder": "Digite um comando ou pesquise...",
+    "noResults": "Nenhum resultado encontrado.",
+    "navigation": "Navegação",
+    "actions": "Ações",
+    "createCollection": "Criar Coleção",
+    "toggleTheme": "Alternar Tema",
+    "toggleSidebar": "Alternar Barra Lateral",
+    "changeLanguage": "Mudar Idioma"
+  },
+  "emptyStates": {
+    "dashboard": {
+      "title": "Seu cofre está vazio",
+      "description": "Comece criando sua primeira coleção para rastrear seus colecionáveis.",
+      "action": "Criar Coleção"
+    },
+    "collections": {
+      "title": "Nenhuma coleção ainda",
+      "description": "Coleções organizam seus itens por tipo — quadrinhos, cartas, figuras e mais.",
+      "action": "Crie Sua Primeira Coleção"
+    },
+    "collectionDetail": {
+      "title": "Nenhum item nesta coleção",
+      "description": "Adicione seu primeiro item de catálogo para começar a rastrear o que você possui.",
+      "action": "Adicionar Item"
+    },
+    "wishlist": {
+      "title": "Sua lista de desejos está vazia",
+      "description": "Salve itens que você está procurando e acompanhe preços-alvo.",
+      "action": "Adicionar à Lista de Desejos"
+    },
+    "collectionTypes": {
+      "title": "Nenhum tipo de coleção definido",
+      "description": "Tipos de coleção permitem personalizar campos para diferentes tipos de colecionáveis.",
+      "action": "Criar Tipo de Coleção"
+    },
+    "ownedCopies": {
+      "title": "Nenhuma cópia possuída ainda",
+      "description": "Adicione uma cópia para rastrear sua condição, preço de compra e valor.",
+      "action": "Adicionar Cópia"
+    }
+  },
+  "home": {
+    "tagline": "Catalogue, rastreie e navegue pelos seus colecionáveis."
+  },
   "auth": {
     "login": "Entrar",
     "loginDescription": "Entre na sua conta",
     "loggingIn": "Entrando...",
     "loginFailed": "Email ou senha inválidos",
+    "welcomeBack": "Bem-vindo de volta",
+    "createYourVault": "Crie seu cofre",
+    "tagline": "Seu cofre definitivo de colecionáveis. Rastreie, organize e exiba tudo o que você ama.",
     "register": "Criar conta",
     "registerDescription": "Crie uma nova conta para começar",
     "registering": "Criando conta...",

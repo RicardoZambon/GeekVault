@@ -1,0 +1,274 @@
+import { useState, useEffect } from "react"
+import { NavLink, useNavigate } from "react-router-dom"
+import { useTranslation } from "react-i18next"
+import {
+  LayoutDashboard,
+  Library,
+  Layers,
+  Heart,
+  User,
+  LogOut,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react"
+import { useAuth } from "@/components/auth-provider"
+import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ds"
+import { cn } from "@/lib/utils"
+import { useMediaQuery } from "@/hooks"
+import logoFull from "@/assets/logo-full.png"
+import vaultIcon from "@/assets/vault-icon.png"
+
+const STORAGE_KEY = "geekvault-sidebar-collapsed"
+
+const navItems = [
+  { to: "/", labelKey: "nav.dashboard", icon: LayoutDashboard },
+  { to: "/collections", labelKey: "nav.collections", icon: Library },
+  { to: "/collection-types", labelKey: "nav.collectionTypes", icon: Layers },
+  { to: "/wishlist", labelKey: "nav.wishlist", icon: Heart },
+  { to: "/profile", labelKey: "nav.profile", icon: User },
+] as const
+
+function getDefaultCollapsed(isDesktop: boolean): boolean {
+  const stored = localStorage.getItem(STORAGE_KEY)
+  if (stored !== null) return stored === "true"
+  // Default: expanded on desktop (>=1024px), collapsed on tablet
+  return !isDesktop
+}
+
+export function Sidebar() {
+  const { t } = useTranslation()
+  const { user, logout } = useAuth()
+  const navigate = useNavigate()
+  const isDesktop = useMediaQuery("(min-width: 1024px)")
+  const [collapsed, setCollapsed] = useState(() => getDefaultCollapsed(isDesktop))
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEY, String(collapsed))
+  }, [collapsed])
+
+  useEffect(() => {
+    const handler = () => setCollapsed((prev) => !prev)
+    window.addEventListener("toggle-sidebar", handler)
+    return () => window.removeEventListener("toggle-sidebar", handler)
+  }, [])
+
+  const handleLogout = () => {
+    logout()
+    navigate("/login", { replace: true })
+  }
+
+  const toggleCollapsed = () => setCollapsed((prev) => !prev)
+
+  // Get initials for avatar
+  const initials = user?.displayName
+    ? user.displayName
+        .split(" ")
+        .map((n) => n[0])
+        .join("")
+        .toUpperCase()
+        .slice(0, 2)
+    : "?"
+
+  return (
+    <aside
+      className={cn(
+        "hidden shrink-0 bg-sidebar-background md:flex flex-col transition-all duration-250 ease-in-out",
+        collapsed ? "w-16" : "w-64"
+      )}
+    >
+      {/* Logo */}
+      <div
+        className={cn(
+          "flex h-14 items-center border-b border-sidebar-border",
+          collapsed ? "justify-center px-2" : "px-4"
+        )}
+      >
+        {collapsed ? (
+          <img src={vaultIcon} alt="GeekVault" className="h-8 w-8 object-contain" />
+        ) : (
+          <img src={logoFull} alt="GeekVault" className="h-8 object-contain" />
+        )}
+      </div>
+
+      {/* Navigation */}
+      <nav className="flex-1 overflow-y-auto p-2">
+        <div className="flex flex-col gap-1">
+          {navItems.map((item) => {
+            const link = (
+              <NavLink
+                key={item.to}
+                to={item.to}
+                end={item.to === "/"}
+                className={({ isActive }) =>
+                  cn(
+                    "flex items-center rounded-lg text-sm font-medium transition-colors relative",
+                    collapsed ? "justify-center px-2 py-2.5" : "gap-3 px-3 py-2",
+                    isActive
+                      ? "bg-sidebar-accent text-sidebar-accent-foreground border-l-2 border-sidebar-primary"
+                      : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground border-l-2 border-transparent"
+                  )
+                }
+              >
+                <item.icon className="h-4 w-4 shrink-0" />
+                {!collapsed && <span>{t(item.labelKey)}</span>}
+              </NavLink>
+            )
+
+            if (collapsed) {
+              return (
+                <Tooltip key={item.to} delayDuration={0}>
+                  <TooltipTrigger asChild>{link}</TooltipTrigger>
+                  <TooltipContent side="right">{t(item.labelKey)}</TooltipContent>
+                </Tooltip>
+              )
+            }
+
+            return link
+          })}
+        </div>
+      </nav>
+
+      {/* User section */}
+      <div className="border-t border-sidebar-border p-2">
+        {collapsed ? (
+          <Tooltip delayDuration={0}>
+            <TooltipTrigger asChild>
+              <div className="flex justify-center">
+                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-sidebar-primary text-sidebar-primary-foreground text-xs font-bold">
+                  {initials}
+                </div>
+              </div>
+            </TooltipTrigger>
+            <TooltipContent side="right">
+              {user?.displayName || user?.email}
+            </TooltipContent>
+          </Tooltip>
+        ) : (
+          <div className="flex items-center gap-3 px-2 py-1">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-sidebar-primary text-sidebar-primary-foreground text-xs font-bold">
+              {initials}
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="truncate text-sm font-medium text-sidebar-foreground">
+                {user?.displayName}
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Logout button */}
+        {collapsed ? (
+          <Tooltip delayDuration={0}>
+            <TooltipTrigger asChild>
+              <button
+                onClick={handleLogout}
+                className="mt-1 flex w-full items-center justify-center rounded-lg px-2 py-2.5 text-sidebar-foreground/70 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+              >
+                <LogOut className="h-4 w-4" />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="right">{t("nav.logout")}</TooltipContent>
+          </Tooltip>
+        ) : (
+          <button
+            onClick={handleLogout}
+            className="mt-1 flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-sidebar-foreground/70 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+          >
+            <LogOut className="h-4 w-4" />
+            {t("nav.logout")}
+          </button>
+        )}
+
+        {/* Toggle button */}
+        <button
+          onClick={toggleCollapsed}
+          className="mt-2 flex w-full items-center justify-center rounded-lg py-1.5 text-sidebar-foreground/50 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+          aria-label={collapsed ? t("nav.expandSidebar") : t("nav.collapseSidebar")}
+        >
+          {collapsed ? (
+            <ChevronRight className="h-4 w-4" />
+          ) : (
+            <ChevronLeft className="h-4 w-4" />
+          )}
+        </button>
+      </div>
+    </aside>
+  )
+}
+
+/** Mobile sidebar content — always expanded, used inside Sheet */
+export function MobileSidebarContent({ onClose }: { onClose: () => void }) {
+  const { t } = useTranslation()
+  const { user, logout } = useAuth()
+  const navigate = useNavigate()
+
+  const handleLogout = () => {
+    logout()
+    navigate("/login", { replace: true })
+    onClose()
+  }
+
+  const initials = user?.displayName
+    ? user.displayName
+        .split(" ")
+        .map((n) => n[0])
+        .join("")
+        .toUpperCase()
+        .slice(0, 2)
+    : "?"
+
+  return (
+    <div className="flex h-full flex-col bg-sidebar-background">
+      {/* Logo */}
+      <div className="flex h-14 items-center border-b border-sidebar-border px-4">
+        <img src={logoFull} alt="GeekVault" className="h-8 object-contain" />
+      </div>
+
+      {/* Navigation */}
+      <nav className="flex-1 overflow-y-auto p-4">
+        <div className="flex flex-col gap-1">
+          {navItems.map((item) => (
+            <NavLink
+              key={item.to}
+              to={item.to}
+              end={item.to === "/"}
+              onClick={onClose}
+              className={({ isActive }) =>
+                cn(
+                  "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors border-l-2",
+                  isActive
+                    ? "bg-sidebar-accent text-sidebar-accent-foreground border-sidebar-primary"
+                    : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground border-transparent"
+                )
+              }
+            >
+              <item.icon className="h-4 w-4" />
+              {t(item.labelKey)}
+            </NavLink>
+          ))}
+        </div>
+      </nav>
+
+      {/* User section */}
+      <div className="border-t border-sidebar-border p-4">
+        <div className="flex items-center gap-3 px-2 py-1 mb-2">
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-sidebar-primary text-sidebar-primary-foreground text-xs font-bold">
+            {initials}
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="truncate text-sm font-medium text-sidebar-foreground">
+              {user?.displayName}
+            </p>
+          </div>
+        </div>
+        <button
+          onClick={handleLogout}
+          className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-sidebar-foreground/70 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+        >
+          <LogOut className="h-4 w-4" />
+          {t("nav.logout")}
+        </button>
+      </div>
+    </div>
+  )
+}

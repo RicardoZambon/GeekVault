@@ -308,6 +308,69 @@ public class CatalogItemEndpointsTests : IClassFixture<TestFactory<CatalogItemEn
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
 
+    [Fact]
+    public async Task ReorderItems_UpdatesSortOrder()
+    {
+        var (client, colId) = await CreateAuthenticatedClientWithCollectionAsync("ci-reorder@example.com");
+
+        // Create 3 items
+        var r1 = await client.PostAsJsonAsync($"/api/collections/{colId}/items", new { Identifier = "R-001", Name = "Item A" });
+        var item1 = await r1.Content.ReadFromJsonAsync<CatalogItemResult>();
+        var r2 = await client.PostAsJsonAsync($"/api/collections/{colId}/items", new { Identifier = "R-002", Name = "Item B" });
+        var item2 = await r2.Content.ReadFromJsonAsync<CatalogItemResult>();
+        var r3 = await client.PostAsJsonAsync($"/api/collections/{colId}/items", new { Identifier = "R-003", Name = "Item C" });
+        var item3 = await r3.Content.ReadFromJsonAsync<CatalogItemResult>();
+
+        // Reorder: C, A, B
+        var reorderResponse = await client.PostAsJsonAsync($"/api/collections/{colId}/items/reorder", new
+        {
+            ItemIds = new[] { item3!.Id, item1!.Id, item2!.Id }
+        });
+        Assert.Equal(HttpStatusCode.NoContent, reorderResponse.StatusCode);
+
+        // Verify order: first item should be C
+        var listResponse = await client.GetAsync($"/api/collections/{colId}/items");
+        var result = await listResponse.Content.ReadFromJsonAsync<PaginatedResult<CatalogItemResult>>();
+        Assert.NotNull(result);
+        Assert.Equal(3, result.Items.Count);
+        Assert.Equal("Item C", result.Items[0].Name);
+        Assert.Equal("Item A", result.Items[1].Name);
+        Assert.Equal("Item B", result.Items[2].Name);
+    }
+
+    [Fact]
+    public async Task ReorderItems_WrongCollection_ReturnsNotFound()
+    {
+        var (client, _) = await CreateAuthenticatedClientWithCollectionAsync("ci-reorder-404@example.com");
+        var response = await client.PostAsJsonAsync("/api/collections/99999/items/reorder", new
+        {
+            ItemIds = new[] { 1, 2, 3 }
+        });
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task ReorderItems_InvalidItemIds_ReturnsBadRequest()
+    {
+        var (client, colId) = await CreateAuthenticatedClientWithCollectionAsync("ci-reorder-bad@example.com");
+        var response = await client.PostAsJsonAsync($"/api/collections/{colId}/items/reorder", new
+        {
+            ItemIds = new[] { 99998, 99999 }
+        });
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task ReorderItems_RequiresAuth()
+    {
+        var client = _factory.CreateClient();
+        var response = await client.PostAsJsonAsync("/api/collections/1/items/reorder", new
+        {
+            ItemIds = new[] { 1, 2 }
+        });
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
     private record AuthResult(string Token, string UserId, string Email, string? DisplayName);
     private record CollectionTypeResult(int Id, string Name);
     private record CollectionResult(int Id, string Name);

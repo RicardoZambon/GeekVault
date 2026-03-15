@@ -10,11 +10,14 @@
     "profile": "Profile",
     "toggleMenu": "Toggle menu",
     "toggleTheme": "Toggle theme",
-    "logout": "Logout"
+    "logout": "Logout",
+    "expandSidebar": "Expand sidebar",
+    "collapseSidebar": "Collapse sidebar"
   },
   "dashboard": {
     "title": "Dashboard",
     "description": "Overview of your collections and stats.",
+    "welcome": "Welcome back, {{name}}",
     "loading": "Loading dashboard...",
     "fetchError": "Failed to load dashboard data",
     "totalCollections": "Collections",
@@ -69,7 +72,16 @@
     "empty": "No collections yet. Create one to get started.",
     "itemCount_one": "{{count}} item",
     "itemCount_other": "{{count}} items",
-    "itemCount": "{{count}} items"
+    "itemCount": "{{count}} items",
+    "searchPlaceholder": "Search collections...",
+    "filterByType": "Filter by type",
+    "allTypes": "All Types",
+    "noResults": "No collections match your search.",
+    "view": "View",
+    "dropCoverHere": "Drop an image here or click to browse",
+    "saveSuccess": "Collection saved successfully.",
+    "createSuccess": "Collection created successfully.",
+    "deleteSuccess": "Collection deleted successfully."
   },
   "collectionTypes": {
     "title": "Collection Types",
@@ -120,7 +132,13 @@
     "deleteFailed": "Failed to delete collection type",
     "saveFailed": "Failed to save collection type",
     "fetchError": "Failed to load collection types",
-    "empty": "No collection types yet. Create one to get started."
+    "empty": "No collection types yet. Create one to get started.",
+    "tabGeneral": "General",
+    "tabCustomFields": "Custom Fields",
+    "enumTagPlaceholder": "Type and press Enter to add",
+    "saveSuccess": "Collection type saved successfully.",
+    "createSuccess": "Collection type created successfully.",
+    "deleteSuccess": "Collection type deleted successfully."
   },
   "collectionDetail": {
     "fetchError": "Failed to load collection",
@@ -168,6 +186,7 @@
     "ownedAll": "All",
     "ownedOwned": "Owned",
     "ownedUnowned": "Unowned",
+    "sortCustom": "Custom",
     "sortName": "Name",
     "sortPrice": "Price",
     "sortValue": "Value",
@@ -175,6 +194,8 @@
     "sortRarity": "Rarity",
     "sortAsc": "Ascending",
     "sortDesc": "Descending",
+    "viewGrid": "Grid view",
+    "viewTable": "Table view",
     "export": "Export",
     "exportTitle": "Export Collection",
     "exportDescription": "Download your collection data as CSV or JSON.",
@@ -200,7 +221,18 @@
     "importValidRows": "{{count}} valid rows",
     "importErrorRows": "{{count}} rows with errors",
     "importBack": "Back",
-    "importCancel": "Cancel"
+    "importCancel": "Cancel",
+    "importNext": "Next",
+    "importDone": "Done",
+    "importStepUpload": "Upload",
+    "importStepPreview": "Preview",
+    "importStepConfirm": "Confirm",
+    "importDropHere": "Drop CSV file here or click to browse",
+    "importOrBrowse": "Supports .csv files",
+    "importClickToChange": "Click to choose a different file",
+    "importConfirmCount": "Import {{count}} items",
+    "importCompleteToast": "Import completed successfully",
+    "reorderFailed": "Failed to reorder items"
   },
   "itemDetail": {
     "fetchError": "Failed to load item",
@@ -220,7 +252,9 @@
     "estimatedValue": "Estimated Value",
     "acquisitionDate": "Acquisition Date",
     "acquisitionSource": "Source",
-    "notes": "Notes"
+    "notes": "Notes",
+    "updateSuccess": "Item updated successfully",
+    "deleteSuccess": "Item deleted successfully"
   },
   "ownedCopy": {
     "add": "Add Copy",
@@ -238,7 +272,10 @@
     "deleteTitle": "Delete Owned Copy",
     "deleteConfirm": "Are you sure you want to delete this owned copy?",
     "deleting": "Deleting...",
-    "deleteFailed": "Failed to delete owned copy"
+    "deleteFailed": "Failed to delete owned copy",
+    "updateSuccess": "Copy updated successfully",
+    "addSuccess": "Copy added successfully",
+    "deleteSuccess": "Copy deleted successfully"
   },
   "sets": {
     "title": "Sets",
@@ -260,9 +297,11 @@
     "deleting": "Deleting...",
     "deleteFailed": "Failed to delete set",
     "saveFailed": "Failed to save set",
-    "empty": "No sets yet. Create one to track completion progress.",
+    "empty": "No sets yet",
+    "emptyDescription": "Create a set to track completion progress across your collection items.",
     "selectSet": "Select a set to view its items.",
     "completed": "completed",
+    "items": "items",
     "addItems": "Add Items",
     "addItemsTitle": "Add Items to Set",
     "addItemsDescription": "Search for existing catalog items or add by name.",
@@ -313,7 +352,22 @@
     "deleteFailed": "Failed to delete wishlist item",
     "saveFailed": "Failed to save wishlist item",
     "fetchError": "Failed to load wishlist",
-    "empty": "Your wishlist is empty. Add items you want to acquire."
+    "empty": "Your wishlist is empty. Add items you want to acquire.",
+    "filterPriority": "Filter by priority",
+    "priorityAll": "All Priorities",
+    "priorityHigh": "High",
+    "priorityMedium": "Medium",
+    "priorityLow": "Low",
+    "sortBy": "Sort by",
+    "sortPriority": "Priority",
+    "sortPrice": "Price",
+    "sortName": "Name",
+    "itemCount": "{{count}} items",
+    "noResults": "No items match the selected filters.",
+    "updateSuccess": "Wishlist item updated successfully.",
+    "addSuccess": "Wishlist item added successfully.",
+    "deleteSuccess": "Wishlist item deleted successfully.",
+    "reorderFailed": "Failed to reorder wishlist items"
   },
   "profile": {
     "title": "Profile",
@@ -327,24 +381,94 @@
     "bioPlaceholder": "Tell us about yourself",
     "languageLabel": "Preferred Language",
     "currencyLabel": "Preferred Currency",
+    "currencies": {
+      "USD": "USD - US Dollar",
+      "EUR": "EUR - Euro",
+      "GBP": "GBP - British Pound",
+      "BRL": "BRL - Real Brasileiro",
+      "JPY": "JPY - Japanese Yen",
+      "CAD": "CAD - Canadian Dollar",
+      "AUD": "AUD - Australian Dollar"
+    },
     "avatarLabel": "Avatar",
     "uploadAvatar": "Upload Avatar",
     "avatarFailed": "Failed to upload avatar",
+    "avatarSuccess": "Avatar updated successfully.",
     "save": "Save Changes",
     "saving": "Saving...",
     "saveSuccess": "Profile updated successfully.",
-    "saveFailed": "Failed to save profile"
+    "saveFailed": "Failed to save profile",
+    "sections": {
+      "avatar": "Avatar",
+      "accountInfo": "Account Info",
+      "about": "About",
+      "preferences": "Preferences",
+      "appearance": "Appearance",
+      "theme": "Theme",
+      "themeLight": "Light",
+      "themeDark": "Dark",
+      "themeSystem": "System"
+    }
   },
   "language": {
     "label": "Language",
     "en": "English",
     "pt": "Portuguese"
   },
+  "commandPalette": {
+    "label": "Command palette",
+    "placeholder": "Type a command or search...",
+    "noResults": "No results found.",
+    "navigation": "Navigation",
+    "actions": "Actions",
+    "createCollection": "Create Collection",
+    "toggleTheme": "Toggle Theme",
+    "toggleSidebar": "Toggle Sidebar",
+    "changeLanguage": "Change Language"
+  },
+  "emptyStates": {
+    "dashboard": {
+      "title": "Your vault is empty",
+      "description": "Start by creating your first collection to track your collectibles.",
+      "action": "Create Collection"
+    },
+    "collections": {
+      "title": "No collections yet",
+      "description": "Collections organize your items by type — comics, cards, figures, and more.",
+      "action": "Create Your First Collection"
+    },
+    "collectionDetail": {
+      "title": "No items in this collection",
+      "description": "Add your first catalog item to start tracking what you own.",
+      "action": "Add Item"
+    },
+    "wishlist": {
+      "title": "Your wishlist is empty",
+      "description": "Save items you are looking for and track target prices.",
+      "action": "Add to Wishlist"
+    },
+    "collectionTypes": {
+      "title": "No collection types defined",
+      "description": "Collection types let you customize fields for different kinds of collectibles.",
+      "action": "Create Collection Type"
+    },
+    "ownedCopies": {
+      "title": "No copies owned yet",
+      "description": "Add a copy to track its condition, purchase price, and value.",
+      "action": "Add Copy"
+    }
+  },
+  "home": {
+    "tagline": "Catalog, track, and browse your collectibles."
+  },
   "auth": {
     "login": "Sign in",
     "loginDescription": "Sign in to your account",
     "loggingIn": "Signing in...",
     "loginFailed": "Invalid email or password",
+    "welcomeBack": "Welcome back",
+    "createYourVault": "Create your vault",
+    "tagline": "Your ultimate collectible management vault. Track, organize, and showcase everything you love.",
     "register": "Create account",
     "registerDescription": "Create a new account to get started",
     "registering": "Creating account...",

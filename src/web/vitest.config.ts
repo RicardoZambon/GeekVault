@@ -15,7 +15,15 @@ export default defineConfig({
     coverage: {
       provider: "v8",
       include: ["src/**/*.{ts,tsx}"],
-      exclude: ["src/main.tsx", "src/vite-env.d.ts", "src/**/*.d.ts", "src/test-setup.ts", "src/test-utils.tsx"],
+      exclude: [
+          "src/main.tsx",
+          "src/vite-env.d.ts",
+          "src/**/*.d.ts",
+          "src/test-setup.ts",
+          "src/test-utils.tsx",
+          "src/components/ds/index.ts",
+          "src/hooks/index.ts",
+        ],
       thresholds: {
         lines: 90,
         branches: 90,

@@ -11,6 +11,8 @@ public interface ICatalogItemsRepository
     Task<List<CatalogItem>> GetByCollectionTypeIdAsync(int collectionTypeId);
     Task AddAsync(CatalogItem item);
     Task AddRangeAsync(IEnumerable<CatalogItem> items);
+    Task<int> GetMaxSortOrderAsync(int collectionId);
+    Task<List<CatalogItem>> GetByIdsAndCollectionIdAsync(IEnumerable<int> ids, int collectionId);
     Task SaveChangesAsync();
     void Remove(CatalogItem item);
 }

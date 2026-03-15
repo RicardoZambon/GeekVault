@@ -72,6 +72,23 @@ public static class WishlistController
         .WithName("DeleteWishlistItem")
         .WithOpenApi();
 
+        app.MapPost("/api/collections/{collectionId:int}/wishlist/reorder", async (
+            int collectionId,
+            ReorderWishlistItemsRequest request,
+            ClaimsPrincipal principal,
+            IWishlistService service) =>
+        {
+            var userId = principal.FindFirstValue(ClaimTypes.NameIdentifier)!;
+            var (success, notFound, error) = await service.ReorderAsync(collectionId, userId, request.ItemIds);
+            if (notFound) return Results.NotFound();
+            if (error != null) return Results.BadRequest(new { error });
+
+            return Results.NoContent();
+        })
+        .RequireAuthorization()
+        .WithName("ReorderWishlistItems")
+        .WithOpenApi();
+
         return app;
     }
 }

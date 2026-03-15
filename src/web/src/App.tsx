@@ -1,15 +1,16 @@
 import { Routes, Route, Navigate, Outlet } from 'react-router-dom'
 import { useAuth } from './components/auth-provider'
-import AppLayout from './components/app-layout'
-import Dashboard from './pages/Dashboard'
-import Collections from './pages/Collections'
-import CollectionTypes from './pages/CollectionTypes'
-import Wishlist from './pages/Wishlist'
-import Profile from './pages/Profile'
-import Login from './pages/Login'
-import Register from './pages/Register'
-import CollectionDetail from './pages/CollectionDetail'
-import CatalogItemDetail from './pages/CatalogItemDetail'
+import { AnimatedOutlet } from './components/layout/animated-outlet'
+import AppLayout from './components/layout/app-layout'
+import Dashboard from './features/dashboard/dashboard-page'
+import Collections from './features/collections/collections-page'
+import CollectionTypes from './features/collection-types/collection-types-page'
+import Wishlist from './features/wishlist/wishlist-page'
+import Profile from './features/profile/profile-page'
+import Login from './features/auth/login-page'
+import Register from './features/auth/register-page'
+import CollectionDetail from './features/collections/collection-detail-page'
+import CatalogItemDetail from './features/collections/catalog-item-detail-page'
 
 function RequireAuth() {
   const { token, isLoading } = useAuth()
@@ -44,7 +45,7 @@ function GuestOnly() {
     return <Navigate to="/" replace />
   }
 
-  return <Outlet />
+  return <AnimatedOutlet />
 }
 
 function App() {
