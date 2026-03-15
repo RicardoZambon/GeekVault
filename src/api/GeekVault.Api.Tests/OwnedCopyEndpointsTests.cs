@@ -171,6 +171,101 @@ public class OwnedCopyEndpointsTests : IClassFixture<TestFactory<OwnedCopyEndpoi
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
 
+    [Fact]
+    public async Task UploadImage_ReturnsOkWithImageUrl()
+    {
+        var (client, itemId) = await CreateAuthenticatedClientWithItemAsync("oc-upload@example.com");
+
+        var createResponse = await client.PostAsJsonAsync($"/api/items/{itemId}/copies", new { Condition = "Mint" });
+        var created = await createResponse.Content.ReadFromJsonAsync<OwnedCopyResult>();
+
+        var content = new MultipartFormDataContent();
+        var fileContent = new ByteArrayContent(new byte[] { 0x89, 0x50, 0x4E, 0x47 });
+        fileContent.Headers.ContentType = new MediaTypeHeaderValue("image/png");
+        content.Add(fileContent, "image", "photo.png");
+
+        var response = await client.PostAsync($"/api/items/{itemId}/copies/{created!.Id}/images", content);
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var result = await response.Content.ReadFromJsonAsync<OwnedCopyResult>();
+        Assert.NotNull(result);
+        Assert.Single(result.Images);
+        Assert.Contains("/uploads/", result.Images[0]);
+    }
+
+    [Fact]
+    public async Task UploadImage_MultipleImages_AllPersist()
+    {
+        var (client, itemId) = await CreateAuthenticatedClientWithItemAsync("oc-multi-img@example.com");
+
+        var createResponse = await client.PostAsJsonAsync($"/api/items/{itemId}/copies", new { Condition = "Good" });
+        var created = await createResponse.Content.ReadFromJsonAsync<OwnedCopyResult>();
+
+        for (var i = 0; i < 3; i++)
+        {
+            using var content = new MultipartFormDataContent();
+            var fileContent = new ByteArrayContent(new byte[] { 0x89, 0x50, 0x4E, 0x47 });
+            fileContent.Headers.ContentType = new MediaTypeHeaderValue("image/png");
+            content.Add(fileContent, "image", $"photo{i}.png");
+            await client.PostAsync($"/api/items/{itemId}/copies/{created!.Id}/images", content);
+        }
+
+        var listResponse = await client.GetAsync($"/api/items/{itemId}/copies");
+        var copies = await listResponse.Content.ReadFromJsonAsync<List<OwnedCopyResult>>();
+        Assert.Equal(3, copies![0].Images.Count);
+    }
+
+    [Fact]
+    public async Task UploadImage_NoFile_ReturnsBadRequest()
+    {
+        var (client, itemId) = await CreateAuthenticatedClientWithItemAsync("oc-nofile@example.com");
+
+        var createResponse = await client.PostAsJsonAsync($"/api/items/{itemId}/copies", new { Condition = "Mint" });
+        var created = await createResponse.Content.ReadFromJsonAsync<OwnedCopyResult>();
+
+        var content = new MultipartFormDataContent();
+        var fileContent = new ByteArrayContent(Array.Empty<byte>());
+        fileContent.Headers.ContentType = new MediaTypeHeaderValue("image/png");
+        content.Add(fileContent, "image", "empty.png");
+        var response = await client.PostAsync($"/api/items/{itemId}/copies/{created!.Id}/images", content);
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task UploadImage_WrongCopyId_ReturnsNotFound()
+    {
+        var (client, itemId) = await CreateAuthenticatedClientWithItemAsync("oc-wrongcopy@example.com");
+
+        var content = new MultipartFormDataContent();
+        var fileContent = new ByteArrayContent(new byte[] { 0x89, 0x50, 0x4E, 0x47 });
+        fileContent.Headers.ContentType = new MediaTypeHeaderValue("image/png");
+        content.Add(fileContent, "image", "photo.png");
+
+        var response = await client.PostAsync($"/api/items/{itemId}/copies/99999/images", content);
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task UploadImage_ThenFetchCopies_ShowsImages()
+    {
+        var (client, itemId) = await CreateAuthenticatedClientWithItemAsync("oc-persist-img@example.com");
+
+        var createResponse = await client.PostAsJsonAsync($"/api/items/{itemId}/copies", new { Condition = "Mint" });
+        var created = await createResponse.Content.ReadFromJsonAsync<OwnedCopyResult>();
+
+        using var content = new MultipartFormDataContent();
+        var fileContent = new ByteArrayContent(new byte[] { 0x89, 0x50, 0x4E, 0x47 });
+        fileContent.Headers.ContentType = new MediaTypeHeaderValue("image/png");
+        content.Add(fileContent, "image", "photo.png");
+        await client.PostAsync($"/api/items/{itemId}/copies/{created!.Id}/images", content);
+
+        var listResponse = await client.GetAsync($"/api/items/{itemId}/copies");
+        var copies = await listResponse.Content.ReadFromJsonAsync<List<OwnedCopyResult>>();
+        Assert.NotNull(copies);
+        Assert.Single(copies);
+        Assert.Single(copies[0].Images);
+        Assert.Contains("/uploads/", copies[0].Images[0]);
+    }
+
     private record AuthResult(string Token, string UserId, string Email, string? DisplayName);
     private record IdResult(int Id);
     private record OwnedCopyResult(int Id, int CatalogItemId, string Condition, decimal? PurchasePrice, decimal? EstimatedValue, DateTime? AcquisitionDate, string? AcquisitionSource, string? Notes, List<string> Images);

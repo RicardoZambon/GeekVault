@@ -1,674 +1,259 @@
 # Ralph Progress Log
-Started: Fri Mar 13 12:14:54 PM UTC 2026
+Started: Sat Mar 14 06:01:01 PM UTC 2026
+---
 
 ## Codebase Patterns
-- .NET 8 Web API project lives at `src/api/GeekVault.Api/`
-- DbContext is `ApplicationDbContext` in `Data/ApplicationDbContext.cs`
-- Connection string key: `DefaultConnection` in appsettings.json
-- SQL Server: `localhost,1433`, user `sa`, password `P@ssw0rd`, database `ApplicationDB`
-- Uses minimal API style (not controllers)
-- Build with `dotnet build` from the project directory
-- DbContext inherits from `IdentityDbContext<ApplicationUser>` — always call `base.OnModelCreating()` in OnModelCreating
-- Identity registered with `AddIdentity<ApplicationUser, IdentityRole>()` in Program.cs
-- Migrations generated with `dotnet ef migrations add <Name>` from the project directory
-- Use `OwnsMany` + `ToJson()` for JSON columns storing lists of owned types in EF Core 8
-- Entity models live in `Models/` directory under namespace `GeekVault.Api.Models`
-- Visibility enum stored as string conversion in EF Core: `.HasConversion<string>()`
-- Foreign keys: use `OnDelete(DeleteBehavior.Restrict)` for reference data (CollectionType), `Cascade` for ownership (User)
-- Decimal monetary fields: use `HasColumnType("decimal(18,2)")` for price/value columns
-- Enums stored as strings: use `.HasConversion<string>().HasMaxLength(20)`
-- JWT config in `appsettings.json` under `Jwt` section (Key, Issuer, Audience, ExpiresInMinutes)
-- Auth endpoints use minimal API style (not controllers) with `MapPost`/`MapGet` in Program.cs
-- Test project at `src/api/GeekVault.Api.Tests/` uses xUnit + WebApplicationFactory + InMemory DB
-- Use custom `WebApplicationFactory` subclass (not `IClassFixture<WebApplicationFactory<Program>>` with `WithWebHostBuilder`) to share DB across tests
-- `Program` class exposed to tests via `Properties/ProgramPartial.cs` (`public partial class Program { }`)
-- Protected endpoints use `.RequireAuthorization()` — returns 401 without valid JWT Bearer token
-- Use `TestFactory<TMarker>` generic pattern for per-test-class factory isolation (avoids xUnit parallel test contention)
-- Avatar uploads go to `wwwroot/uploads/` — gitignored; use `IWebHostEnvironment` to resolve paths
-- Use `.DisableAntiforgery()` on file upload endpoints to avoid CSRF issues in API context
-- CRUD endpoints pattern: filter by UserId for ownership, validate input in handler, return DTO records
-- Nested resource endpoints: verify parent ownership first, then operate on child resource
-- Use `.Include()` on parent entity when needing to access navigation properties for validation
-- Each test method uses a unique user email to avoid parallel test conflicts
-- List endpoints return `PaginatedResponse<T>` (Items, TotalCount, Page, PageSize) — tests use `PaginatedResult<T>` to deserialize
-- File upload endpoints need both `.RequireAuthorization()` and `.DisableAntiforgery()`, and wrap `ReadFormAsync()` in try-catch for empty form handling
-- Use `.ThenInclude()` for nested eager loading: `.Include(c => c.CollectionType).ThenInclude(ct => ct.CustomFieldSchema)`
-- Frontend project lives at `src/web/` — React 19 + TypeScript + Vite 8
-- Frontend build: `cd src/web && npm run build` (runs tsc + vite build)
-- Frontend typecheck: `cd src/web && npx tsc -b`
-- Tailwind CSS v4 via PostCSS plugin (`@tailwindcss/postcss`) — Vite plugin incompatible with Vite 8
-- shadcn/ui set up manually (CLI incompatible with Node 24) — `components.json` + `src/lib/utils.ts` + CSS variables in `index.css`
-- Path alias `@/` maps to `src/` — configured in both `tsconfig.app.json` (paths) and `vite.config.ts` (resolve.alias)
-- API proxy: Vite dev server proxies `/api` requests to `http://localhost:5000`
-- React Router v6 with `BrowserRouter` in `main.tsx`, routes in `App.tsx`
-- Pages live in `src/pages/` directory
-- UI components go in `src/components/ui/` (shadcn/ui pattern)
-- App-level components (layout, providers) go in `src/components/` (not `ui/`)
-- ThemeProvider in `src/components/theme-provider.tsx` — wraps app in `main.tsx`, uses localStorage key `geekvault-theme`
-- Theme toggle: adds/removes `dark` class on `<html>` element, CSS variables in `index.css` handle both `:root` and `.dark`
-- AppLayout in `src/components/app-layout.tsx` — uses `<Outlet />` from React Router for nested routes
-- Radix UI primitives installed: `@radix-ui/react-dialog` (Sheet), `@radix-ui/react-slot` (Button asChild)
-- Mobile sidebar uses Sheet component (Radix Dialog) sliding from left
-- NavLink from react-router-dom for active state styling in sidebar
-- i18n: `react-i18next` + `i18next` — translations in `src/i18n/locales/{en,pt}.json`, init in `src/i18n/index.ts`, imported in `main.tsx`
-- i18n: language stored in localStorage under `geekvault-language`, use `useTranslation()` hook + `t("key")` for translations
-- i18n: when adding new UI strings, add keys to BOTH `en.json` and `pt.json` translation files
-- AuthProvider in `src/components/auth-provider.tsx` — wraps app in `main.tsx`, manages JWT token in localStorage under `geekvault-token`
-- `useAuth()` hook provides: user, token, isLoading, login, register, logout
-- Auth routes: `RequireAuth` wrapper redirects to `/login` if no token, `GuestOnly` wrapper redirects to `/` if authenticated
-- Form pages use controlled inputs with `useState` + client-side validation before API call
-- shadcn/ui Input component in `src/components/ui/input.tsx`, Label in `src/components/ui/label.tsx`
-- Dialog component in `src/components/ui/dialog.tsx` — built from `@radix-ui/react-dialog` (same package as Sheet)
-- CRUD page pattern: list view + Dialog for create/edit + separate Dialog for delete confirmation
-- When adding new pages: update App.tsx (route), app-layout.tsx (nav item), and BOTH en.json + pt.json (i18n)
-- Avoid `set` prefix for state variable names — clashes with React useState setters (use `sets` or other prefix instead)
+- Auth uses `UserManager<User>` directly (no SignInManager) with `CheckPasswordAsync` for login
+- User entity is in `Entities/Security/User.cs` with namespace `GeekVault.Api.Entities.Security`
+- Tests use `WebApplicationFactory<Program>` with in-memory database via `TestFactory<TMarker>`
+- Program.cs is a single minimal API file with all endpoints; DTOs are in `DTOs/` folder organized by domain
+- DTOs use `public record` with namespaces: `GeekVault.Api.DTOs.Security`, `GeekVault.Api.DTOs.Vault`, `GeekVault.Api.DTOs.Common`
+- All Vault entities are in `Entities/Vault/` with namespace `GeekVault.Api.Entities.Vault`
+- Source files from previous branch need to be checked out explicitly when creating new feature branches
+- Database schemas: Security (Users), Vault (collection tables), EF (MigrationsHistory)
+- `ToTable("Name", "Schema")` in OnModelCreating to set schema per entity
+- `MigrationsHistoryTable("MigrationsHistory", "EF")` in UseSqlServer options
+- No .sln file — build/test individual .csproj files directly
+- Repositories are in `Repositories/{Domain}/` with interface + implementation pairs, registered as `AddScoped` in Program.cs
+- Vault repositories inject `ApplicationDbContext`; Security repositories inject `UserManager<User>`
+- Services are in `Services/{Domain}/` with interface + implementation pairs, registered as `AddScoped` in Program.cs
+- Services inject repositories (not DbContext or UserManager directly); AuthService also injects IConfiguration for JWT
+- CatalogItem entity has NO OwnedCopies navigation property — use `repo.Query()` IQueryable for cross-entity query composition
+- Services use tuple return patterns: `(Response?, Error?)` or `(Response?, NotFound, Error?)` for operations that can fail
+- Controllers are static classes in `Controllers/{Domain}/` with `MapXxxEndpoints(this IEndpointRouteBuilder app)` extension methods — inject services, not lower-level deps
+- DI registration is in `Extensions/ServiceCollectionExtensions.cs` with `AddSecurityServices(config)` and `AddVaultServices()` — add new services there, not in Program.cs
+- `IdentityUserContext<T>` creates AspNetUserClaims/Logins/Tokens tables by default — use `ExcludeFromMigrations()` to suppress them
+- Coverage: Exclude migrations with `ExcludeByFile=**/Migrations/*.cs` in test csproj; line threshold is 90%
 ---
 
-## 2026-03-13 - US-001
-- Scaffolded .NET 8 Web API with EF Core and SQL Server
-- Added `ApplicationDbContext` with SQL Server provider configured via connection string
-- Added `GET /api/health` endpoint returning `{ status: "healthy" }`
-- Removed sample WeatherForecast code
-- Files changed: `Program.cs`, `appsettings.json`, `Data/ApplicationDbContext.cs`
+## 2026-03-14 - US-001
+- Switched `AddIdentity<ApplicationUser, IdentityRole>()` to `AddIdentityCore<ApplicationUser>()` in Program.cs
+- Changed `ApplicationDbContext` base class from `IdentityDbContext<ApplicationUser>` to `IdentityUserContext<ApplicationUser>`
+- No SignInManager was in use — endpoints already used `UserManager.CheckPasswordAsync()`
+- IdentityRole references only remain in migration files (will be cleaned up in US-015)
+- Files changed: `Program.cs`, `Data/ApplicationDbContext.cs`
 - **Learnings for future iterations:**
-  - Project already had EF Core packages pre-installed in .csproj (SqlServer, Design, Tools)
-  - Uses minimal API style (top-level Program.cs), not controllers
-  - Swagger is configured for development environment only
+  - The codebase was already using `UserManager.CheckPasswordAsync` so no auth endpoint changes were needed
+  - `IdentityUserContext<T>` lives in `Microsoft.AspNetCore.Identity.EntityFrameworkCore` — same namespace as `IdentityDbContext<T>`
+  - All 103 tests pass with in-memory database after the Identity change — no test modifications needed
 ---
 
-## 2026-03-13 - US-002
-- Added ApplicationUser entity extending IdentityUser with: DisplayName, Avatar, Bio, PreferredLanguage, PreferredCurrency
-- Configured ASP.NET Identity in DbContext (IdentityDbContext<ApplicationUser>) and Program.cs
-- Generated initial Identity migration (AddIdentityAndApplicationUser)
-- Files changed: `Models/ApplicationUser.cs`, `Data/ApplicationDbContext.cs`, `Program.cs`, `Migrations/`
+## 2026-03-14 - US-002
+- Configured Users table under `Security` schema via `entity.ToTable("Users", "Security")`
+- Configured all Vault entities (CollectionTypes, Collections, CatalogItems, OwnedCopies, Sets, SetItems, WishlistItems) under `Vault` schema
+- Configured migrations history table as `EF.MigrationsHistory` via `MigrationsHistoryTable` in UseSqlServer options
+- Files changed: `Data/ApplicationDbContext.cs`, `Program.cs`
 - **Learnings for future iterations:**
-  - Identity package `Microsoft.AspNetCore.Identity.EntityFrameworkCore` was already in csproj
-  - DbContext inherits from `IdentityDbContext<ApplicationUser>` (not plain DbContext)
-  - Identity is registered with `AddIdentity<ApplicationUser, IdentityRole>()` in Program.cs
-  - Always call `base.OnModelCreating(modelBuilder)` in DbContext when using IdentityDbContext
+  - `ToTable` must be called before other entity configuration (HasKey, etc.) for clarity but order doesn't technically matter
+  - In-memory test database ignores schema names, so all 103 tests pass without modification
+  - No .sln file exists — must build/test by specifying .csproj paths directly
 ---
 
-## 2026-03-13 - US-003
-- Created `CollectionType` entity with Id, Name, Description, Icon, and CustomFieldSchema (JSON column)
-- Created `CustomFieldDefinition` model supporting field types: text, number, date, enum, boolean, image_url
-- Each custom field definition has: Name, Type, Required, Options (for enum)
-- Configured EF Core with `OwnsMany` + `ToJson()` for JSON column storage
-- Generated migration `AddCollectionType`
-- Files changed: `Models/CollectionType.cs`, `Models/CustomFieldDefinition.cs`, `Data/ApplicationDbContext.cs`, `Migrations/`
+## 2026-03-14 - US-003
+- Created `Entities/Security/User.cs` — renamed class from `ApplicationUser` to `User` with namespace `GeekVault.Api.Entities.Security`
+- Updated all references: `ApplicationDbContext.cs` (IdentityUserContext<User>, Entity<User>), `Program.cs` (AddIdentityCore<User>, UserManager<User>, new User, GenerateJwtToken)
+- Updated `Collection.cs` and `CollectionType.cs` navigation properties from `ApplicationUser` to `User` with added using
+- Deleted old `Models/ApplicationUser.cs`
+- Files changed: `Entities/Security/User.cs` (new), `Data/ApplicationDbContext.cs`, `Program.cs`, `Models/Collection.cs`, `Models/CollectionType.cs`, `Models/ApplicationUser.cs` (deleted)
 - **Learnings for future iterations:**
-  - Use `OwnsMany` with `ToJson()` for storing lists of owned types as JSON columns in EF Core 8
-  - JSON columns in EF Core 8 use owned entity types, not raw string serialization
-  - Max 10 custom fields validation will be enforced at API level (US-011), not at entity level
+  - Tests don't reference `ApplicationUser` directly — they use HTTP client against endpoints, so renaming the entity class doesn't require test changes
+  - The `GenerateJwtToken` static method at the bottom of Program.cs also references the User type — easy to miss
+  - Models that have navigation properties to User (Collection, CollectionType) need a `using GeekVault.Api.Entities.Security;` added
 ---
 
-## 2026-03-13 - US-004
-- Created `Collection` entity with Id, UserId, CollectionTypeId, Name, Description, CoverImage, Visibility
-- Created `Visibility` enum (Private, Public, Shared)
-- Added foreign keys to ApplicationUser (cascade) and CollectionType (restrict)
-- Configured EF Core entity with string conversion for Visibility enum
-- Generated migration `AddCollection`
-- Files changed: `Models/Collection.cs`, `Models/Visibility.cs`, `Data/ApplicationDbContext.cs`, `Migrations/`
+## 2026-03-14 - US-004
+- Moved all 12 Vault entity files from `Models/` to `Entities/Vault/` with namespace `GeekVault.Api.Entities.Vault`
+- Updated `using GeekVault.Api.Models` → `using GeekVault.Api.Entities.Vault` in `Data/ApplicationDbContext.cs` and `Program.cs`
+- Deleted empty `Models/` folder
+- Files changed: `Entities/Vault/*.cs` (12 new), `Data/ApplicationDbContext.cs`, `Program.cs`, `Models/*.cs` (12 deleted)
 - **Learnings for future iterations:**
-  - Enum stored as string in DB via `.HasConversion<string>()` for readability
-  - Use `DeleteBehavior.Restrict` for FK to reference/lookup data (CollectionType) to prevent accidental cascade deletes
-  - Navigation properties use `= null!` pattern for required references
+  - Only `Program.cs` and `ApplicationDbContext.cs` had `using GeekVault.Api.Models` — tests don't reference entity namespaces directly
+  - Migration files still reference `GeekVault.Api.Models` but they will be regenerated in US-015
+  - The in-memory test database is namespace-agnostic so all 103 tests pass without test changes
 ---
 
-## 2026-03-13 - US-005
-- Created `CatalogItem` entity with Id, CollectionId, Identifier, Name, Description, ReleaseDate, Manufacturer, ReferenceCode, Image, Rarity, CustomFieldValues (JSON column)
-- Created `CustomFieldValue` model (Name + Value) for JSON storage via `OwnsMany` + `ToJson()`
-- Added foreign key to Collection with cascade delete
-- Generated migration `AddCatalogItem`
-- Files changed: `Models/CatalogItem.cs`, `Models/CustomFieldValue.cs`, `Data/ApplicationDbContext.cs`, `Migrations/`
+## 2026-03-14 - US-005
+- Extracted all 39 DTO records from bottom of Program.cs into organized DTO files
+- Created DTOs/Security/ (AuthDtos.cs, ProfileDtos.cs), DTOs/Vault/ (9 files), DTOs/Common/ (PaginatedResponse.cs)
+- Added `using` statements for new DTO namespaces in Program.cs
+- Files changed: `Program.cs`, 12 new DTO files in `DTOs/` directory
 - **Learnings for future iterations:**
-  - CustomFieldValues stores values as simple Name/Value string pairs — validation against CollectionType schema will be at API level
-  - CatalogItem uses cascade delete from Collection (if collection is deleted, items are deleted too)
-  - Reused same `OwnsMany` + `ToJson()` pattern as CollectionType's CustomFieldSchema
+  - DTOs were all `record` types at file scope in Program.cs — extracting to namespaced `public record` types works seamlessly
+  - Tests don't reference DTO types directly (they use anonymous types and JSON), so no test changes needed
+  - Some Vault DTOs reference each other (e.g., CatalogItemResponse uses OwnedCopyDto, CustomFieldValueDto) — keeping them in the same namespace avoids cross-references
 ---
 
-## 2026-03-13 - US-006
-- Created `OwnedCopy` entity with Id, CatalogItemId, Condition, PurchasePrice, EstimatedValue, AcquisitionDate, AcquisitionSource, Notes, Images (JSON array)
-- Created `Condition` enum (Mint, NearMint, Excellent, Good, Fair, Poor)
-- Created `OwnedCopyImage` model (Url) for JSON storage via `OwnsMany` + `ToJson()`
-- Added foreign key to CatalogItem with cascade delete
-- Condition enum stored as string conversion (same pattern as Visibility)
-- Decimal columns use `HasColumnType("decimal(18,2)")` for price/value fields
-- Generated migration `AddOwnedCopy`
-- Files changed: `Models/OwnedCopy.cs`, `Models/Condition.cs`, `Models/OwnedCopyImage.cs`, `Data/ApplicationDbContext.cs`, `Migrations/`
+## 2026-03-14 - US-006
+- Created `IUsersRepository` interface with: FindByIdAsync, FindByEmailAsync, CreateAsync, CheckPasswordAsync, UpdateAsync
+- Created `UsersRepository` implementation wrapping `UserManager<User>`
+- Registered `IUsersRepository` as `AddScoped` in Program.cs DI container
+- Files changed: `Repositories/Security/IUsersRepository.cs` (new), `Repositories/Security/UsersRepository.cs` (new), `Program.cs`
 - **Learnings for future iterations:**
-  - Condition enum follows same string conversion pattern as Visibility enum
-  - Decimal monetary fields should use `decimal(18,2)` column type
-  - OwnedCopy cascades from CatalogItem (ownership chain: User -> Collection -> CatalogItem -> OwnedCopy)
+  - Repository returns `IdentityResult` from Create/Update to let callers handle error reporting — don't swallow Identity errors in the repository layer
+  - `UserManager<User>` is already registered by `AddIdentityCore<User>()` so it can be injected into the repository
+  - Tests don't need changes since they hit HTTP endpoints, not repositories directly
 ---
 
-## 2026-03-13 - US-007
-- Created `Set` entity with Id, CollectionId, Name, ExpectedItemCount
-- Created `SetItem` entity with Id, SetId, CatalogItemId (nullable), Name, SortOrder
-- Added foreign keys: Set -> Collection (cascade), SetItem -> Set (cascade), SetItem -> CatalogItem (restrict, nullable)
-- Generated migration `AddSetAndSetItem`
-- Files changed: `Models/Set.cs`, `Models/SetItem.cs`, `Data/ApplicationDbContext.cs`, `Migrations/`
+## 2026-03-14 - US-007
+- Created 6 Vault repository interfaces and implementations in `Repositories/Vault/`
+- ICollectionTypesRepository/CollectionTypesRepository: CRUD for collection types by user
+- ICollectionsRepository/CollectionsRepository: CRUD + dashboard summary/stats queries (GetCollectionSummariesAsync)
+- ICatalogItemsRepository/CatalogItemsRepository: CRUD + IQueryable for search/filter/sort + bulk import (AddRangeAsync) + GetByCollectionIdWithFieldsAsync for export
+- IOwnedCopiesRepository/OwnedCopiesRepository: CRUD + GetCatalogItemWithCollectionAsync for ownership verification + GetByUserCatalogItemIds for dashboard queries
+- ISetsRepository/SetsRepository: CRUD + set items management (GetSetItemsAsync, GetMaxSortOrderAsync, AddSetItemsAsync)
+- IWishlistRepository/WishlistRepository: CRUD ordered by priority
+- Registered all 6 interfaces as AddScoped in Program.cs
+- Files changed: 12 new files in `Repositories/Vault/`, `Program.cs`
 - **Learnings for future iterations:**
-  - SetItem.CatalogItemId is nullable — items can exist in a set without being linked to a catalog item
-  - SetItem -> CatalogItem uses `DeleteBehavior.Restrict` since CatalogItem is a reference (not ownership)
-  - Set cascades from Collection (same pattern as CatalogItem)
+  - CollectionSummary helper class defined alongside ICollectionsRepository interface — used by dashboard service later
+  - CatalogItemsRepository exposes IQueryable<CatalogItem> via GetByCollectionId() for search/filter/sort — service layer will compose the query
+  - OwnedCopiesRepository.GetCatalogItemWithCollectionAsync verifies catalog item ownership via Collection.UserId join
+  - Repositories follow the same pattern as UsersRepository: inject DbContext, expose async methods, return entities
 ---
 
-## 2026-03-13 - US-008
-- Created `WishlistItem` entity with Id, CollectionId, CatalogItemId (nullable), Name, Priority, TargetPrice, Notes
-- Added foreign keys: WishlistItem -> Collection (cascade), WishlistItem -> CatalogItem (restrict, nullable)
-- TargetPrice uses `decimal(18,2)` column type (same pattern as OwnedCopy price fields)
-- Generated migration `AddWishlistItem`
-- Files changed: `Models/WishlistItem.cs`, `Data/ApplicationDbContext.cs`, `Migrations/`
+## 2026-03-14 - US-008
+- Created `IAuthService` and `AuthService` with RegisterAsync and LoginAsync methods
+- JWT token generation logic extracted from Program.cs `GenerateJwtToken` static method into AuthService private method
+- Created `IProfileService` and `ProfileService` with GetProfileAsync, UpdateProfileAsync, and UploadAvatarAsync
+- Services inject `IUsersRepository` (not UserManager or DbContext directly)
+- AuthService injects `IConfiguration` for JWT settings
+- Registered both as `AddScoped` in Program.cs DI container
+- Files changed: 4 new files in `Services/Security/`, `Program.cs`
 - **Learnings for future iterations:**
-  - WishlistItem follows same nullable CatalogItemId pattern as SetItem — items can exist on wishlist without being linked to a catalog item
-  - WishlistItem -> CatalogItem uses `DeleteBehavior.Restrict` (reference, not ownership)
-  - WishlistItem cascades from Collection (same ownership chain pattern)
+  - Services use tuple return types for operations that can fail: `(Response?, Errors?)` pattern
+  - ProfileService.UpdateProfileAsync returns `(null, null)` when user not found — callers should check Response == null with no errors to distinguish "not found" from "validation error"
+  - UploadAvatarAsync takes `webRootPath` as parameter rather than injecting IWebHostEnvironment — keeps service testable
+  - Services are not yet wired into endpoints (endpoints still use UserManager directly) — that happens in US-010
 ---
 
-## 2026-03-13 - US-009
-- Added JWT authentication with register, login, logout endpoints
-- POST /api/auth/register - creates user, returns JWT token with userId/email claims
-- POST /api/auth/login - authenticates user, returns JWT token
-- POST /api/auth/logout - requires auth, returns success (stateless JWT, client discards token)
-- GET /api/auth/me - protected endpoint returning current user info
-- Configured JWT Bearer authentication middleware in Program.cs
-- Added `Microsoft.AspNetCore.Authentication.JwtBearer` package
-- Created test project `GeekVault.Api.Tests` with 8 integration tests (all passing)
-- Files changed: `Program.cs`, `appsettings.json`, `GeekVault.Api.csproj`, `Properties/ProgramPartial.cs`, new test project
+## 2026-03-14 - US-009
+- Created 7 Vault service interfaces and implementations in `Services/Vault/`
+- ICollectionTypesService/CollectionTypesService: CRUD with custom field validation (max 10 fields, valid types)
+- ICollectionsService/CollectionsService: CRUD + cover image upload
+- ICatalogItemsService/CatalogItemsService: CRUD + search/filter/sort/pagination + custom field schema validation
+- IOwnedCopiesService/OwnedCopiesService: CRUD with condition enum validation + ownership verification via repo
+- ISetsService/SetsService: CRUD + set items management with sort order + completion percentage calculation
+- IWishlistService/WishlistService: CRUD with priority ordering
+- IDashboardService/DashboardService: Aggregates collection summaries, condition counts, recent acquisitions
+- Added `Query()` method to IOwnedCopiesRepository and ICatalogItemsRepository for cross-entity IQueryable composition
+- Registered all 7 services as AddScoped in Program.cs DI container
+- Files changed: 14 new files in `Services/Vault/`, `Program.cs`, `Repositories/Vault/IOwnedCopiesRepository.cs`, `Repositories/Vault/OwnedCopiesRepository.cs`, `Repositories/Vault/ICatalogItemsRepository.cs`, `Repositories/Vault/CatalogItemsRepository.cs`
 - **Learnings for future iterations:**
-  - Use custom `WebApplicationFactory` subclass instead of `WithWebHostBuilder` in test constructor — the latter creates a new factory per test instance causing InMemory DB isolation issues
-  - `Properties/ProgramPartial.cs` exposes `Program` class to test project for `WebApplicationFactory<Program>`
-  - JWT token includes `ClaimTypes.NameIdentifier` (userId) and `ClaimTypes.Email` claims
-  - InMemory DB works fine with ASP.NET Identity for testing; use unique DB name per factory
-  - Request/response DTOs defined as records at bottom of Program.cs (minimal API style)
+  - CatalogItem entity does NOT have an OwnedCopies navigation property — use `repo.Query()` for cross-entity IQueryable composition instead of navigation properties
+  - Added `IQueryable<T> Query()` to IOwnedCopiesRepository and ICatalogItemsRepository for complex cross-entity queries (condition filtering, dashboard joins)
+  - Services are not yet wired into endpoints (endpoints still use DbContext directly) — that happens in US-010 through US-013
+  - CollectionTypesService encapsulates the valid field types set internally — no need to pass it from the endpoint
+  - Services follow the tuple return pattern from Security services: `(Response?, Error?)` or `(Response?, NotFound, Error?)` for operations that can fail
 ---
 
-## 2026-03-13 - US-010
-- Added profile API endpoints: GET /api/profile, PUT /api/profile, POST /api/profile/avatar
-- GET returns current user's profile (id, email, displayName, avatar, bio, preferences)
-- PUT updates displayName, bio, preferredLanguage, preferredCurrency
-- POST /api/profile/avatar handles multipart file upload, stores in wwwroot/uploads/
-- All endpoints require JWT authentication
-- Refactored test infrastructure: created generic `TestFactory<TMarker>` to isolate test classes
-- Added 7 profile tests (all passing) + existing 8 auth tests = 15 total
-- Files changed: `Program.cs`, `TestFactory.cs`, `ProfileEndpointsTests.cs`, `AuthEndpointsTests.cs`, `.gitignore`
+## 2026-03-14 - US-010
+- Created `Controllers/Security/AuthController.cs` with `MapAuthEndpoints` extension method
+- Moved POST /api/auth/register, POST /api/auth/login, POST /api/auth/logout, GET /api/auth/me from Program.cs
+- Auth endpoints now call `IAuthService` instead of `UserManager<User>` directly
+- Created `Controllers/Security/ProfileController.cs` with `MapProfileEndpoints` extension method
+- Moved GET /api/profile, PUT /api/profile, POST /api/profile/avatar from Program.cs
+- Profile endpoints now call `IProfileService` instead of `UserManager<User>` directly
+- Removed `GenerateJwtToken` static method from Program.cs (logic already in AuthService)
+- Cleaned up unused `using` statements (`System.IdentityModel.Tokens.Jwt`, `DTOs.Security`)
+- Files changed: `Controllers/Security/AuthController.cs` (new), `Controllers/Security/ProfileController.cs` (new), `Program.cs`
 - **Learnings for future iterations:**
-  - Use `TestFactory<TMarker>` generic pattern — each test class gets its own WebApplicationFactory/DB to avoid parallel test contention
-  - File upload endpoints need `.DisableAntiforgery()` when using `ReadFormAsync()`
-  - Use `IWebHostEnvironment.WebRootPath` (or fallback to `ContentRootPath/wwwroot`) for file storage paths
-  - `wwwroot/uploads/` is gitignored — test-generated files won't pollute the repo
-  - `ClaimsPrincipal` injection in minimal API handlers gives access to JWT claims directly
+  - Controllers are static classes with extension methods on `IEndpointRouteBuilder` — pattern: `public static IEndpointRouteBuilder MapXxxEndpoints(this IEndpointRouteBuilder app)`
+  - When extracting endpoints, inject services (IAuthService, IProfileService) instead of lower-level dependencies (UserManager, DbContext) — the services already encapsulate those
+  - All 103 tests pass without modification — tests hit HTTP endpoints via WebApplicationFactory, so the internal restructuring is transparent
+  - After removing endpoints from Program.cs, check for unused `using` statements and the `GenerateJwtToken` helper that was only used by auth endpoints
 ---
 
-## 2026-03-13 - US-011
-- Added CollectionType CRUD API endpoints: GET list, GET by id, POST create, PUT update, DELETE
-- All endpoints require JWT authentication and filter by UserId (ownership check)
-- Validates max 10 custom fields and supported field types (text, number, date, enum, boolean, image_url)
-- CollectionType model updated with UserId FK + migration added
-- 8 integration tests covering all CRUD operations, validation, and auth requirements
-- Files changed: `Program.cs`, `Models/CollectionType.cs`, `Data/ApplicationDbContext.cs`, `Migrations/`, `CollectionTypeEndpointsTests.cs`
+## 2026-03-14 - US-011
+- Created `Controllers/Vault/CollectionTypesController.cs` with `MapCollectionTypeEndpoints` extension method
+- Moved all 5 /api/collection-types endpoints (GET list, GET by id, POST, PUT, DELETE) from Program.cs, refactored to call `ICollectionTypesService`
+- Created `Controllers/Vault/CollectionsController.cs` with `MapCollectionEndpoints` extension method
+- Moved all 6 /api/collections endpoints (GET list, GET by id, POST, PUT, DELETE, POST cover) from Program.cs, refactored to call `ICollectionsService`
+- Added `app.MapCollectionTypeEndpoints()` and `app.MapCollectionEndpoints()` calls in Program.cs
+- Removed `validFieldTypes` HashSet from Program.cs (validation now in CollectionTypesService)
+- Files changed: `Controllers/Vault/CollectionTypesController.cs` (new), `Controllers/Vault/CollectionsController.cs` (new), `Program.cs`
 - **Learnings for future iterations:**
-  - CollectionType now has UserId for per-user ownership — all queries filter by `ct.UserId == userId`
-  - CRUD pattern: define `validFieldTypes` HashSet, validate in POST/PUT handlers, return DTOs via record types
-  - Use `Results.Created($"/api/resource/{id}", responseDto)` for POST endpoints
-  - Use `Results.NoContent()` for DELETE endpoints
-  - Each test method registers a unique user email to avoid conflicts in parallel test execution
+  - Same pattern as Security controllers: static class with extension method on `IEndpointRouteBuilder`, inject services not lower-level deps
+  - CollectionTypesService already encapsulates `validFieldTypes` validation — no need to duplicate it in the controller
+  - CollectionsService.UploadCoverAsync returns `(CoverUrl, NotFound, Error)` tuple — controller needs to check both NotFound and Error conditions
+  - All 103 tests pass without modification — tests hit HTTP endpoints so internal restructuring is transparent
 ---
 
-## 2026-03-13 - US-012
-- Added Collection CRUD API endpoints: GET list, GET by id, POST create, PUT update, DELETE, POST cover upload
-- GET endpoints include ItemCount (catalog items count) for each collection
-- All endpoints require JWT authentication and filter by UserId (ownership check)
-- Cover image upload follows same pattern as avatar upload (wwwroot/uploads/)
-- 8 integration tests covering all CRUD operations, ownership check, cover upload, and auth requirements
-- Files changed: `Program.cs`, new `CollectionEndpointsTests.cs`
+## 2026-03-14 - US-012
+- Created `Controllers/Vault/CatalogItemsController.cs` with `MapCatalogItemEndpoints` extension method
+- Moved all 5 /api/collections/{id}/items CRUD endpoints from Program.cs, refactored to call `ICatalogItemsService`
+- Moved export endpoint (GET /api/collections/{id}/export) with CSV/JSON formatting
+- Moved import endpoints (POST /api/collections/{id}/import, /import/preview, /import/confirm) with CSV parsing helpers
+- Import preview cache (`importPreviews` dictionary) moved to static field on the controller
+- Created `Controllers/Vault/OwnedCopiesController.cs` with `MapOwnedCopyEndpoints` extension method
+- Moved all 4 /api/items/{id}/copies endpoints from Program.cs, refactored to call `IOwnedCopiesService`
+- Added `app.MapCatalogItemEndpoints()` and `app.MapOwnedCopyEndpoints()` calls in Program.cs
+- Removed unused `using` statements (System.Globalization, System.Text.Json, DTOs.Common)
+- Files changed: `Controllers/Vault/CatalogItemsController.cs` (new), `Controllers/Vault/OwnedCopiesController.cs` (new), `Program.cs`
 - **Learnings for future iterations:**
-  - Collection CRUD follows same pattern as CollectionType CRUD — filter by userId, return DTOs
-  - Use `db.CatalogItems.Count(ci => ci.CollectionId == c.Id)` in Select projection for item counts
-  - Cover upload reuses the avatar upload pattern (DisableAntiforgery, multipart form, wwwroot/uploads)
-  - Test helper `CreateAuthenticatedClientWithTypeAsync` creates both auth client AND a collection type (needed for FK)
-  - Ownership test: create with user1, try to GET with user2 — should return 404 (not 403)
+  - Import/export endpoints don't have corresponding service methods yet — they still use DbContext directly in the controller. Future cleanup (US-014) can move this logic to services
+  - CSV parsing helpers (ParseCsvFile, ParseCsvLine, CsvEscape) are private static methods on CatalogItemsController — they could be extracted to a utility class if needed elsewhere
+  - The import preview cache is a static Dictionary on the controller — same in-process caching as before
+  - OwnedCopiesController is very thin: all 4 endpoints delegate directly to IOwnedCopiesService with the tuple return pattern
+  - All 103 tests pass without modification — tests hit HTTP endpoints so internal restructuring is transparent
 ---
 
-## 2026-03-13 - US-013
-- Added CatalogItem CRUD API endpoints nested under collections: GET list, GET by id (with owned copies), POST create, PUT update, DELETE
-- Custom field values validated against collection type schema (unknown fields rejected, required fields enforced)
-- All endpoints verify collection ownership before operating on items
-- GET single item includes owned copies list
-- 10 integration tests covering CRUD, custom field validation, auth, and ownership
-- Files changed: `Program.cs`, new `CatalogItemEndpointsTests.cs`
+## 2026-03-14 - US-013
+- Created `Controllers/Vault/SetsController.cs` with `MapSetEndpoints` extension method
+- Moved all 7 /api/collections/{id}/sets endpoints (GET list, GET by id, POST, PUT, DELETE, POST items) from Program.cs, refactored to call `ISetsService`
+- Created `Controllers/Vault/WishlistController.cs` with `MapWishlistEndpoints` extension method
+- Moved all 4 /api/collections/{id}/wishlist endpoints (GET list, POST, PUT, DELETE) from Program.cs, refactored to call `IWishlistService`
+- Created `Controllers/Vault/DashboardController.cs` with `MapDashboardEndpoints` extension method
+- Moved GET /api/dashboard from Program.cs, refactored to call `IDashboardService`
+- Added `app.MapSetEndpoints()`, `app.MapWishlistEndpoints()`, `app.MapDashboardEndpoints()` calls in Program.cs
+- Removed unused `using` statements (System.Security.Claims, DTOs.Vault, Entities.Vault)
+- Files changed: `Controllers/Vault/SetsController.cs` (new), `Controllers/Vault/WishlistController.cs` (new), `Controllers/Vault/DashboardController.cs` (new), `Program.cs`
 - **Learnings for future iterations:**
-  - Nested resource endpoints: verify parent ownership first (`collection.UserId == userId`), then operate on child
-  - Use `.Include(c => c.CollectionType)` when needing to validate custom fields against schema
-  - Custom field validation: check for unknown fields AND check required fields are present
-  - Test helper creates full chain: register user -> create collection type -> create collection
-  - OwnedCopyDto reused for GET single item response (returns owned copies alongside item details)
+  - WishlistService.UpdateAsync returns a 3-tuple `(Response?, CollectionNotFound, ItemNotFound)` — both bool flags need checking in the controller
+  - DashboardController is the thinnest controller: single endpoint delegating entirely to IDashboardService
+  - Program.cs now has zero inline endpoint logic — all endpoints are in controller files
+  - All 103 tests pass without modification — tests hit HTTP endpoints so internal restructuring is transparent
 ---
 
-## 2026-03-13 - US-014
-- Added OwnedCopy CRUD API endpoints: GET list, POST create, PUT update, DELETE
-- Endpoints: /api/items/{catalogItemId}/copies with full CRUD
-- Ownership check via CatalogItem -> Collection -> UserId chain
-- Condition validated against enum (Mint, NearMint, Excellent, Good, Fair, Poor)
-- Multiple copies per catalog item supported (duplicates allowed)
-- OwnedCopyResponse includes Images list
-- 8 integration tests covering CRUD, validation, auth, ownership, and duplicates
-- Files changed: `Program.cs`, new `OwnedCopyEndpointsTests.cs`
+## 2026-03-14 - US-014
+- Created `Extensions/ServiceCollectionExtensions.cs` with `AddSecurityServices(IConfiguration)` and `AddVaultServices()` extension methods
+- `AddSecurityServices` encapsulates: DbContext, Identity, JWT authentication, authorization, security repositories and services
+- `AddVaultServices` encapsulates: all Vault repository and service registrations
+- Program.cs reduced from ~100 lines to 37 lines — contains only builder config, extension method calls, middleware, and endpoint mapping
+- Health check endpoint remains in Program.cs
+- Swagger still configured in Program.cs
+- Files changed: `Extensions/ServiceCollectionExtensions.cs` (new), `Program.cs`
 - **Learnings for future iterations:**
-  - OwnedCopy ownership check requires `.Include(i => i.Collection)` on CatalogItem to access `Collection.UserId`
-  - OwnedCopy endpoints use flat `/api/items/{id}/copies` path (not nested under collections)
-  - Test helper creates full chain: register user -> create collection type -> create collection -> create catalog item
-  - OwnedCopyResponse includes Images as `List<string>` (URLs), while entity stores as `List<OwnedCopyImage>`
+  - `AddSecurityServices` needs `IConfiguration` parameter for JWT settings; `AddVaultServices` needs no parameters
+  - All 103 tests pass without modification — WebApplicationFactory still discovers all services through the extension methods
+  - Program.cs now follows clean minimal API pattern: services → middleware → endpoints
 ---
 
-## 2026-03-13 - US-015
-- Added Set CRUD API endpoints (already implemented in Program.cs from prior iteration, along with completion tracking from US-016 scope)
-- Fixed compilation errors in SetEndpointsTests.cs: anonymous type arrays with mixed nullable/non-nullable int properties need consistent nullable types
-- 9 integration tests covering: list, create, get with items/completion, completion with owned copies, update, delete, bulk add items, auth requirement, wrong collection ownership
-- All 58 tests passing (9 new Set tests + 49 existing)
-- Files changed: `SetEndpointsTests.cs` (fixed nullable type issues)
+## 2026-03-14 - US-015
+- Deleted all 8 old migration files from Migrations/ folder
+- Created single clean InitialCreate migration reflecting new schema organization
+- Used `ExcludeFromMigrations()` on IdentityUserClaim, IdentityUserLogin, IdentityUserToken to prevent AspNet* tables
+- Dropped existing database and ran `dotnet ef database update` to verify clean creation
+- Verified schemas: Security.Users, Vault.{CollectionTypes, Collections, CatalogItems, OwnedCopies, Sets, SetItems, WishlistItems}, EF.MigrationsHistory
+- No AspNetRoles, AspNetRoleClaims, AspNetUserClaims, AspNetUserLogins, AspNetUserRoles, or AspNetUserTokens tables
+- Files changed: `Data/ApplicationDbContext.cs`, `Migrations/` (8 deleted, 3 new)
 - **Learnings for future iterations:**
-  - When creating anonymous type arrays with mixed nullable properties (e.g., `CatalogItemId`), ALL elements must use the same nullable type: `(int?)catalogItemId` not just `catalogItemId`
-  - Set endpoints are nested under collections: `/api/collections/{collectionId}/sets`
-  - Bulk add items endpoint: `POST /api/collections/{collectionId}/sets/{id}/items` accepts `List<CreateSetItemRequest>`
-  - Completion tracking already baked into GET single set — counts owned copies for linked catalog items
+  - `IdentityUserContext<T>` still creates AspNetUserClaims, AspNetUserLogins, AspNetUserTokens tables — use `ExcludeFromMigrations()` in OnModelCreating to prevent them
+  - `dotnet-ef` tool must be installed globally (`dotnet tool install --global dotnet-ef`) — it's not pre-installed in the dev container
+  - Always run `dotnet ef migrations remove` before `dotnet ef migrations add` when regenerating to avoid stale snapshots
+  - Database drop and recreate verifies the migration works from scratch — important for clean slate migrations
 ---
 
-## 2026-03-13 - US-016
-- Verified set completion tracking logic already implemented in US-015 iteration
-- GET /api/collections/{collectionId}/sets/{id} returns completedCount and completionPercentage
-- Completion calculated on-the-fly: checks if each SetItem's linked CatalogItem has at least one OwnedCopy
-- completionPercentage = completedCount / expectedItemCount * 100, rounded to 2 decimal places
-- Existing tests cover: 0% completion (no owned copies), 50% completion (1 of 2 items owned)
-- All 58 tests passing, build succeeds
-- Files changed: none (logic already in Program.cs from US-015)
+## 2026-03-14 - US-016
+- All 103 existing tests already pass against the restructured architecture — no test file modifications needed
+- Tests use HTTP client via `WebApplicationFactory<Program>` so they're decoupled from internal architecture (entity names, namespaces, repositories, services)
+- TestFactory.cs already works with the new `ApplicationDbContext` (IdentityUserContext<User> base class) — no changes needed
+- Configured coverage exclusion for auto-generated migration files (`ExcludeByFile=**/Migrations/*.cs`) in test csproj
+- Added `Threshold=90` and `ThresholdType=line` to csproj for enforcing 90% line coverage threshold
+- Line coverage: 96.52% (above 90% threshold), Branch coverage: 69.18%, Method coverage: 94.89%
+- Files changed: `GeekVault.Api.Tests/GeekVault.Api.Tests.csproj`
 - **Learnings for future iterations:**
-  - Completion is computed on every GET request (not cached/stored) — recalculates automatically when owned copies change
-  - SetResponse record includes nullable CompletedCount and CompletionPercentage (only populated for single-set GET, not list)
----
-
-## 2026-03-13 - US-017
-- Added Wishlist CRUD API endpoints nested under collections: GET list (ordered by priority), POST create, PUT update, DELETE
-- All endpoints require JWT authentication and verify collection ownership
-- GET /api/collections/{collectionId}/wishlist returns items ordered by priority (ascending)
-- POST /api/collections/{collectionId}/wishlist creates wishlist item with name, priority, target price, notes, optional catalog item link
-- PUT /api/collections/{collectionId}/wishlist/{id} updates wishlist item
-- DELETE /api/collections/{collectionId}/wishlist/{id} deletes wishlist item
-- 8 integration tests covering: empty list, create, priority ordering, update, delete, auth requirement, wrong collection, ownership check
-- All 66 tests passing (8 new + 58 existing)
-- Files changed: `Program.cs`, new `WishlistEndpointsTests.cs`
-- **Learnings for future iterations:**
-  - Wishlist endpoints follow the exact same nested-under-collections pattern as Set endpoints
-  - OrderBy(w => w.Priority) gives ascending order (lower priority number = higher priority)
-  - WishlistItem uses same nullable CatalogItemId pattern as SetItem
-  - No new codebase patterns discovered — all patterns from prior iterations applied cleanly
----
-
-## 2026-03-13 - US-018
-- Enhanced GET /api/collections/{collectionId}/items with search, filter, sort, and pagination
-- Search: `search` param searches name and description (case-insensitive)
-- Filter: `condition` param filters by owned copy condition, `ownedStatus` (owned/unowned/all) filters by ownership
-- Sort: `sortBy` (name/date/rarity) + `sortDir` (asc/desc)
-- Pagination: `page` + `pageSize` (default 20, max 100), returns `totalCount`
-- Response changed from `List<CatalogItemResponse>` to `PaginatedResponse<CatalogItemResponse>` with Items, TotalCount, Page, PageSize
-- Updated existing CatalogItemEndpointsTests to use new paginated response format
-- Added 10 new integration tests in CatalogItemSearchTests (search by name, search by description, owned/unowned filter, condition filter, sort asc/desc, pagination, defaults, auth)
-- All 76 tests passing
-- Files changed: `Program.cs`, `CatalogItemEndpointsTests.cs`, new `CatalogItemSearchTests.cs`
-- **Learnings for future iterations:**
-  - Changing list endpoint response format to paginated breaks existing tests — update `ReadFromJsonAsync<List<T>>` to `ReadFromJsonAsync<PaginatedResult<T>>`
-  - InMemory DB sorts alphabetically: Alpha, Beta, Delta, Epsilon, Gamma (not intuitive order)
-  - Use `db.OwnedCopies.Any(oc => oc.CatalogItemId == i.Id)` for owned/unowned filtering via subquery
-  - `PaginatedResponse<T>` is a generic record — can be reused for future paginated endpoints
----
-
-## 2026-03-13 - US-019
-- Added GET /api/dashboard endpoint returning aggregate analytics for authenticated user
-- Returns: totalCollections, totalItems, totalOwnedCopies, totalEstimatedValue, totalInvested
-- Returns itemsByCondition breakdown (count per condition enum value)
-- Returns collectionSummaries (id, name, itemCount, ownedCount, value per collection)
-- Returns recentAcquisitions (last 10 owned copies ordered by acquisition date desc, then id desc)
-- All data scoped to authenticated user only (other users' data excluded)
-- 7 integration tests: auth required, empty user, correct totals, condition breakdown, collection summaries, recent acquisitions (limit 10), user isolation
-- All 83 tests passing (7 new + 76 existing)
-- Files changed: `Program.cs`, new `DashboardEndpointsTests.cs`
-- **Learnings for future iterations:**
-  - Use `(decimal?)oc.EstimatedValue ?? 0m` pattern for nullable decimal Sum to avoid null issues in EF Core
-  - Dashboard queries use subqueries (`db.CatalogItems.Any(...)`) to scope OwnedCopies to user's collections
-  - Join syntax works in EF Core for combining OwnedCopy with CatalogItem name in recent acquisitions
-  - Response records: DashboardResponse, ConditionCountDto, CollectionSummaryDto, RecentAcquisitionDto
----
-
-## 2026-03-13 - US-020
-- Added GET /api/collections/{id}/export?format=csv|json endpoint for exporting collection data
-- CSV export: header row + one row per catalog item/owned copy combination; items without copies get a row with empty copy fields
-- JSON export: array of catalog items with nested customFields and ownedCopies arrays
-- Both formats include all catalog item fields, custom field values, and owned copy details
-- Defaults to JSON when no format specified; returns 400 for unsupported formats
-- Requires authentication and ownership check (returns 404 for other users' collections)
-- Uses Results.File() to return file downloads with appropriate content type and filename
-- Added CsvEscape static helper for proper CSV quoting (handles commas, quotes, newlines)
-- 9 integration tests covering: auth required, not found, ownership, invalid format, empty collection, JSON with data, CSV with data, CSV without copies, default format
-- All 92 tests passing (9 new + 83 existing)
-- Files changed: `Program.cs`, new `ExportEndpointsTests.cs`
-- **Learnings for future iterations:**
-  - Use `Results.File(bytes, contentType, fileName)` for file download endpoints
-  - `System.Text.Json.JsonSerializer.SerializeToUtf8Bytes` with `JsonNamingPolicy.CamelCase` for JSON export
-  - CSV escaping: wrap in quotes if value contains comma, quote, or newline; double-up internal quotes
-  - InMemory DB `.Contains()` works for filtering owned copies by a list of catalog item IDs
-  - Export endpoint loads all items and copies in two queries, then joins in-memory for efficiency
----
-
-## 2026-03-13 - US-021
-- Added CSV import API endpoints: POST /api/collections/{id}/import, POST /import/preview, POST /import/confirm
-- Direct import (POST /import): parses CSV, validates, saves valid rows, returns importedCount + errors
-- Preview (POST /import/preview): parses CSV, validates, returns parsed rows with per-row errors (does not save)
-- Confirm (POST /import/confirm): saves previously previewed data using previewId, returns importedCount + skippedCount
-- CSV format: header row with standard fields (Identifier, Name, Description, etc.) + custom field columns matching schema
-- Validates required fields (Identifier, Name), custom field types (number, date, boolean, enum), and required custom fields
-- Custom CSV parser handles quoted fields with commas and escaped quotes
-- In-memory dictionary stores preview data keyed by GUID for preview/confirm flow
-- 11 integration tests: auth, not found, ownership, no file, valid import, missing required fields, preview, preview+confirm, invalid preview ID, custom field validation, quoted CSV parsing
-- All 103 tests passing (11 new + 92 existing)
-- Files changed: `Program.cs`, new `ImportEndpointsTests.cs`
-- **Learnings for future iterations:**
-  - Use try-catch around `ReadFormAsync()` for file upload endpoints — empty MultipartFormDataContent can throw
-  - In-memory `Dictionary<string, T>` works for simple preview/confirm flows; for production, use distributed cache
-  - CSV parsing requires a custom parser to handle quoted fields (commas inside quotes, escaped double-quotes)
-  - File upload endpoints need both `.RequireAuthorization()` and `.DisableAntiforgery()`
-  - `ThenInclude` needed for nested navigation: `.Include(c => c.CollectionType).ThenInclude(ct => ct.CustomFieldSchema)`
----
-
-## 2026-03-13 - US-022
-- Scaffolded React + TypeScript frontend with Vite 8 in `src/web/`
-- Installed and configured React Router v6 (BrowserRouter in main.tsx, Routes in App.tsx)
-- Set up shadcn/ui manually (CLI incompatible with Node 24): installed dependencies (class-variance-authority, clsx, tailwind-merge, lucide-react), created components.json, lib/utils.ts, CSS variables in index.css
-- Configured Tailwind CSS v4 via PostCSS plugin (@tailwindcss/vite incompatible with Vite 8)
-- Configured Vite proxy: `/api` -> `http://localhost:5000`
-- Created placeholder Home page with Tailwind styling
-- Removed Vite boilerplate (App.css, default assets, counter demo)
-- Set up `@/` path alias in tsconfig.app.json and vite.config.ts
-- Typecheck passes, build succeeds
-- Files changed: new `src/web/` directory with all project files
-- **Learnings for future iterations:**
-  - Vite 8 has peer dependency conflicts with `@tailwindcss/vite` — use `@tailwindcss/postcss` + `postcss.config.js` instead
-  - shadcn CLI (`npx shadcn@latest init`) fails on Node 24 due to tinyexec module resolution — set up manually instead
-  - Manual shadcn/ui setup: install deps, create `components.json`, `src/lib/utils.ts` (cn helper), and CSS variables in `index.css`
-  - For shadcn/ui components, can add them manually from the shadcn/ui source or try the CLI on a compatible Node version
-  - `verbatimModuleSyntax: true` in tsconfig means use `import type` for type-only imports
----
-
-## 2026-03-13 - US-023
-- Added app layout with persistent sidebar navigation (Dashboard, Collections, Wishlist, Profile)
-- Sidebar collapses on mobile — uses Sheet component (Radix Dialog) sliding from left, triggered by hamburger menu
-- Header bar with app logo (GeekVault) and theme toggle button (Sun/Moon icons)
-- Light and dark theme support via ThemeProvider using CSS variables (`:root` / `.dark` class)
-- Theme preference persists in localStorage under `geekvault-theme` key
-- Created shadcn/ui Button and Sheet components manually (with Radix UI primitives)
-- Created placeholder pages: Dashboard, Collections, Wishlist, Profile
-- Routes nested under AppLayout using React Router Outlet pattern
-- Files changed: `src/components/theme-provider.tsx`, `src/components/app-layout.tsx`, `src/components/ui/button.tsx`, `src/components/ui/sheet.tsx`, `src/pages/Dashboard.tsx`, `src/pages/Collections.tsx`, `src/pages/Wishlist.tsx`, `src/pages/Profile.tsx`, `App.tsx`, `main.tsx`, `package.json`
-- **Learnings for future iterations:**
-  - Radix UI primitives (`@radix-ui/react-dialog`, `@radix-ui/react-slot`) work fine with React 19 + Vite 8
-  - Theme toggle pattern: add/remove `dark` class on `document.documentElement`, CSS variables handle the rest
-  - AppLayout uses `<Outlet />` for nested route rendering — all page routes are children of the layout route
-  - NavLink `end` prop needed for root `/` path to avoid matching all routes
-  - Sheet component needs tailwindcss-animate classes (animate-in/out) — these work with Tailwind v4 out of the box
-  - No browser testing tools available — manual browser verification needed
----
-
-## 2026-03-13 - US-024
-- Added i18n support with react-i18next and i18next
-- Created English (`en.json`) and Portuguese (`pt.json`) translation files in `src/i18n/locales/`
-- Created i18n initialization in `src/i18n/index.ts`, imported in `main.tsx`
-- Language selector (Languages icon button) added to app header, toggles between EN/PT
-- Language preference persists in localStorage under `geekvault-language` key
-- All UI strings translated: sidebar nav labels, page titles, page descriptions, aria-labels
-- Updated pages (Dashboard, Collections, Wishlist, Profile) to use `useTranslation()` hook
-- Updated AppLayout to use translated nav labels and add LanguageToggle component
-- Files changed: `src/i18n/index.ts`, `src/i18n/locales/en.json`, `src/i18n/locales/pt.json`, `src/components/app-layout.tsx`, `src/pages/Dashboard.tsx`, `src/pages/Collections.tsx`, `src/pages/Wishlist.tsx`, `src/pages/Profile.tsx`, `main.tsx`, `package.json`
-- **Learnings for future iterations:**
-  - react-i18next works fine with React 19 + Vite 8 — no compatibility issues
-  - Use `i18n.on("languageChanged")` callback for persisting language preference (fires on every change)
-  - Translation files are simple JSON — nested keys like `nav.dashboard` accessed via `t("nav.dashboard")`
-  - When adding new pages/UI strings, add keys to BOTH `en.json` and `pt.json`
-  - LanguageToggle uses `i18n.language` to determine current language and toggle to the other
-  - No browser testing tools available — manual browser verification needed
----
-
-## 2026-03-13 - US-025
-- Added login and register pages with form validation and i18n
-- Created AuthProvider context managing JWT tokens (localStorage `geekvault-token`)
-- Login page: email + password fields, calls POST /api/auth/login, stores token, redirects to dashboard
-- Register page: display name + email + password fields, calls POST /api/auth/register
-- Client-side validation: required fields, min password length (6 chars)
-- Server error messages displayed in form
-- RequireAuth route wrapper: redirects unauthenticated users to /login
-- GuestOnly route wrapper: redirects authenticated users away from login/register
-- Added logout button to sidebar (both desktop and mobile)
-- Created shadcn/ui Input and Label components
-- Added auth translation keys to both en.json and pt.json
-- Files changed: `src/components/auth-provider.tsx`, `src/components/ui/input.tsx`, `src/components/ui/label.tsx`, `src/pages/Login.tsx`, `src/pages/Register.tsx`, `App.tsx`, `main.tsx`, `src/components/app-layout.tsx`, `src/i18n/locales/en.json`, `src/i18n/locales/pt.json`
-- **Learnings for future iterations:**
-  - AuthProvider wraps inside BrowserRouter and ThemeProvider in main.tsx (needs access to navigation via react-router)
-  - Use `useCallback` for context functions to prevent unnecessary re-renders
-  - GuestOnly/RequireAuth patterns use React Router `<Outlet />` for nested route protection
-  - Auth loading state (isLoading) is critical to avoid flash of login page on refresh when token exists
-  - Backend /api/auth/me endpoint used to validate token on app load
-  - No browser testing tools available — manual browser verification needed
----
-
-## 2026-03-13 - US-026
-- Added collection types management page at `/collection-types`
-- Page lists existing collection types as cards with name, icon, description, and custom field badges
-- Create/Edit dialog with name, description, icon fields
-- Custom field builder: add/remove fields with name, type (text/number/date/enum/boolean/image_url), required checkbox, enum options
-- Delete confirmation dialog
-- All CRUD calls to backend CollectionType API with JWT auth
-- Created reusable Dialog component (`src/components/ui/dialog.tsx`) using Radix UI primitives
-- Added nav item "Collection Types" with Layers icon in sidebar
-- Added route `/collection-types` in App.tsx
-- Added i18n translations for all UI strings in both en.json and pt.json
-- Typecheck passes, build succeeds, all 103 API tests pass
-- Files changed: `src/components/ui/dialog.tsx` (new), `src/pages/CollectionTypes.tsx` (new), `App.tsx`, `src/components/app-layout.tsx`, `src/i18n/locales/en.json`, `src/i18n/locales/pt.json`
-- **Learnings for future iterations:**
-  - Dialog component built from `@radix-ui/react-dialog` (already installed for Sheet) — no new packages needed
-  - Native HTML `<select>` and `<input type="checkbox">` work fine with Tailwind styling — no need for Radix Select/Checkbox
-  - Collection types API returns `customFieldSchema` array — each field has name, type, required, options
-  - Form state pattern: separate useState for each form field + `formFields` array for custom field builder
-  - No browser testing tools available — manual browser verification needed
----
-
-## 2026-03-13 - US-027
-- Added collections list page with card grid showing cover image, name, type, item count
-- Collection cards are clickable and navigate to `/collections/:id` detail page
-- Create collection dialog with name, description, collection type selector, cover image upload
-- Edit collection from card's three-dot menu (reuses same dialog)
-- Delete collection with confirmation dialog
-- Card menu (MoreVertical icon) with Edit/Delete options, closes on outside click
-- Cover image uploaded separately after collection creation via POST /collections/{id}/cover
-- Collection type selector disabled when editing (can't change type after creation)
-- Created placeholder CollectionDetail page at `/collections/:id` route
-- Added route for `/collections/:id` in App.tsx
-- Added i18n translations for all UI strings in both en.json and pt.json
-- Typecheck passes, build succeeds, all 103 API tests pass
-- Files changed: `src/pages/Collections.tsx` (rewritten), `src/pages/CollectionDetail.tsx` (new), `App.tsx`, `src/i18n/locales/en.json`, `src/i18n/locales/pt.json`
-- **Learnings for future iterations:**
-  - Collections API returns `collectionTypeName` in the list response — useful for displaying type without a separate lookup
-  - Cover image upload is a separate POST endpoint — do it after create/edit, not in the same request
-  - Card menu pattern: use `useRef` + `mousedown` listener for outside-click dismissal
-  - Collection type cannot be changed after creation (FK constraint) — disable select in edit mode
-  - No browser testing tools available — manual browser verification needed
----
-
-## 2026-03-13 - US-028
-- Added collection detail page with gallery grid at `/collections/:id`
-- Collection header shows cover image with gradient overlay, name, description, type, item count
-- Catalog items displayed in responsive gallery grid (2-5 columns depending on viewport)
-- Item cards show image (with lazy loading via `loading="lazy"`), name, rarity, identifier
-- Owned items visually distinguished: green ring border + checkmark badge; unowned items at reduced opacity
-- Add catalog item button opens dialog with full form: identifier, name, description, manufacturer, release date, reference code, rarity, image URL
-- Form includes dynamic custom fields based on collection type schema (text, number, date, enum select, boolean checkbox)
-- Custom field validation: required fields enforced before submission
-- Owned status determined by fetching `/api/items/{id}/copies` for each item
-- Back to Collections button for navigation
-- All UI strings translated in both en.json and pt.json
-- Typecheck passes, build succeeds, all 103 API tests pass
-- Files changed: `src/web/src/pages/CollectionDetail.tsx` (rewritten), `src/web/src/i18n/locales/en.json`, `src/web/src/i18n/locales/pt.json`
-- **Learnings for future iterations:**
-  - Collection GET endpoint returns `CollectionResponse` with `collectionTypeId` but not type name — need separate fetch to `/api/collection-types/{id}` for schema
-  - Catalog items list endpoint returns `PaginatedResponse<CatalogItemResponse>` with `items`, `totalCount`, `page`, `pageSize`
-  - OwnedCopies not included in list endpoint (null) — must fetch per-item via `/api/items/{id}/copies` to determine ownership
-  - Use `loading="lazy"` on `<img>` for native lazy loading of gallery images
-  - Custom fields from collection type have shape: `{ name, type, required, options }` — render different inputs per type
-  - No browser testing tools available — manual browser verification needed
----
-
-## 2026-03-13 - US-029
-- Added catalog item detail page at `/collections/:id/items/:itemId`
-- Detail view shows all catalog item fields: identifier, name, description, manufacturer, release date, reference code, rarity, image
-- Displays custom field values in a separate card section
-- Lists owned copies with condition badge, purchase price, estimated value, acquisition date, source, notes
-- Edit button opens dialog pre-filled with current item data (reuses same form pattern as add item)
-- Delete button with confirmation dialog — navigates back to collection after deletion
-- Left panel shows item image (or placeholder), right panel shows details + owned copies
-- Responsive layout: single column on mobile, 3-column grid on desktop
-- Added route `/collections/:id/items/:itemId` in App.tsx
-- Added i18n translations for all UI strings in both en.json and pt.json
-- Typecheck passes, build succeeds, all 103 API tests pass
-- Files changed: `src/web/src/pages/CatalogItemDetail.tsx` (new), `src/web/src/App.tsx`, `src/web/src/i18n/locales/en.json`, `src/web/src/i18n/locales/pt.json`
-- **Learnings for future iterations:**
-  - GET `/api/collections/{collectionId}/items/{itemId}` returns `ownedCopies` as null for the single-item endpoint — must fetch separately via `/api/items/{id}/copies`
-  - OwnedCopy condition values are PascalCase (e.g., "NearMint") — use regex replace for display: `condition.replace(/([a-z])([A-Z])/g, "$1 $2")`
-  - Item detail page needs collection fetch to get `collectionTypeId` for loading custom field schema
-  - Edit form reuses the exact same custom field rendering pattern from CollectionDetail add item dialog
-  - No browser testing tools available — manual browser verification needed
----
-
-## 2026-03-13 - US-030
-- Added owned copies management UI to CatalogItemDetail page
-- "Add Copy" button in owned copies section header opens dialog
-- Add/Edit dialog with condition dropdown, purchase price, estimated value, acquisition date, source, notes
-- Edit and delete buttons on each owned copy card (inline)
-- Delete confirmation dialog for owned copies
-- Multiple copies per item fully supported (duplicates visible and manageable)
-- Calls backend OwnedCopy API: POST/PUT/DELETE /api/items/{id}/copies
-- Added i18n translations for all owned copy UI strings in both en.json and pt.json
-- Typecheck passes, build succeeds, all 103 API tests pass
-- Files changed: `src/web/src/pages/CatalogItemDetail.tsx`, `src/web/src/i18n/locales/en.json`, `src/web/src/i18n/locales/pt.json`
-- **Learnings for future iterations:**
-  - CONDITIONS array defined as `const` for the condition dropdown — reuse PascalCase values matching backend enum
-  - Owned copy form reuses same dialog pattern as catalog item edit — Label + Input + select for condition
-  - `formatCondition()` already existed in the file for display — reused for dropdown option labels
-  - No browser testing tools available — manual browser verification needed
----
-
-## 2026-03-13 - US-031
-- Added Sets tab/section within collection detail page at `/collections/:id`
-- Tab switcher toggles between "Catalog Items" and "Sets" views
-- Sets list panel (left) shows each set with name, completion count, progress bar, and percentage
-- Edit/delete buttons on each set card (pencil/trash icons)
-- Set detail panel (right) shows selected set with progress bar and item list
-- Each set item shows owned/unowned visual indicator (CheckCircle2 green / Circle gray)
-- Set items linked to catalog items have "View" link to navigate to item detail
-- Create set dialog with name field
-- Add items to set dialog: search existing catalog items by name/identifier, or add by name (unlinked)
-- Bulk add items via POST /api/collections/{id}/sets/{setId}/items
-- Delete set with confirmation dialog
-- All UI strings translated in both en.json and pt.json under "sets" key
-- Typecheck passes, build succeeds, all 103 API tests pass
-- Files changed: `src/web/src/pages/CollectionDetail.tsx`, `src/web/src/i18n/locales/en.json`, `src/web/src/i18n/locales/pt.json`
-- **Learnings for future iterations:**
-  - Naming state variables with `set` prefix causes collisions with React useState setters (e.g., `setDialogOpen` clashes) — use prefixes like `sets` instead of `set`
-  - Sets API: GET list returns `completionPercentage` and `completedCount` (nullable); GET detail includes `items` array
-  - Bulk add items endpoint accepts array of `{ catalogItemId?, name, sortOrder }`
-  - Set completion is determined by checking if set item's linked catalogItemId exists in `ownedItemIds` set (already computed for gallery)
-  - Tab UI pattern: use `border-b-2` with conditional `border-primary` for active tab indicator
-  - No browser testing tools available — manual browser verification needed
----
-
-## 2026-03-13 - US-032
-- Added wishlist page accessible from sidebar at `/wishlist`
-- Fetches all user collections, then fetches wishlist items per collection
-- Items displayed grouped by collection, sorted by priority (ascending)
-- Each item shows priority badge, name, linked indicator, target price, notes
-- Add wishlist item dialog: collection selector, name, priority, target price, notes, optional catalog item link
-- Catalog item search with debounced query against collection items API
-- Edit and delete wishlist items with inline buttons
-- Delete confirmation dialog
-- All UI strings translated in both en.json and pt.json under "wishlist" key
-- Typecheck passes, build succeeds, all 103 API tests pass
-- Files changed: `src/web/src/pages/Wishlist.tsx`, `src/web/src/i18n/locales/en.json`, `src/web/src/i18n/locales/pt.json`
-- **Learnings for future iterations:**
-  - Wishlist API is nested under collections — need to fetch all collections first, then fetch wishlist per collection
-  - Grouping pattern: fetch all collections, map over them fetching child resources, filter out empty groups
-  - Catalog item search uses paginated API: response has `items` array (not top-level array)
-  - Debounced search with `setTimeout`/`clearTimeout` in useEffect works well for catalog item linking
-  - No browser testing tools available — manual browser verification needed
----
-
-## 2026-03-13 - US-033
-- Implemented dashboard page with analytics charts using recharts library
-- Stat cards: total collections, total items, total owned copies, estimated value, total invested
-- Pie chart and bar chart for items by condition breakdown
-- Collection summary cards (clickable, navigate to collection detail)
-- Recent acquisitions table with purchase price, estimated value, date, source
-- Added all i18n translations (en + pt) for dashboard keys
-- Files changed:
-  - `src/web/src/pages/Dashboard.tsx` - full dashboard implementation
-  - `src/web/src/i18n/locales/en.json` - English dashboard translations
-  - `src/web/src/i18n/locales/pt.json` - Portuguese dashboard translations
-  - `src/web/package.json` - added recharts dependency
-- **Learnings for future iterations:**
-  - recharts `Pie` label prop uses `name` and `value` (from dataKey/nameKey), not the raw data field names — using raw field names causes TS errors with `PieLabelRenderProps`
-  - Dashboard API response uses camelCase field names matching the C# record DTOs
-  - Manual browser verification needed (no browser testing tools configured)
----
-
-## 2026-03-13 - US-034
-- Implemented search, filter, and sort UI for catalog items in collection detail page
-- Search input filters items by name/description via backend API
-- Condition filter dropdown (All, Mint, NearMint, Excellent, Good, Fair, Poor)
-- Owned status toggle (All/Owned/Unowned) as segmented button group
-- Sort dropdown (Name, Price, Value, Date, Rarity) with asc/desc direction toggle
-- All filters/sort persist in URL query params via useSearchParams
-- fetchItems sends search/filter/sort params to backend GET /api/collections/{id}/items
-- Added i18n keys to both en.json and pt.json
-- Files changed: CollectionDetail.tsx, en.json, pt.json
-- **Learnings for future iterations:**
-  - useSearchParams from react-router-dom is the idiomatic way to sync filter state with URL
-  - The backend already supports search, condition, ownedStatus, sortBy, sortDir query params (from US-018)
-  - Default values (name/asc) are omitted from URL params for cleaner URLs
-  - The fetchItems useCallback dependency array must include filter params to trigger refetches
----
-
-## 2026-03-13 - US-035
-- Implemented import and export UI in the collection detail page
-- Export: dialog with CSV/JSON format selection, triggers file download via blob URL
-- Import: 3-step flow (upload CSV → preview with validation table → confirm import)
-- Added i18n keys for both English and Portuguese
-- Files changed:
-  - `src/web/src/pages/CollectionDetail.tsx` — added export/import buttons, dialogs, and handler functions
-  - `src/web/src/i18n/locales/en.json` — added collectionDetail.export* and import* keys
-  - `src/web/src/i18n/locales/pt.json` — added collectionDetail.export* and import* keys
-- **Learnings for future iterations:**
-  - Export uses blob download pattern: fetch → res.blob() → URL.createObjectURL → anchor click → cleanup
-  - Import uses FormData for CSV file upload (no Content-Type header, same pattern as cover image upload)
-  - Import preview API returns { rows: [{ rowNumber, data, errors }], validCount, errorCount }
-  - Multi-step dialogs use a `step` state variable to switch between upload/preview/done views
-  - Manual browser verification needed (no browser testing tools configured)
----
-
-## 2026-03-13 - US-036
-- Implemented full user profile page with avatar upload, display name, bio, preferred language, and preferred currency
-- Profile form fetches GET /api/profile on mount, submits PUT /api/profile on save
-- Avatar upload via POST /api/profile/avatar with image preview
-- Language change updates app language immediately via i18n.changeLanguage()
-- Added 18 translation keys to both en.json and pt.json for profile section
-- Used native select elements and textarea styled with Tailwind (consistent with other pages)
-- Files changed: src/web/src/pages/Profile.tsx, src/web/src/i18n/locales/en.json, src/web/src/i18n/locales/pt.json
-- **Learnings for future iterations:**
-  - No shadcn/ui textarea or select components exist — use native HTML elements with Tailwind classes matching the Input component styles
-  - Currency dropdown uses hardcoded common currencies (USD, EUR, GBP, BRL, JPY, CAD, AUD)
-  - i18n language change is done via `i18n.changeLanguage(lng)` which auto-persists to localStorage via the `languageChanged` event listener in i18n/index.ts
+  - Migrations are auto-generated and should always be excluded from coverage — they add ~1682 lines of 0% coverage
+  - Integration tests via `WebApplicationFactory` are resilient to internal restructuring — as long as HTTP API contracts don't change, tests continue passing
+  - Coverlet `Threshold` property in csproj only applies to the type specified by `ThresholdType` — branch coverage won't fail the build unless added separately
+  - The in-memory database provider ignores schema names, table configurations, and EF migrations — it just works with the entity model
 ---

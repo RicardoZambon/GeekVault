@@ -1,6 +1,6 @@
 # GeekVault
 
-Dev container template repository — no application code exists yet. Provides a containerized development environment for .NET 8.0 (C#) + Node.js/TypeScript with MS SQL Server 2019.
+A collectible management application with a .NET 8.0 API backend and React frontend, running in a containerized development environment with MS SQL Server 2019.
 
 ## Tech Stack
 
@@ -51,28 +51,58 @@ On container creation, `postCreateCommand` runs `.devcontainer/mssql/postCreateC
 
 ```
 src/api/GeekVault.Api/
+├── Controllers/
+│   ├── Security/          # AuthController, ProfileController
+│   └── Vault/             # Collections, CatalogItems, Sets, OwnedCopies, Wishlist, Dashboard, CollectionTypes
+├── Services/
+│   ├── Security/          # Auth, Profile services + interfaces
+│   └── Vault/             # Business logic for each domain + interfaces
+├── Repositories/
+│   ├── Security/          # UsersRepository + interface
+│   └── Vault/             # Data access for each domain + interfaces
+├── Entities/
+│   ├── Security/          # User
+│   └── Vault/             # CatalogItem, Collection, CollectionType, Set, SetItem, OwnedCopy, OwnedCopyImage, WishlistItem, etc.
+├── DTOs/
+│   ├── Common/            # PaginatedResponse
+│   ├── Security/          # Auth, Profile DTOs
+│   └── Vault/             # Request/Response DTOs for each domain
 ├── Data/
-│   └── ApplicationDbContext.cs   # EF Core DbContext
-├── Program.cs                     # Minimal API entry point
-├── appsettings.json               # Connection strings, config
-└── GeekVault.Api.csproj           # .NET 8 project file
+│   └── ApplicationDbContext.cs   # EF Core DbContext with Identity
+├── Extensions/
+│   └── ServiceCollectionExtensions.cs  # DI registration
+├── Migrations/            # EF Core migrations
+├── wwwroot/uploads/       # File uploads (images)
+├── Program.cs             # Minimal API entry point
+├── appsettings.json       # Connection strings, config
+└── GeekVault.Api.csproj   # .NET 8 project file
+
+src/api/GeekVault.Api.Tests/
+├── TestFactory.cs                    # WebApplicationFactory for integration tests
+├── *EndpointsTests.cs                # Integration tests per domain (Auth, Collections, CatalogItems, Sets, OwnedCopies, Wishlist, Dashboard, etc.)
+└── GeekVault.Api.Tests.csproj
 ```
 
-- Uses **minimal API** style (not controllers)
-- EF Core with SQL Server provider
+- Uses **minimal API** style — Controllers are static classes with `Map*Endpoints()` extension methods, not MVC controllers
+- EF Core with SQL Server provider + ASP.NET Identity
 - Swagger enabled in development
+- File uploads stored in `wwwroot/uploads/` and served via `UseStaticFiles()`
 
 ## Frontend Project Structure
 
 ```
 src/web/
 ├── src/
-│   ├── components/ui/    # shadcn/ui components
-│   ├── i18n/             # i18n config and translation files
-│   │   ├── index.ts      # i18next initialization
-│   │   └── locales/      # en.json, pt.json translation files
-│   ├── lib/utils.ts      # cn() helper for class merging
-│   ├── pages/            # Page components
+│   ├── components/
+│   │   ├── app-layout.tsx       # Main layout with sidebar/navigation
+│   │   ├── auth-provider.tsx    # Auth context (JWT token, login/logout)
+│   │   ├── theme-provider.tsx   # Dark/light theme context
+│   │   └── ui/                  # shadcn/ui components (button, dialog, confirm-dialog, input, label, sheet)
+│   ├── pages/             # Page components (Collections, CollectionDetail, CatalogItemDetail, CollectionTypes, Dashboard, Wishlist, Profile, Login, Register, Home)
+│   ├── i18n/              # i18n config and translation files
+│   │   ├── index.ts       # i18next initialization
+│   │   └── locales/       # en.json, pt.json translation files
+│   ├── lib/utils.ts       # cn() helper for class merging
 │   ├── App.tsx            # React Router routes
 │   ├── main.tsx           # Entry point with BrowserRouter
 │   └── index.css          # Tailwind CSS + shadcn/ui theme variables
@@ -86,7 +116,7 @@ src/web/
 - Tailwind CSS v4 via `@tailwindcss/postcss` (not vite plugin — incompatible with Vite 8)
 - shadcn/ui set up manually (CLI incompatible with Node 24)
 - Path alias: `@/` maps to `src/`
-- API proxy: `/api` -> `http://localhost:5000`
+- API proxy: `/api` and `/uploads` -> `http://localhost:5099`
 - i18n: `react-i18next` — translations in `src/i18n/locales/{en,pt}.json`, add keys to both files when adding UI strings
 - Testing: Vitest + `@vitest/coverage-v8` + jsdom — `npm test` to run, `npm run test:coverage` for coverage report
 
@@ -142,4 +172,4 @@ docker compose -f docker-compose.prod.yml up --build
 SA_PASSWORD=<strong-password> JWT_KEY=<secret-key> docker compose -f docker-compose.prod.yml up --build
 ```
 
-Services: `db` (SQL Server 2019), `api` (.NET on port 5000), `web` (nginx on port 80 proxying `/api` to backend)
+Services: `db` (SQL Server 2019), `api` (.NET, dev port 5099), `web` (nginx on port 80 proxying `/api` to backend)

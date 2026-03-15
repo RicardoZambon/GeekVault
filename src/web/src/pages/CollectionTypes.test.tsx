@@ -488,4 +488,29 @@ describe("CollectionTypes", () => {
     }
     expect(screen.getByText("collectionTypes.fieldsCount:10:10")).toBeInTheDocument()
   })
+
+  it("shows max fields error when editing type with more than 10 fields", async () => {
+    const fields = Array.from({ length: 11 }, (_, i) => ({
+      name: `Field${i}`, type: "text", required: false, options: [],
+    }))
+    const typeWith11Fields = [
+      { id: 1, name: "Overloaded", description: "", icon: "", customFieldSchema: fields },
+    ]
+    vi.spyOn(global, "fetch").mockImplementation(() =>
+      Promise.resolve({ ok: true, json: () => Promise.resolve(typeWith11Fields) } as Response)
+    )
+    render(<MemoryRouter><CollectionTypes /></MemoryRouter>)
+    await waitFor(() => screen.getByText("Overloaded"))
+
+    // Open edit dialog (which loads 11 fields from API)
+    const editButtons = screen.getAllByLabelText("collectionTypes.edit")
+    fireEvent.click(editButtons[0])
+    await screen.findByText("collectionTypes.editTitle")
+
+    // Submit - should trigger maxFields validation
+    fireEvent.click(screen.getAllByText("collectionTypes.save").pop()!)
+    await waitFor(() => {
+      expect(screen.getByText("collectionTypes.maxFields")).toBeInTheDocument()
+    })
+  })
 })

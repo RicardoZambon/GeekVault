@@ -1,0 +1,7 @@
+## Codebase Patterns
+- (To be populated as stories are completed)
+
+---
+
+# Progress Log: Backend Restructure
+

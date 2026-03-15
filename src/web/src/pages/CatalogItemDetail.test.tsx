@@ -620,7 +620,6 @@ describe("CatalogItemDetail", () => {
     fireEvent.change(screen.getByDisplayValue("First issue"), { target: { value: "" } })
     fireEvent.change(screen.getByDisplayValue("Marvel"), { target: { value: "" } })
     fireEvent.change(screen.getByDisplayValue("REF-001"), { target: { value: "" } })
-    fireEvent.change(screen.getByDisplayValue("http://img.jpg"), { target: { value: "" } })
     fireEvent.change(screen.getByDisplayValue("Rare"), { target: { value: "" } })
     fireEvent.change(screen.getByDisplayValue("1963-03-01"), { target: { value: "" } })
     // Clear custom field
@@ -654,7 +653,6 @@ describe("CatalogItemDetail", () => {
     expect(body.description).toBeNull()
     expect(body.manufacturer).toBeNull()
     expect(body.referenceCode).toBeNull()
-    expect(body.image).toBeNull()
     expect(body.rarity).toBeNull()
     expect(body.releaseDate).toBeNull()
   })
@@ -934,11 +932,6 @@ describe("CatalogItemDetail", () => {
     fireEvent.change(rarityInput, { target: { value: "Common" } })
     expect(rarityInput).toHaveValue("Common")
 
-    // Modify image URL
-    const imgInput = screen.getByDisplayValue("http://img.jpg")
-    fireEvent.change(imgInput, { target: { value: "http://new.jpg" } })
-    expect(imgInput).toHaveValue("http://new.jpg")
-
     // Modify release date
     const dateInput = screen.getByDisplayValue("1963-03-01")
     fireEvent.change(dateInput, { target: { value: "2000-01-01" } })
@@ -1102,5 +1095,215 @@ describe("CatalogItemDetail", () => {
     const dateInputs = dialog.querySelectorAll("input[type='date']")
     // At least 2: one for release date, one for the custom field
     expect(dateInputs.length).toBeGreaterThanOrEqual(2)
+  })
+
+  it("handles file input change for item image in edit dialog", async () => {
+    mockFetch()
+    renderWithRoute()
+    await waitFor(() => screen.getByText("Spider-Man #1"))
+
+    fireEvent.click(screen.getByText("itemDetail.edit"))
+    await screen.findByText("itemDetail.editTitle")
+
+    const fileInput = screen.getByLabelText("collectionDetail.imageLabel")
+    // Test with a file
+    const file = new File(["img"], "test.png", { type: "image/png" })
+    fireEvent.change(fileInput, { target: { files: [file] } })
+    // Test with null files (the ?? null branch)
+    fireEvent.change(fileInput, { target: { files: null } })
+  })
+
+  it("handles file input change for copy images", async () => {
+    mockFetch()
+    renderWithRoute()
+    await waitFor(() => screen.getByText("Spider-Man #1"))
+
+    fireEvent.click(screen.getByText("ownedCopy.add"))
+    await screen.findByText("ownedCopy.addTitle")
+
+    const fileInput = screen.getByLabelText("ownedCopy.imagesLabel")
+    // Test with files
+    const file1 = new File(["img1"], "a.png", { type: "image/png" })
+    const file2 = new File(["img2"], "b.png", { type: "image/png" })
+    fireEvent.change(fileInput, { target: { files: [file1, file2] } })
+    // Test with null files (the ternary false branch)
+    fireEvent.change(fileInput, { target: { files: null } })
+  })
+
+  it("displays existing images when editing a copy with images", async () => {
+    const copiesWithImages = [
+      { ...copies[0], images: ["http://img1.jpg", "http://img2.jpg"] },
+    ]
+    vi.spyOn(global, "fetch").mockImplementation((url) => {
+      const urlStr = String(url)
+      if (urlStr.includes("/copies")) return Promise.resolve({ ok: true, json: () => Promise.resolve(copiesWithImages) } as Response)
+      if (urlStr.includes("/collection-types/")) return Promise.resolve({ ok: true, json: () => Promise.resolve(collectionType) } as Response)
+      if (urlStr.match(/\/collections\/\d+$/)) return Promise.resolve({ ok: true, json: () => Promise.resolve(collection) } as Response)
+      if (urlStr.includes("/items/")) return Promise.resolve({ ok: true, json: () => Promise.resolve(item) } as Response)
+      return Promise.resolve({ ok: true, json: () => Promise.resolve({}) } as Response)
+    })
+    renderWithRoute()
+    await waitFor(() => screen.getByText("Spider-Man #1"))
+
+    // The copy card should show existing images
+    const images = screen.getAllByAltText(/ownedCopy\.imageAlt/)
+    expect(images.length).toBe(2)
+
+    // Click edit on the copy to trigger editingCopy with images
+    const copyCard = screen.getByText("Near Mint").closest("[class*='rounded-lg border bg-card p-4']")!
+    const buttons = copyCard.querySelectorAll("button")
+    fireEvent.click(buttons[0]) // edit button
+    await screen.findByText("ownedCopy.editTitle")
+
+    // The edit dialog should also show existing images
+    const dialog = screen.getByRole("dialog")
+    const dialogImages = dialog.querySelectorAll("img")
+    expect(dialogImages.length).toBeGreaterThanOrEqual(2)
+  })
+
+  it("uploads image when editing item with formImageFile set", async () => {
+    const fetchCalls: { url: string; method: string }[] = []
+    vi.spyOn(global, "fetch").mockImplementation((url, opts) => {
+      const urlStr = String(url)
+      const method = (opts as RequestInit)?.method ?? "GET"
+      fetchCalls.push({ url: urlStr, method })
+      if (urlStr.includes("/image") && method === "POST") {
+        return Promise.resolve({ ok: true, json: () => Promise.resolve({}) } as Response)
+      }
+      if (urlStr.includes("/items/1") && method === "PUT") {
+        return Promise.resolve({ ok: true, json: () => Promise.resolve(item) } as Response)
+      }
+      if (urlStr.includes("/copies")) return Promise.resolve({ ok: true, json: () => Promise.resolve(copies) } as Response)
+      if (urlStr.includes("/collection-types/")) return Promise.resolve({ ok: true, json: () => Promise.resolve(collectionType) } as Response)
+      if (urlStr.match(/\/collections\/\d+$/)) return Promise.resolve({ ok: true, json: () => Promise.resolve(collection) } as Response)
+      if (urlStr.includes("/items/")) return Promise.resolve({ ok: true, json: () => Promise.resolve(item) } as Response)
+      return Promise.resolve({ ok: true, json: () => Promise.resolve({}) } as Response)
+    })
+    renderWithRoute()
+    await waitFor(() => screen.getByText("Spider-Man #1"))
+
+    fireEvent.click(screen.getByText("itemDetail.edit"))
+    await screen.findByText("itemDetail.editTitle")
+
+    // Select an image file
+    const fileInput = screen.getByLabelText("collectionDetail.imageLabel")
+    const file = new File(["img"], "new.png", { type: "image/png" })
+    fireEvent.change(fileInput, { target: { files: [file] } })
+
+    // Submit the form
+    fireEvent.click(screen.getByText("collectionDetail.save"))
+
+    await waitFor(() => {
+      expect(fetchCalls.some(c => c.url.includes("/image") && c.method === "POST")).toBe(true)
+    })
+  })
+
+  it("handles edit image upload failure branch", async () => {
+    const fetchCalls: { url: string; method: string }[] = []
+    vi.spyOn(global, "fetch").mockImplementation((url, opts) => {
+      const urlStr = String(url)
+      const method = (opts as RequestInit)?.method ?? "GET"
+      fetchCalls.push({ url: urlStr, method })
+      if (urlStr.includes("/image") && method === "POST") {
+        return Promise.resolve({ ok: false } as Response)
+      }
+      if (urlStr.includes("/items/1") && method === "PUT") {
+        return Promise.resolve({ ok: true, json: () => Promise.resolve(item) } as Response)
+      }
+      if (urlStr.includes("/copies")) return Promise.resolve({ ok: true, json: () => Promise.resolve(copies) } as Response)
+      if (urlStr.includes("/collection-types/")) return Promise.resolve({ ok: true, json: () => Promise.resolve(collectionType) } as Response)
+      if (urlStr.match(/\/collections\/\d+$/)) return Promise.resolve({ ok: true, json: () => Promise.resolve(collection) } as Response)
+      if (urlStr.includes("/items/")) return Promise.resolve({ ok: true, json: () => Promise.resolve(item) } as Response)
+      return Promise.resolve({ ok: true, json: () => Promise.resolve({}) } as Response)
+    })
+    renderWithRoute()
+    await waitFor(() => screen.getByText("Spider-Man #1"))
+
+    fireEvent.click(screen.getByText("itemDetail.edit"))
+    await screen.findByText("itemDetail.editTitle")
+
+    const fileInput = screen.getByLabelText("collectionDetail.imageLabel")
+    const file = new File(["img"], "new.png", { type: "image/png" })
+    fireEvent.change(fileInput, { target: { files: [file] } })
+
+    fireEvent.click(screen.getByText("collectionDetail.save"))
+
+    // The image upload is attempted (even though it fails), then the dialog closes
+    await waitFor(() => {
+      expect(fetchCalls.some(c => c.url.includes("/image") && c.method === "POST")).toBe(true)
+    })
+  })
+
+  it("uploads copy images when adding a copy with image files", async () => {
+    const fetchCalls: { url: string; method: string }[] = []
+    vi.spyOn(global, "fetch").mockImplementation((url, opts) => {
+      const urlStr = String(url)
+      const method = (opts as RequestInit)?.method ?? "GET"
+      fetchCalls.push({ url: urlStr, method })
+      if (urlStr.includes("/copies") && urlStr.includes("/images") && method === "POST") {
+        return Promise.resolve({ ok: true, json: () => Promise.resolve({}) } as Response)
+      }
+      if (urlStr.includes("/copies") && method === "POST" && !urlStr.includes("/images")) {
+        return Promise.resolve({ ok: true, json: () => Promise.resolve({ id: 5 }) } as Response)
+      }
+      if (urlStr.includes("/copies")) return Promise.resolve({ ok: true, json: () => Promise.resolve(copies) } as Response)
+      if (urlStr.includes("/collection-types/")) return Promise.resolve({ ok: true, json: () => Promise.resolve(collectionType) } as Response)
+      if (urlStr.match(/\/collections\/\d+$/)) return Promise.resolve({ ok: true, json: () => Promise.resolve(collection) } as Response)
+      if (urlStr.includes("/items/")) return Promise.resolve({ ok: true, json: () => Promise.resolve(item) } as Response)
+      return Promise.resolve({ ok: true, json: () => Promise.resolve({}) } as Response)
+    })
+    renderWithRoute()
+    await waitFor(() => screen.getByText("Spider-Man #1"))
+
+    fireEvent.click(screen.getByText("ownedCopy.add"))
+    await screen.findByText("ownedCopy.addTitle")
+
+    // Select image files
+    const fileInput = screen.getByLabelText("ownedCopy.imagesLabel")
+    const file1 = new File(["img1"], "a.png", { type: "image/png" })
+    fireEvent.change(fileInput, { target: { files: [file1] } })
+
+    // Submit copy form
+    fireEvent.click(screen.getByText("collectionDetail.save"))
+
+    await waitFor(() => {
+      expect(fetchCalls.some(c => c.url.includes("/images") && c.method === "POST")).toBe(true)
+    })
+  })
+
+  it("handles copy image upload failure branch", async () => {
+    const fetchCalls: { url: string; method: string }[] = []
+    vi.spyOn(global, "fetch").mockImplementation((url, opts) => {
+      const urlStr = String(url)
+      const method = (opts as RequestInit)?.method ?? "GET"
+      fetchCalls.push({ url: urlStr, method })
+      if (urlStr.includes("/copies") && urlStr.includes("/images") && method === "POST") {
+        return Promise.resolve({ ok: false } as Response)
+      }
+      if (urlStr.includes("/copies") && method === "POST" && !urlStr.includes("/images")) {
+        return Promise.resolve({ ok: true, json: () => Promise.resolve({ id: 5 }) } as Response)
+      }
+      if (urlStr.includes("/copies")) return Promise.resolve({ ok: true, json: () => Promise.resolve(copies) } as Response)
+      if (urlStr.includes("/collection-types/")) return Promise.resolve({ ok: true, json: () => Promise.resolve(collectionType) } as Response)
+      if (urlStr.match(/\/collections\/\d+$/)) return Promise.resolve({ ok: true, json: () => Promise.resolve(collection) } as Response)
+      if (urlStr.includes("/items/")) return Promise.resolve({ ok: true, json: () => Promise.resolve(item) } as Response)
+      return Promise.resolve({ ok: true, json: () => Promise.resolve({}) } as Response)
+    })
+    renderWithRoute()
+    await waitFor(() => screen.getByText("Spider-Man #1"))
+
+    fireEvent.click(screen.getByText("ownedCopy.add"))
+    await screen.findByText("ownedCopy.addTitle")
+
+    const fileInput = screen.getByLabelText("ownedCopy.imagesLabel")
+    const file1 = new File(["img1"], "a.png", { type: "image/png" })
+    fireEvent.change(fileInput, { target: { files: [file1] } })
+
+    fireEvent.click(screen.getByText("collectionDetail.save"))
+
+    // The image upload is attempted (even though it fails), then the dialog closes
+    await waitFor(() => {
+      expect(fetchCalls.some(c => c.url.includes("/images") && c.method === "POST")).toBe(true)
+    })
   })
 })

@@ -1,10 +1,12 @@
-using GeekVault.Api.Models;
+using GeekVault.Api.Entities.Security;
+using GeekVault.Api.Entities.Vault;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 
 namespace GeekVault.Api.Data;
 
-public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
+public class ApplicationDbContext : IdentityUserContext<User>
 {
     public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
         : base(options)
@@ -23,8 +25,20 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     {
         base.OnModelCreating(modelBuilder);
 
+        // Exclude unused Identity tables (claims, logins, tokens)
+        modelBuilder.Entity<IdentityUserClaim<string>>().ToTable(t => t.ExcludeFromMigrations());
+        modelBuilder.Entity<IdentityUserLogin<string>>().ToTable(t => t.ExcludeFromMigrations());
+        modelBuilder.Entity<IdentityUserToken<string>>().ToTable(t => t.ExcludeFromMigrations());
+
+        // Configure Users table under Security schema
+        modelBuilder.Entity<User>(entity =>
+        {
+            entity.ToTable("Users", "Security");
+        });
+
         modelBuilder.Entity<CollectionType>(entity =>
         {
+            entity.ToTable("CollectionTypes", "Vault");
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Name).IsRequired().HasMaxLength(200);
             entity.Property(e => e.Description).HasMaxLength(1000);
@@ -41,6 +55,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
 
         modelBuilder.Entity<Collection>(entity =>
         {
+            entity.ToTable("Collections", "Vault");
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Name).IsRequired().HasMaxLength(200);
             entity.Property(e => e.Description).HasMaxLength(1000);
@@ -60,6 +75,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
 
         modelBuilder.Entity<CatalogItem>(entity =>
         {
+            entity.ToTable("CatalogItems", "Vault");
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Identifier).IsRequired().HasMaxLength(200);
             entity.Property(e => e.Name).IsRequired().HasMaxLength(200);
@@ -80,6 +96,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
 
         modelBuilder.Entity<OwnedCopy>(entity =>
         {
+            entity.ToTable("OwnedCopies", "Vault");
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Condition)
                 .HasConversion<string>()
@@ -100,6 +117,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
 
         modelBuilder.Entity<Set>(entity =>
         {
+            entity.ToTable("Sets", "Vault");
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Name).IsRequired().HasMaxLength(200);
             entity.HasOne(e => e.Collection)
@@ -110,6 +128,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
 
         modelBuilder.Entity<SetItem>(entity =>
         {
+            entity.ToTable("SetItems", "Vault");
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Name).IsRequired().HasMaxLength(200);
             entity.HasOne(e => e.Set)
@@ -124,6 +143,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
 
         modelBuilder.Entity<WishlistItem>(entity =>
         {
+            entity.ToTable("WishlistItems", "Vault");
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Name).IsRequired().HasMaxLength(200);
             entity.Property(e => e.TargetPrice).HasColumnType("decimal(18,2)");

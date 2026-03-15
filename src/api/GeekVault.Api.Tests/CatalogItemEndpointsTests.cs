@@ -225,6 +225,89 @@ public class CatalogItemEndpointsTests : IClassFixture<TestFactory<CatalogItemEn
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
 
+    [Fact]
+    public async Task UploadImage_ReturnsImageUrl()
+    {
+        var (client, colId) = await CreateAuthenticatedClientWithCollectionAsync("ci-upload@example.com");
+
+        var createResponse = await client.PostAsJsonAsync($"/api/collections/{colId}/items", new
+        {
+            Identifier = "IMG-001",
+            Name = "Item With Image"
+        });
+        var created = await createResponse.Content.ReadFromJsonAsync<CatalogItemResult>();
+
+        using var content = new MultipartFormDataContent();
+        var fileContent = new ByteArrayContent(new byte[] { 0x89, 0x50, 0x4E, 0x47 });
+        fileContent.Headers.ContentType = new MediaTypeHeaderValue("image/png");
+        content.Add(fileContent, "image", "photo.png");
+
+        var response = await client.PostAsync($"/api/collections/{colId}/items/{created!.Id}/image", content);
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var result = await response.Content.ReadFromJsonAsync<ImageUploadResult>();
+        Assert.NotNull(result?.ImageUrl);
+        Assert.Contains("/uploads/", result.ImageUrl);
+    }
+
+    [Fact]
+    public async Task UploadImage_ThenGetItem_ShowsImage()
+    {
+        var (client, colId) = await CreateAuthenticatedClientWithCollectionAsync("ci-img-persist@example.com");
+
+        var createResponse = await client.PostAsJsonAsync($"/api/collections/{colId}/items", new
+        {
+            Identifier = "IMG-002",
+            Name = "Persist Image"
+        });
+        var created = await createResponse.Content.ReadFromJsonAsync<CatalogItemResult>();
+
+        using var content = new MultipartFormDataContent();
+        var fileContent = new ByteArrayContent(new byte[] { 0x89, 0x50, 0x4E, 0x47 });
+        fileContent.Headers.ContentType = new MediaTypeHeaderValue("image/png");
+        content.Add(fileContent, "image", "photo.png");
+        await client.PostAsync($"/api/collections/{colId}/items/{created!.Id}/image", content);
+
+        var response = await client.GetAsync($"/api/collections/{colId}/items/{created.Id}");
+        var item = await response.Content.ReadFromJsonAsync<CatalogItemResult>();
+        Assert.NotNull(item);
+        Assert.NotNull(item.Image);
+        Assert.Contains("/uploads/", item.Image);
+    }
+
+    [Fact]
+    public async Task UploadImage_NoFile_ReturnsBadRequest()
+    {
+        var (client, colId) = await CreateAuthenticatedClientWithCollectionAsync("ci-noimg@example.com");
+
+        var createResponse = await client.PostAsJsonAsync($"/api/collections/{colId}/items", new
+        {
+            Identifier = "IMG-003",
+            Name = "No Image"
+        });
+        var created = await createResponse.Content.ReadFromJsonAsync<CatalogItemResult>();
+
+        using var content = new MultipartFormDataContent();
+        var fileContent = new ByteArrayContent(Array.Empty<byte>());
+        fileContent.Headers.ContentType = new MediaTypeHeaderValue("image/png");
+        content.Add(fileContent, "image", "empty.png");
+        var response = await client.PostAsync($"/api/collections/{colId}/items/{created!.Id}/image", content);
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task UploadImage_WrongItemId_ReturnsNotFound()
+    {
+        var (client, colId) = await CreateAuthenticatedClientWithCollectionAsync("ci-wrongimg@example.com");
+
+        using var content = new MultipartFormDataContent();
+        var fileContent = new ByteArrayContent(new byte[] { 0x89, 0x50, 0x4E, 0x47 });
+        fileContent.Headers.ContentType = new MediaTypeHeaderValue("image/png");
+        content.Add(fileContent, "image", "photo.png");
+
+        var response = await client.PostAsync($"/api/collections/{colId}/items/99999/image", content);
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
     private record AuthResult(string Token, string UserId, string Email, string? DisplayName);
     private record CollectionTypeResult(int Id, string Name);
     private record CollectionResult(int Id, string Name);
@@ -232,4 +315,5 @@ public class CatalogItemEndpointsTests : IClassFixture<TestFactory<CatalogItemEn
     private record OwnedCopyResult(int Id, string Condition, decimal? PurchasePrice, decimal? EstimatedValue, DateTime? AcquisitionDate, string? AcquisitionSource, string? Notes);
     private record CatalogItemResult(int Id, int CollectionId, string Identifier, string Name, string? Description, DateTime? ReleaseDate, string? Manufacturer, string? ReferenceCode, string? Image, string? Rarity, List<CustomFieldValueResult> CustomFieldValues, List<OwnedCopyResult>? OwnedCopies);
     private record PaginatedResult<T>(List<T> Items, int TotalCount, int Page, int PageSize);
+    private record ImageUploadResult(string ImageUrl);
 }

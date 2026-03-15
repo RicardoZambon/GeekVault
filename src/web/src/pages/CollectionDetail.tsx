@@ -13,6 +13,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog"
+import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 
 interface CustomFieldDefinition {
   name: string
@@ -144,7 +145,7 @@ export default function CollectionDetail() {
   const [formReleaseDate, setFormReleaseDate] = useState("")
   const [formManufacturer, setFormManufacturer] = useState("")
   const [formReferenceCode, setFormReferenceCode] = useState("")
-  const [formImage, setFormImage] = useState("")
+  const [formImageFile, setFormImageFile] = useState<File | null>(null)
   const [formRarity, setFormRarity] = useState("")
   const [formCustomFields, setFormCustomFields] = useState<Record<string, string>>({})
   const [formError, setFormError] = useState("")
@@ -161,6 +162,9 @@ export default function CollectionDetail() {
   const [deleteSetDialogOpen, setDeleteSetDialogOpen] = useState(false)
   const [deletingSetId, setDeletingSetId] = useState<number | null>(null)
   const [setsDeleting, setSetsDeleting] = useState(false)
+  const [deleteSetItemDialogOpen, setDeleteSetItemDialogOpen] = useState(false)
+  const [deletingSetItemId, setDeletingSetItemId] = useState<number | null>(null)
+  const [setItemDeleting, setSetItemDeleting] = useState(false)
 
   // Add items to set
   const [addItemsDialogOpen, setAddItemsDialogOpen] = useState(false)
@@ -293,7 +297,7 @@ export default function CollectionDetail() {
     setFormReleaseDate("")
     setFormManufacturer("")
     setFormReferenceCode("")
-    setFormImage("")
+    setFormImageFile(null)
     setFormRarity("")
     setFormCustomFields({})
     setFormError("")
@@ -336,7 +340,6 @@ export default function CollectionDetail() {
         releaseDate: formReleaseDate || null,
         manufacturer: formManufacturer.trim() || null,
         referenceCode: formReferenceCode.trim() || null,
-        image: formImage.trim() || null,
         rarity: formRarity.trim() || null,
         customFieldValues: customFieldValues.length > 0 ? customFieldValues : null,
       }
@@ -350,6 +353,21 @@ export default function CollectionDetail() {
       if (!res.ok) {
         const data = await res.json().catch(() => null)
         throw new Error(data?.message ?? t("collectionDetail.saveFailed"))
+      }
+
+      const saved = await res.json()
+
+      if (formImageFile) {
+        const formData = new FormData()
+        formData.append("image", formImageFile)
+        const imgRes = await fetch(`/api/collections/${id}/items/${saved.id}/image`, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${token}` },
+          body: formData,
+        })
+        if (!imgRes.ok) {
+          setFormError(t("collectionDetail.imageUploadFailed"))
+        }
       }
 
       setDialogOpen(false)
@@ -474,6 +492,31 @@ export default function CollectionDetail() {
       // non-critical
     } finally {
       setAddItemSubmitting(false)
+    }
+  }
+
+  function confirmRemoveSetItem(setItemId: number) {
+    setDeletingSetItemId(setItemId)
+    setDeleteSetItemDialogOpen(true)
+  }
+
+  async function handleRemoveSetItem() {
+    if (!selectedSet || deletingSetItemId == null) return
+    setSetItemDeleting(true)
+    try {
+      const res = await fetch(`/api/collections/${id}/sets/${selectedSet.id}/items/${deletingSetItemId}`, {
+        method: "DELETE",
+        headers,
+      })
+      if (!res.ok) throw new Error("Failed to remove item")
+      setDeleteSetItemDialogOpen(false)
+      setDeletingSetItemId(null)
+      await fetchSetDetail(selectedSet.id)
+      await fetchSets()
+    } catch {
+      // non-critical
+    } finally {
+      setSetItemDeleting(false)
     }
   }
 
@@ -955,14 +998,22 @@ export default function CollectionDetail() {
                                 <span className={owned ? "text-foreground" : "text-muted-foreground"}>
                                   {si.name}
                                 </span>
-                                {si.catalogItemId && (
+                                <div className="ml-auto flex items-center gap-1">
+                                  {si.catalogItemId && (
+                                    <button
+                                      className="text-xs text-primary hover:underline"
+                                      onClick={() => navigate(`/collections/${id}/items/${si.catalogItemId}`)}
+                                    >
+                                      {t("sets.viewItem")}
+                                    </button>
+                                  )}
                                   <button
-                                    className="ml-auto text-xs text-primary hover:underline"
-                                    onClick={() => navigate(`/collections/${id}/items/${si.catalogItemId}`)}
+                                    className="rounded p-1 text-muted-foreground hover:text-destructive"
+                                    onClick={() => confirmRemoveSetItem(si.id)}
                                   >
-                                    {t("sets.viewItem")}
+                                    <Trash2 className="h-3.5 w-3.5" />
                                   </button>
-                                )}
+                                </div>
                               </li>
                             )
                           })}
@@ -1083,9 +1134,9 @@ export default function CollectionDetail() {
               <Label htmlFor="item-image">{t("collectionDetail.imageLabel")}</Label>
               <Input
                 id="item-image"
-                value={formImage}
-                onChange={(e) => setFormImage(e.target.value)}
-                placeholder={t("collectionDetail.imagePlaceholder")}
+                type="file"
+                accept="image/*"
+                onChange={(e) => setFormImageFile(e.target.files?.[0] ?? null)}
                 disabled={submitting}
               />
             </div>
@@ -1211,22 +1262,30 @@ export default function CollectionDetail() {
       </Dialog>
 
       {/* Delete Set Confirmation Dialog */}
-      <Dialog open={deleteSetDialogOpen} onOpenChange={setDeleteSetDialogOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>{t("sets.deleteTitle")}</DialogTitle>
-            <DialogDescription>{t("sets.deleteConfirm")}</DialogDescription>
-          </DialogHeader>
-          <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={() => setDeleteSetDialogOpen(false)} disabled={setsDeleting}>
-              {t("sets.cancel")}
-            </Button>
-            <Button variant="destructive" onClick={handleDeleteSet} disabled={setsDeleting}>
-              {setsDeleting ? t("sets.deleting") : t("sets.delete")}
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <ConfirmDialog
+        open={deleteSetDialogOpen}
+        onOpenChange={setDeleteSetDialogOpen}
+        title={t("sets.deleteTitle")}
+        description={t("sets.deleteConfirm")}
+        confirmLabel={t("sets.delete")}
+        cancelLabel={t("sets.cancel")}
+        loadingLabel={t("sets.deleting")}
+        loading={setsDeleting}
+        onConfirm={handleDeleteSet}
+      />
+
+      {/* Delete Set Item Confirmation Dialog */}
+      <ConfirmDialog
+        open={deleteSetItemDialogOpen}
+        onOpenChange={(open) => { setDeleteSetItemDialogOpen(open); if (!open) setDeletingSetItemId(null) }}
+        title={t("sets.removeItemTitle")}
+        description={t("sets.removeItemConfirm")}
+        confirmLabel={t("sets.delete")}
+        cancelLabel={t("sets.cancel")}
+        loadingLabel={t("sets.deleting")}
+        loading={setItemDeleting}
+        onConfirm={handleRemoveSetItem}
+      />
 
       {/* Export Dialog */}
       <Dialog open={exportDialogOpen} onOpenChange={setExportDialogOpen}>

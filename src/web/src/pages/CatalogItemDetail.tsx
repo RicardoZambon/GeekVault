@@ -13,6 +13,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog"
+import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 
 const CONDITIONS = ["Mint", "NearMint", "Excellent", "Good", "Fair", "Poor"] as const
 
@@ -89,7 +90,7 @@ export default function CatalogItemDetail() {
   const [formReleaseDate, setFormReleaseDate] = useState("")
   const [formManufacturer, setFormManufacturer] = useState("")
   const [formReferenceCode, setFormReferenceCode] = useState("")
-  const [formImage, setFormImage] = useState("")
+  const [formImageFile, setFormImageFile] = useState<File | null>(null)
   const [formRarity, setFormRarity] = useState("")
   const [formCustomFields, setFormCustomFields] = useState<Record<string, string>>({})
   const [formError, setFormError] = useState("")
@@ -108,6 +109,7 @@ export default function CatalogItemDetail() {
   const [copyAcquisitionDate, setCopyAcquisitionDate] = useState("")
   const [copyAcquisitionSource, setCopyAcquisitionSource] = useState("")
   const [copyNotes, setCopyNotes] = useState("")
+  const [copyImageFiles, setCopyImageFiles] = useState<File[]>([])
   const [copyError, setCopyError] = useState("")
   const [copySubmitting, setCopySubmitting] = useState(false)
 
@@ -186,7 +188,7 @@ export default function CatalogItemDetail() {
     setFormReleaseDate(item.releaseDate ?? "")
     setFormManufacturer(item.manufacturer ?? "")
     setFormReferenceCode(item.referenceCode ?? "")
-    setFormImage(item.image ?? "")
+    setFormImageFile(null)
     setFormRarity(item.rarity ?? "")
     const cf: Record<string, string> = {}
     for (const fv of item.customFieldValues ?? []) {
@@ -232,7 +234,6 @@ export default function CatalogItemDetail() {
         releaseDate: formReleaseDate || null,
         manufacturer: formManufacturer.trim() || null,
         referenceCode: formReferenceCode.trim() || null,
-        image: formImage.trim() || null,
         rarity: formRarity.trim() || null,
         customFieldValues: customFieldValues.length > 0 ? customFieldValues : null,
       }
@@ -246,6 +247,19 @@ export default function CatalogItemDetail() {
       if (!res.ok) {
         const data = await res.json().catch(() => null)
         throw new Error(data?.message ?? t("collectionDetail.saveFailed"))
+      }
+
+      if (formImageFile) {
+        const formData = new FormData()
+        formData.append("image", formImageFile)
+        const imgRes = await fetch(`/api/collections/${collectionId}/items/${itemId}/image`, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${token}` },
+          body: formData,
+        })
+        if (!imgRes.ok) {
+          setFormError(t("collectionDetail.imageUploadFailed"))
+        }
       }
 
       setEditOpen(false)
@@ -281,6 +295,7 @@ export default function CatalogItemDetail() {
     setCopyAcquisitionDate("")
     setCopyAcquisitionSource("")
     setCopyNotes("")
+    setCopyImageFiles([])
     setCopyError("")
     setCopyDialogOpen(true)
   }
@@ -293,6 +308,7 @@ export default function CatalogItemDetail() {
     setCopyAcquisitionDate(copy.acquisitionDate ?? "")
     setCopyAcquisitionSource(copy.acquisitionSource ?? "")
     setCopyNotes(copy.notes ?? "")
+    setCopyImageFiles([])
     setCopyError("")
     setCopyDialogOpen(true)
   }
@@ -321,6 +337,27 @@ export default function CatalogItemDetail() {
       if (!res.ok) {
         const data = await res.json().catch(() => null)
         throw new Error(data?.message ?? t("ownedCopy.saveFailed"))
+      }
+
+      const saved = await res.json()
+      const copyId = editingCopy?.id ?? saved.id
+
+      // Upload images in parallel
+      if (copyImageFiles.length > 0) {
+        const uploadResults = await Promise.all(
+          copyImageFiles.map((file) => {
+            const formData = new FormData()
+            formData.append("image", file)
+            return fetch(`/api/items/${itemId}/copies/${copyId}/images`, {
+              method: "POST",
+              headers: { Authorization: `Bearer ${token}` },
+              body: formData,
+            })
+          })
+        )
+        if (uploadResults.some((r) => !r.ok)) {
+          setCopyError(t("ownedCopy.imageUploadFailed"))
+        }
       }
 
       setCopyDialogOpen(false)
@@ -556,6 +593,18 @@ export default function CatalogItemDetail() {
                         <p className="text-sm">{copy.notes}</p>
                       </div>
                     )}
+                    {copy.images.length > 0 && (
+                      <div className="mt-3 flex gap-2 flex-wrap">
+                        {copy.images.map((img, idx) => (
+                          <img
+                            key={idx}
+                            src={img}
+                            alt={`${t("ownedCopy.imageAlt")} ${idx + 1}`}
+                            className="h-20 w-20 rounded border object-cover"
+                          />
+                        ))}
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
@@ -657,10 +706,18 @@ export default function CatalogItemDetail() {
               <Label htmlFor="edit-image">{t("collectionDetail.imageLabel")}</Label>
               <Input
                 id="edit-image"
-                value={formImage}
-                onChange={(e) => setFormImage(e.target.value)}
+                type="file"
+                accept="image/*"
+                onChange={(e) => setFormImageFile(e.target.files?.[0] ?? null)}
                 disabled={submitting}
               />
+              {item?.image && (
+                <img
+                  src={item.image}
+                  alt={item.name}
+                  className="mt-2 h-20 w-20 rounded border object-cover"
+                />
+              )}
             </div>
 
             {/* Custom fields */}
@@ -742,22 +799,17 @@ export default function CatalogItemDetail() {
       </Dialog>
 
       {/* Delete Confirmation Dialog */}
-      <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{t("itemDetail.deleteTitle")}</DialogTitle>
-            <DialogDescription>{t("itemDetail.deleteConfirm")}</DialogDescription>
-          </DialogHeader>
-          <div className="flex justify-end gap-2 pt-4">
-            <Button variant="outline" onClick={() => setDeleteOpen(false)} disabled={deleting}>
-              {t("collectionDetail.cancel")}
-            </Button>
-            <Button variant="destructive" onClick={handleDelete} disabled={deleting}>
-              {deleting ? t("itemDetail.deleting") : t("itemDetail.delete")}
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <ConfirmDialog
+        open={deleteOpen}
+        onOpenChange={setDeleteOpen}
+        title={t("itemDetail.deleteTitle")}
+        description={t("itemDetail.deleteConfirm")}
+        confirmLabel={t("itemDetail.delete")}
+        cancelLabel={t("collectionDetail.cancel")}
+        loadingLabel={t("itemDetail.deleting")}
+        loading={deleting}
+        onConfirm={handleDelete}
+      />
 
       {/* Owned Copy Dialog */}
       <Dialog open={copyDialogOpen} onOpenChange={setCopyDialogOpen}>
@@ -856,6 +908,32 @@ export default function CatalogItemDetail() {
               />
             </div>
 
+            <div className="space-y-2">
+              <Label htmlFor="copy-images">{t("ownedCopy.imagesLabel")}</Label>
+              <Input
+                id="copy-images"
+                type="file"
+                accept="image/*"
+                multiple
+                onChange={(e) =>
+                  setCopyImageFiles(e.target.files ? Array.from(e.target.files) : [])
+                }
+                disabled={copySubmitting}
+              />
+              {editingCopy && editingCopy.images.length > 0 && (
+                <div className="flex gap-2 flex-wrap mt-2">
+                  {editingCopy.images.map((img, idx) => (
+                    <img
+                      key={idx}
+                      src={img}
+                      alt={`${t("ownedCopy.imageAlt")} ${idx + 1}`}
+                      className="h-16 w-16 rounded border object-cover"
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+
             <div className="flex justify-end gap-2 pt-2">
               <Button type="button" variant="outline" onClick={() => setCopyDialogOpen(false)} disabled={copySubmitting}>
                 {t("collectionDetail.cancel")}
@@ -869,22 +947,17 @@ export default function CatalogItemDetail() {
       </Dialog>
 
       {/* Delete Copy Confirmation Dialog */}
-      <Dialog open={deleteCopyOpen} onOpenChange={setDeleteCopyOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{t("ownedCopy.deleteTitle")}</DialogTitle>
-            <DialogDescription>{t("ownedCopy.deleteConfirm")}</DialogDescription>
-          </DialogHeader>
-          <div className="flex justify-end gap-2 pt-4">
-            <Button variant="outline" onClick={() => setDeleteCopyOpen(false)} disabled={deletingCopy}>
-              {t("collectionDetail.cancel")}
-            </Button>
-            <Button variant="destructive" onClick={handleDeleteCopy} disabled={deletingCopy}>
-              {deletingCopy ? t("ownedCopy.deleting") : t("itemDetail.delete")}
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <ConfirmDialog
+        open={deleteCopyOpen}
+        onOpenChange={setDeleteCopyOpen}
+        title={t("ownedCopy.deleteTitle")}
+        description={t("ownedCopy.deleteConfirm")}
+        confirmLabel={t("itemDetail.delete")}
+        cancelLabel={t("collectionDetail.cancel")}
+        loadingLabel={t("ownedCopy.deleting")}
+        loading={deletingCopy}
+        onConfirm={handleDeleteCopy}
+      />
     </div>
   )
 }

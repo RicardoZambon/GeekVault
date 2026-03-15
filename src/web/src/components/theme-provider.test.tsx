@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from "vitest"
+import { describe, it, expect, vi, beforeEach } from "vitest"
 import { render, screen, fireEvent } from "@testing-library/react"
 import { ThemeProvider, useTheme } from "./theme-provider"
 
@@ -136,5 +136,29 @@ describe("ThemeProvider additional coverage", () => {
     )
     fireEvent.click(screen.getByText("Set Dark"))
     expect(localStorage.getItem("custom-key")).toBe("dark")
+  })
+
+  it("resolves system theme to dark when prefers-color-scheme is dark", () => {
+    // Override matchMedia to return matches: true for dark scheme
+    const originalMatchMedia = window.matchMedia
+    window.matchMedia = vi.fn().mockImplementation((query: string) => ({
+      matches: query === "(prefers-color-scheme: dark)",
+      media: query,
+      onchange: null,
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      dispatchEvent: vi.fn(),
+    }))
+
+    render(
+      <ThemeProvider defaultTheme="system">
+        <ThemeConsumer />
+      </ThemeProvider>
+    )
+    expect(document.documentElement.classList.contains("dark")).toBe(true)
+
+    window.matchMedia = originalMatchMedia
   })
 })

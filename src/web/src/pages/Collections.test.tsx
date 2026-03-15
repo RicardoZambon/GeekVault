@@ -458,4 +458,34 @@ describe("Collections", () => {
     expect(img).toBeInTheDocument()
     expect(img).toHaveAttribute("src", "http://img.jpg")
   })
+
+  it("handles cover file input with file and null", async () => {
+    mockFetch()
+    render(<MemoryRouter><Collections /></MemoryRouter>)
+    await waitFor(() => screen.getByText("collections.title"))
+    fireEvent.click(screen.getByText("collections.create"))
+    await waitFor(() => screen.getByText("collections.createTitle"))
+
+    const fileInput = screen.getByLabelText("collections.coverLabel")
+    // Test selecting a file
+    const file = new File(["img"], "cover.png", { type: "image/png" })
+    fireEvent.change(fileInput, { target: { files: [file] } })
+    // Test clearing (null branch via ?.[0] ?? null)
+    fireEvent.change(fileInput, { target: { files: null } })
+  })
+
+  it("resets type to empty when selecting blank option", async () => {
+    mockFetch()
+    render(<MemoryRouter><Collections /></MemoryRouter>)
+    await waitFor(() => screen.getByText("collections.title"))
+    fireEvent.click(screen.getByText("collections.create"))
+    await waitFor(() => screen.getByText("collections.createTitle"))
+
+    const typeSelect = screen.getByLabelText("collections.typeLabel")
+    // First select a valid type
+    fireEvent.change(typeSelect, { target: { value: "1" } })
+    // Then reset to empty
+    fireEvent.change(typeSelect, { target: { value: "" } })
+    expect(typeSelect).toHaveValue("")
+  })
 })
