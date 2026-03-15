@@ -145,7 +145,7 @@ export function Sidebar() {
                               "rounded-lg",
                               isActive
                                 ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                                : "text-sidebar-foreground/70 hover:text-sidebar-accent-foreground"
+                                : "text-sidebar-foreground/70"
                             )
                       )
                     }
@@ -153,7 +153,7 @@ export function Sidebar() {
                     {({ isActive }) =>
                       collapsed ? (
                         <div className={cn(
-                          "flex items-center justify-center h-[48px] rounded-md transition-colors",
+                          "flex items-center justify-center h-[48px] rounded-md transition-colors hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground",
                           isActive
                             ? "bg-sidebar-accent text-sidebar-accent-foreground"
                             : "hover:bg-sidebar-accent/50"
@@ -161,7 +161,7 @@ export function Sidebar() {
                           <item.icon className={cn("h-6 w-6", isActive ? "text-sidebar-primary" : "text-sidebar-foreground/70")} />
                         </div>
                       ) : (
-                        <div className={cn("flex items-center gap-3 px-3 min-h-[44px] text-sm border-l-[3px] rounded-lg", isActive ? "border-sidebar-primary" : "border-transparent")}>
+                        <div className={cn("flex items-center gap-3 px-3 min-h-[44px] text-sm border-l-[3px] rounded-lg hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground", isActive ? "border-sidebar-primary" : "border-transparent")}>
                           <item.icon className={cn("h-5 w-5 shrink-0", isActive && "text-sidebar-primary")} />
                           <span>{t(item.labelKey)}</span>
                         </div>
