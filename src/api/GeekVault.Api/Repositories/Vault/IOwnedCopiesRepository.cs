@@ -10,6 +10,7 @@ public interface IOwnedCopiesRepository
     Task<CatalogItem?> GetCatalogItemWithCollectionAsync(int catalogItemId, string userId);
     Task<List<OwnedCopy>> GetByCollectionItemIdsAsync(IEnumerable<int> catalogItemIds);
     Task<bool> AnyByCatalogItemIdAsync(int catalogItemId);
+    Task<HashSet<int>> GetOwnedCatalogItemIdsAsync(IEnumerable<int> catalogItemIds);
     IQueryable<OwnedCopy> GetByUserCatalogItemIds(string userId);
     Task AddAsync(OwnedCopy copy);
     Task SaveChangesAsync();

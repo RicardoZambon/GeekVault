@@ -25,10 +25,10 @@ public class CollectionTypesRepository : ICollectionTypesRepository
         return await _db.CollectionTypes.FirstOrDefaultAsync(c => c.Id == id && c.UserId == userId);
     }
 
-    public async Task AddAsync(CollectionType collectionType)
+    public Task AddAsync(CollectionType collectionType)
     {
         _db.CollectionTypes.Add(collectionType);
-        await _db.SaveChangesAsync();
+        return Task.CompletedTask;
     }
 
     public async Task SaveChangesAsync()

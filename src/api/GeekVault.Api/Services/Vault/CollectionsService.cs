@@ -1,5 +1,6 @@
 using GeekVault.Api.DTOs.Vault;
 using GeekVault.Api.Entities.Vault;
+using GeekVault.Api.Extensions;
 using GeekVault.Api.Repositories.Vault;
 
 namespace GeekVault.Api.Services.Vault;
@@ -91,6 +92,9 @@ public class CollectionsService : ICollectionsService
 
         if (file.Length == 0)
             return (null, false, "No cover file provided");
+
+        if (!file.IsValidImageFile())
+            return (null, false, "Invalid image file. Allowed types: jpg, jpeg, png, gif, webp");
 
         var uploadsDir = Path.Combine(webRootPath, "uploads");
         Directory.CreateDirectory(uploadsDir);

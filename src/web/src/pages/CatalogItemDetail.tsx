@@ -252,11 +252,14 @@ export default function CatalogItemDetail() {
       if (formImageFile) {
         const formData = new FormData()
         formData.append("image", formImageFile)
-        await fetch(`/api/collections/${collectionId}/items/${itemId}/image`, {
+        const imgRes = await fetch(`/api/collections/${collectionId}/items/${itemId}/image`, {
           method: "POST",
           headers: { Authorization: `Bearer ${token}` },
           body: formData,
         })
+        if (!imgRes.ok) {
+          setFormError(t("collectionDetail.imageUploadFailed"))
+        }
       }
 
       setEditOpen(false)
@@ -339,15 +342,22 @@ export default function CatalogItemDetail() {
       const saved = await res.json()
       const copyId = editingCopy?.id ?? saved.id
 
-      // Upload images
-      for (const file of copyImageFiles) {
-        const formData = new FormData()
-        formData.append("image", file)
-        await fetch(`/api/items/${itemId}/copies/${copyId}/images`, {
-          method: "POST",
-          headers: { Authorization: `Bearer ${token}` },
-          body: formData,
-        })
+      // Upload images in parallel
+      if (copyImageFiles.length > 0) {
+        const uploadResults = await Promise.all(
+          copyImageFiles.map((file) => {
+            const formData = new FormData()
+            formData.append("image", file)
+            return fetch(`/api/items/${itemId}/copies/${copyId}/images`, {
+              method: "POST",
+              headers: { Authorization: `Bearer ${token}` },
+              body: formData,
+            })
+          })
+        )
+        if (uploadResults.some((r) => !r.ok)) {
+          setCopyError(t("ownedCopy.imageUploadFailed"))
+        }
       }
 
       setCopyDialogOpen(false)

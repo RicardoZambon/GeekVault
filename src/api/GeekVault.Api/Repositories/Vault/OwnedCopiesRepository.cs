@@ -19,6 +19,7 @@ public class OwnedCopiesRepository : IOwnedCopiesRepository
     {
         return await _db.OwnedCopies
             .Where(oc => oc.CatalogItemId == catalogItemId)
+            .Include(oc => oc.Images)
             .ToListAsync();
     }
 
@@ -48,6 +49,17 @@ public class OwnedCopiesRepository : IOwnedCopiesRepository
         return await _db.OwnedCopies.AnyAsync(oc => oc.CatalogItemId == catalogItemId);
     }
 
+    public async Task<HashSet<int>> GetOwnedCatalogItemIdsAsync(IEnumerable<int> catalogItemIds)
+    {
+        var ids = catalogItemIds.ToList();
+        var ownedIds = await _db.OwnedCopies
+            .Where(oc => ids.Contains(oc.CatalogItemId))
+            .Select(oc => oc.CatalogItemId)
+            .Distinct()
+            .ToListAsync();
+        return ownedIds.ToHashSet();
+    }
+
     public IQueryable<OwnedCopy> GetByUserCatalogItemIds(string userId)
     {
         var userCatalogItemIds = _db.CatalogItems
@@ -57,10 +69,10 @@ public class OwnedCopiesRepository : IOwnedCopiesRepository
         return _db.OwnedCopies.Where(oc => userCatalogItemIds.Contains(oc.CatalogItemId));
     }
 
-    public async Task AddAsync(OwnedCopy copy)
+    public Task AddAsync(OwnedCopy copy)
     {
         _db.OwnedCopies.Add(copy);
-        await _db.SaveChangesAsync();
+        return Task.CompletedTask;
     }
 
     public async Task SaveChangesAsync()

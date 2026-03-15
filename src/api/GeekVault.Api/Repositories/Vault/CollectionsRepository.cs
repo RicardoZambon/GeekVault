@@ -37,10 +37,10 @@ public class CollectionsRepository : ICollectionsRepository
         return await _db.CatalogItems.CountAsync(ci => ci.CollectionId == collectionId);
     }
 
-    public async Task AddAsync(Collection collection)
+    public Task AddAsync(Collection collection)
     {
         _db.Collections.Add(collection);
-        await _db.SaveChangesAsync();
+        return Task.CompletedTask;
     }
 
     public async Task SaveChangesAsync()

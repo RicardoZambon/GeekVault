@@ -25,21 +25,21 @@ public class SetsService : ISetsService
         var sets = await _setsRepository.GetByCollectionIdAsync(collectionId);
         var allSetItems = await _setsRepository.GetSetItemsByCollectionAsync(collectionId);
 
+        var allCatalogItemIds = allSetItems.Values
+            .SelectMany(items => items)
+            .Where(item => item.CatalogItemId != null)
+            .Select(item => item.CatalogItemId!.Value)
+            .Distinct();
+        var ownedCatalogItemIds = await _ownedCopiesRepository.GetOwnedCatalogItemIdsAsync(allCatalogItemIds);
+
         var responses = new List<SetResponse>();
         foreach (var s in sets)
         {
             allSetItems.TryGetValue(s.Id, out var setItems);
             var items = setItems ?? new List<Entities.Vault.SetItem>();
 
-            var completedCount = 0;
-            foreach (var item in items)
-            {
-                if (item.CatalogItemId != null)
-                {
-                    var hasOwnedCopy = await _ownedCopiesRepository.AnyByCatalogItemIdAsync(item.CatalogItemId.Value);
-                    if (hasOwnedCopy) completedCount++;
-                }
-            }
+            var completedCount = items.Count(item =>
+                item.CatalogItemId != null && ownedCatalogItemIds.Contains(item.CatalogItemId.Value));
             var expectedItemCount = items.Count;
             var completionPercentage = expectedItemCount > 0
                 ? (double)completedCount / expectedItemCount * 100
@@ -64,15 +64,12 @@ public class SetsService : ISetsService
         var itemResponses = items.Select(si => new SetItemResponse(si.Id, si.SetId, si.CatalogItemId, si.Name, si.SortOrder)).ToList();
 
         // Calculate completion
-        var completedCount = 0;
-        foreach (var item in itemResponses)
-        {
-            if (item.CatalogItemId != null)
-            {
-                var hasOwnedCopy = await _ownedCopiesRepository.AnyByCatalogItemIdAsync(item.CatalogItemId.Value);
-                if (hasOwnedCopy) completedCount++;
-            }
-        }
+        var catalogItemIds = itemResponses
+            .Where(i => i.CatalogItemId != null)
+            .Select(i => i.CatalogItemId!.Value);
+        var ownedIds = await _ownedCopiesRepository.GetOwnedCatalogItemIdsAsync(catalogItemIds);
+        var completedCount = itemResponses.Count(i =>
+            i.CatalogItemId != null && ownedIds.Contains(i.CatalogItemId.Value));
         var expectedItemCount = itemResponses.Count;
         var completionPercentage = expectedItemCount > 0
             ? (double)completedCount / expectedItemCount * 100
@@ -112,15 +109,12 @@ public class SetsService : ISetsService
         await _setsRepository.SaveChangesAsync();
 
         var items = await _setsRepository.GetSetItemsAsync(id);
-        var completedCount = 0;
-        foreach (var item in items)
-        {
-            if (item.CatalogItemId != null)
-            {
-                var hasOwnedCopy = await _ownedCopiesRepository.AnyByCatalogItemIdAsync(item.CatalogItemId.Value);
-                if (hasOwnedCopy) completedCount++;
-            }
-        }
+        var updateCatalogItemIds = items
+            .Where(i => i.CatalogItemId != null)
+            .Select(i => i.CatalogItemId!.Value);
+        var updateOwnedIds = await _ownedCopiesRepository.GetOwnedCatalogItemIdsAsync(updateCatalogItemIds);
+        var completedCount = items.Count(i =>
+            i.CatalogItemId != null && updateOwnedIds.Contains(i.CatalogItemId.Value));
         var expectedItemCount = items.Count;
         var completionPercentage = expectedItemCount > 0
             ? (double)completedCount / expectedItemCount * 100

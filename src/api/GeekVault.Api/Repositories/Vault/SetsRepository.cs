@@ -56,19 +56,19 @@ public class SetsRepository : ISetsRepository
             .MaxAsync() ?? 0;
     }
 
-    public async Task AddAsync(Set set)
+    public Task AddAsync(Set set)
     {
         _db.Sets.Add(set);
-        await _db.SaveChangesAsync();
+        return Task.CompletedTask;
     }
 
-    public async Task AddSetItemsAsync(IEnumerable<SetItem> items)
+    public Task AddSetItemsAsync(IEnumerable<SetItem> items)
     {
         foreach (var item in items)
         {
             _db.SetItems.Add(item);
         }
-        await _db.SaveChangesAsync();
+        return Task.CompletedTask;
     }
 
     public async Task<SetItem?> GetSetItemByIdAsync(int setId, int itemId)

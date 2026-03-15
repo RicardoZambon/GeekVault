@@ -1,6 +1,7 @@
 using GeekVault.Api.DTOs.Common;
 using GeekVault.Api.DTOs.Vault;
 using GeekVault.Api.Entities.Vault;
+using GeekVault.Api.Extensions;
 using GeekVault.Api.Repositories.Vault;
 using Microsoft.EntityFrameworkCore;
 
@@ -97,7 +98,8 @@ public class CatalogItemsService : ICatalogItemsService
 
         var ownedCopies = await _ownedCopiesRepository.GetByCatalogItemIdAsync(id);
         var copies = ownedCopies.Select(oc => new OwnedCopyDto(oc.Id, oc.Condition.ToString(), oc.PurchasePrice,
-            oc.EstimatedValue, oc.AcquisitionDate, oc.AcquisitionSource, oc.Notes)).ToList();
+            oc.EstimatedValue, oc.AcquisitionDate, oc.AcquisitionSource, oc.Notes,
+            oc.Images.Select(i => i.Url).ToList())).ToList();
 
         return new CatalogItemResponse(item.Id, item.CollectionId, item.Identifier, item.Name,
             item.Description, item.ReleaseDate, item.Manufacturer, item.ReferenceCode, item.Image, item.Rarity,
@@ -213,6 +215,9 @@ public class CatalogItemsService : ICatalogItemsService
 
         if (file.Length == 0)
             return (null, false, "No image file provided");
+
+        if (!file.IsValidImageFile())
+            return (null, false, "Invalid image file. Allowed types: jpg, jpeg, png, gif, webp");
 
         var uploadsDir = Path.Combine(webRootPath, "uploads");
         Directory.CreateDirectory(uploadsDir);

@@ -40,19 +40,19 @@ public class CatalogItemsRepository : ICatalogItemsRepository
             .ToListAsync();
     }
 
-    public async Task AddAsync(CatalogItem item)
+    public Task AddAsync(CatalogItem item)
     {
         _db.CatalogItems.Add(item);
-        await _db.SaveChangesAsync();
+        return Task.CompletedTask;
     }
 
-    public async Task AddRangeAsync(IEnumerable<CatalogItem> items)
+    public Task AddRangeAsync(IEnumerable<CatalogItem> items)
     {
         foreach (var item in items)
         {
             _db.CatalogItems.Add(item);
         }
-        await _db.SaveChangesAsync();
+        return Task.CompletedTask;
     }
 
     public async Task SaveChangesAsync()

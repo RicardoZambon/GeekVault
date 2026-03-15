@@ -1,4 +1,5 @@
 using GeekVault.Api.DTOs.Security;
+using GeekVault.Api.Extensions;
 using GeekVault.Api.Repositories.Security;
 
 namespace GeekVault.Api.Services.Security;
@@ -47,6 +48,9 @@ public class ProfileService : IProfileService
     {
         var user = await _usersRepository.FindByIdAsync(userId);
         if (user == null) return (null, "User not found");
+
+        if (!file.IsValidImageFile())
+            return (null, "Invalid image file. Allowed types: jpg, jpeg, png, gif, webp");
 
         var uploadsDir = Path.Combine(webRootPath, "uploads");
         Directory.CreateDirectory(uploadsDir);

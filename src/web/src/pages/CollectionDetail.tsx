@@ -360,11 +360,14 @@ export default function CollectionDetail() {
       if (formImageFile) {
         const formData = new FormData()
         formData.append("image", formImageFile)
-        await fetch(`/api/collections/${id}/items/${saved.id}/image`, {
+        const imgRes = await fetch(`/api/collections/${id}/items/${saved.id}/image`, {
           method: "POST",
           headers: { Authorization: `Bearer ${token}` },
           body: formData,
         })
+        if (!imgRes.ok) {
+          setFormError(t("collectionDetail.imageUploadFailed"))
+        }
       }
 
       setDialogOpen(false)

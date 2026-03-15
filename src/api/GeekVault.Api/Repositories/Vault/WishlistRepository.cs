@@ -26,10 +26,10 @@ public class WishlistRepository : IWishlistRepository
         return await _db.WishlistItems.FirstOrDefaultAsync(w => w.Id == id && w.CollectionId == collectionId);
     }
 
-    public async Task AddAsync(WishlistItem item)
+    public Task AddAsync(WishlistItem item)
     {
         _db.WishlistItems.Add(item);
-        await _db.SaveChangesAsync();
+        return Task.CompletedTask;
     }
 
     public async Task SaveChangesAsync()
