@@ -43,6 +43,8 @@ public class OwnedCopiesService : IOwnedCopiesService
             Notes = request.Notes,
         };
 
+        item.Collection.UpdatedAt = DateTime.UtcNow;
+
         await _ownedCopiesRepository.AddAsync(copy);
         await _ownedCopiesRepository.SaveChangesAsync();
 
@@ -83,6 +85,8 @@ public class OwnedCopiesService : IOwnedCopiesService
 
         var copy = await _ownedCopiesRepository.GetByIdAndCatalogItemIdAsync(id, catalogItemId);
         if (copy == null) return false;
+
+        item.Collection.UpdatedAt = DateTime.UtcNow;
 
         _ownedCopiesRepository.Remove(copy);
         await _ownedCopiesRepository.SaveChangesAsync();
