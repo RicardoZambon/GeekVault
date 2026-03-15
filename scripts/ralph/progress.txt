@@ -45,6 +45,8 @@ Started: Sun Mar 15 02:52:16 AM UTC 2026
 - Accordion pattern: use `AnimatePresence` + `motion.div` with `height: 0/auto` + `opacity: 0/1` for expand/collapse; track expanded IDs in `Set<number>`
 - Drag-and-drop file upload: `onDragOver`/`onDragLeave`/`onDrop` on a div + hidden `<input type="file" ref={fileInputRef}>` + `onClick={() => fileInputRef.current?.click()}`
 - Multi-step wizard: numeric `step` state + step config array `[{ num, label }]` for rendering step indicator with numbered circles and connector lines
+- `ConfirmDialog` from `@/components/ui/confirm-dialog` requires `cancelLabel` prop — use for all delete confirmations instead of building from scratch
+- Priority badge mapping: 1=High (destructive), 2=Medium (accent), >=3=Low (default) — use with DS Badge variants
 ---
 
 ## 2026-03-15 - US-002
@@ -416,4 +418,43 @@ Started: Sun Mar 15 02:52:16 AM UTC 2026
   - Custom field type rendering: use the collectionType.customFields definitions to determine display format (boolean → icon, date → formatted, enum → badge)
   - `FadeIn` wrapper from DS motion.tsx works well for page-level fade-in without needing full PageTransition
   - Condition badge coloring pattern: Mint/NearMint → success, Excellent/Good → primary, Fair/Poor → warning
+---
+
+## 2026-03-15 - US-026
+- Redesigned owned copies section with EmptyState DS component (Box icon) for empty state
+- Cards now use StaggerChildren + staggerItemVariants for entrance animation
+- Per-copy detail fields enhanced with lucide icons (DollarSign, Tag, Calendar, ShoppingBag, FileText) for visual clarity
+- Action buttons (Edit/Delete) use group-hover opacity reveal pattern
+- Condition badge upgraded from sm to md size
+- Thumbnail images get hover ring effect (accent color)
+- Added emptyStates.ownedCopies.* i18n keys to both en.json and pt.json
+- Files changed: catalog-item-detail-page.tsx, en.json, pt.json
+- **Learnings for future iterations:**
+  - EmptyState component works well as drop-in replacement for custom empty cards — just provide icon, title, description, actionLabel, onAction
+  - `group` + `group-hover:opacity-100` pattern on Card makes per-item actions discoverable without cluttering the default view
+  - Lucide icons alongside detail fields (DollarSign for price, Calendar for date, etc.) improve scannability
+  - No browser testing tools available — manual verification needed
+---
+
+## 2026-03-15 - US-027
+- Redesigned wishlist page with DS Card layout, collapsible collection groups, priority badges, and filter/sort toolbar
+- Used PageHeader with accent-styled "Add Item" button
+- Items as DS Cards with priority badges (high=destructive/red, medium=accent/gold, low=default/gray), target price with DollarSign icon, notes with FileText icon, link icon for linked catalog items
+- Actions via DS DropdownMenu with group-hover opacity reveal pattern
+- Collapsible collection groups with AnimatePresence accordion animation (all expanded by default)
+- Filter toolbar: DS Select for priority filter (All/High/Medium/Low), sort by priority/price/name
+- Skeleton loading state with card placeholders
+- StaggerChildren animation on card grids
+- Replaced inline error/success messages with toast notifications
+- Used ConfirmDialog for delete confirmation (replacing manual Dialog)
+- Replaced native `<select>` in dialog with DS Select for collection and priority inputs
+- Added loading spinner (Loader2) to submit button
+- Added i18n keys: wishlist.filterPriority, priorityAll/High/Medium/Low, sortBy/Priority/Price/Name, itemCount, noResults, updateSuccess, addSuccess, deleteSuccess
+- Files changed: wishlist-page.tsx, en.json, pt.json
+- **Learnings for future iterations:**
+  - Priority mapping: 1=High (destructive), 2=Medium (accent), >=3=Low (default) — simple numeric thresholds work well with Badge variants
+  - ConfirmDialog from `@/components/ui/confirm-dialog` requires `cancelLabel` prop — cleaner than building delete dialogs from scratch
+  - Collapsible groups pattern: `expandedGroups` as `Set<number>` + AnimatePresence + `height: 0/auto` animation — same pattern as US-023 sets accordion
+  - `useMemo` for filtered/sorted groups keeps filtering logic clean and avoids recomputation on unrelated state changes
+  - No browser testing tools available — manual verification needed
 ---
