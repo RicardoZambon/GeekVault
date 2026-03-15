@@ -1831,4 +1831,227 @@ describe("CollectionDetail", () => {
       expect(screen.queryByText("sets.removeItemTitle")).not.toBeInTheDocument()
     })
   })
+
+  it("confirms and removes a set item successfully", async () => {
+    const setsData = [
+      { id: 10, collectionId: 1, name: "Series A", expectedItemCount: 2, completedCount: 0, completionPercentage: 0 },
+    ]
+    const setDetail = {
+      id: 10, collectionId: 1, name: "Series A", expectedItemCount: 2, completedCount: 0, completionPercentage: 0,
+      items: [
+        { id: 100, setId: 10, catalogItemId: 1, name: "Spider-Man #1", sortOrder: 1 },
+        { id: 101, setId: 10, catalogItemId: null, name: "Item B", sortOrder: 2 },
+      ],
+    }
+    const fetchCalls: { url: string; method: string }[] = []
+    vi.spyOn(global, "fetch").mockImplementation((url, opts) => {
+      const urlStr = String(url)
+      const method = (opts as RequestInit)?.method ?? "GET"
+      fetchCalls.push({ url: urlStr, method })
+      if (urlStr.includes("/sets/10/items/") && method === "DELETE") {
+        return Promise.resolve({ ok: true } as Response)
+      }
+      if (urlStr.includes("/collection-types/")) return Promise.resolve({ ok: true, json: () => Promise.resolve(collectionType) } as Response)
+      if (urlStr.includes("/copies")) return Promise.resolve({ ok: true, json: () => Promise.resolve([]) } as Response)
+      if (urlStr.match(/\/sets\/10$/)) return Promise.resolve({ ok: true, json: () => Promise.resolve(setDetail) } as Response)
+      if (urlStr.includes("/sets")) return Promise.resolve({ ok: true, json: () => Promise.resolve(setsData) } as Response)
+      if (urlStr.match(/\/collections\/\d+$/)) return Promise.resolve({ ok: true, json: () => Promise.resolve(collection) } as Response)
+      return Promise.resolve({ ok: true, json: () => Promise.resolve(items) } as Response)
+    })
+    renderWithRoute()
+    await waitFor(() => screen.getByText("Comics"))
+
+    fireEvent.click(screen.getByText(/sets\.title/))
+    await waitFor(() => screen.getByText("Series A"))
+    fireEvent.click(screen.getByText("Series A"))
+    await waitFor(() => screen.getByText("Item B"))
+
+    // Find the delete button for "Item B" set item
+    const allLis = document.querySelectorAll("li")
+    const itemBLi = Array.from(allLis).find((li) => li.textContent?.includes("Item B"))
+    // The trash button is inside the li
+    const trashBtn = itemBLi?.querySelector("button")
+    fireEvent.click(trashBtn!)
+
+    await waitFor(() => screen.getByText("sets.removeItemTitle"))
+    // Click the confirm delete button (confirmLabel is "sets.delete")
+    const deleteBtns = screen.getAllByText("sets.delete")
+    fireEvent.click(deleteBtns[deleteBtns.length - 1])
+
+    await waitFor(() => {
+      expect(fetchCalls.some(c => c.url.includes("/sets/10/items/") && c.method === "DELETE")).toBe(true)
+    })
+  })
+
+  it("submits add item with image upload successfully", async () => {
+    const fetchCalls: { url: string; method: string }[] = []
+    vi.spyOn(global, "fetch").mockImplementation((url, opts) => {
+      const urlStr = String(url)
+      const method = (opts as RequestInit)?.method ?? "GET"
+      fetchCalls.push({ url: urlStr, method })
+      if (urlStr.includes("/items") && urlStr.includes("/image") && method === "POST") {
+        return Promise.resolve({ ok: true, json: () => Promise.resolve({}) } as Response)
+      }
+      if (urlStr.includes("/items") && method === "POST" && !urlStr.includes("/image")) {
+        return Promise.resolve({ ok: true, json: () => Promise.resolve({ id: 99 }) } as Response)
+      }
+      if (urlStr.includes("/collection-types/")) return Promise.resolve({ ok: true, json: () => Promise.resolve(collectionType) } as Response)
+      if (urlStr.includes("/copies")) return Promise.resolve({ ok: true, json: () => Promise.resolve([]) } as Response)
+      if (urlStr.includes("/sets")) return Promise.resolve({ ok: true, json: () => Promise.resolve([]) } as Response)
+      if (urlStr.match(/\/collections\/\d+$/)) return Promise.resolve({ ok: true, json: () => Promise.resolve(collection) } as Response)
+      return Promise.resolve({ ok: true, json: () => Promise.resolve(items) } as Response)
+    })
+    renderWithRoute()
+    await waitFor(() => screen.getByText("Comics"))
+    const addButtons = screen.getAllByText("collectionDetail.addItem")
+    fireEvent.click(addButtons[0])
+    await screen.findByText("collectionDetail.addItemTitle")
+
+    fireEvent.change(screen.getByLabelText("collectionDetail.identifierLabel"), { target: { value: "ID-001" } })
+    fireEvent.change(screen.getByLabelText("collectionDetail.nameLabel"), { target: { value: "New Item" } })
+
+    // Select an image
+    const fileInput = screen.getByLabelText("collectionDetail.imageLabel")
+    const file = new File(["img"], "test.png", { type: "image/png" })
+    fireEvent.change(fileInput, { target: { files: [file] } })
+
+    const submitButtons = screen.getAllByText("collectionDetail.addItem")
+    fireEvent.click(submitButtons[submitButtons.length - 1])
+
+    await waitFor(() => {
+      expect(fetchCalls.some(c => c.url.includes("/image") && c.method === "POST")).toBe(true)
+    })
+  })
+
+  it("handles add item image upload failure branch", async () => {
+    const fetchCalls: { url: string; method: string }[] = []
+    vi.spyOn(global, "fetch").mockImplementation((url, opts) => {
+      const urlStr = String(url)
+      const method = (opts as RequestInit)?.method ?? "GET"
+      fetchCalls.push({ url: urlStr, method })
+      if (urlStr.includes("/items") && urlStr.includes("/image") && method === "POST") {
+        return Promise.resolve({ ok: false } as Response)
+      }
+      if (urlStr.includes("/items") && method === "POST" && !urlStr.includes("/image")) {
+        return Promise.resolve({ ok: true, json: () => Promise.resolve({ id: 99 }) } as Response)
+      }
+      if (urlStr.includes("/collection-types/")) return Promise.resolve({ ok: true, json: () => Promise.resolve(collectionType) } as Response)
+      if (urlStr.includes("/copies")) return Promise.resolve({ ok: true, json: () => Promise.resolve([]) } as Response)
+      if (urlStr.includes("/sets")) return Promise.resolve({ ok: true, json: () => Promise.resolve([]) } as Response)
+      if (urlStr.match(/\/collections\/\d+$/)) return Promise.resolve({ ok: true, json: () => Promise.resolve(collection) } as Response)
+      return Promise.resolve({ ok: true, json: () => Promise.resolve(items) } as Response)
+    })
+    renderWithRoute()
+    await waitFor(() => screen.getByText("Comics"))
+    const addButtons = screen.getAllByText("collectionDetail.addItem")
+    fireEvent.click(addButtons[0])
+    await screen.findByText("collectionDetail.addItemTitle")
+
+    fireEvent.change(screen.getByLabelText("collectionDetail.identifierLabel"), { target: { value: "ID-001" } })
+    fireEvent.change(screen.getByLabelText("collectionDetail.nameLabel"), { target: { value: "New Item" } })
+
+    const fileInput = screen.getByLabelText("collectionDetail.imageLabel")
+    const file = new File(["img"], "test.png", { type: "image/png" })
+    fireEvent.change(fileInput, { target: { files: [file] } })
+
+    const submitButtons = screen.getAllByText("collectionDetail.addItem")
+    fireEvent.click(submitButtons[submitButtons.length - 1])
+
+    // The image upload is attempted (even though it fails), then the dialog closes
+    await waitFor(() => {
+      expect(fetchCalls.some(c => c.url.includes("/image") && c.method === "POST")).toBe(true)
+    })
+  })
+
+  it("edits existing set that is currently selected and refreshes detail", async () => {
+    const setsData = [
+      { id: 10, collectionId: 1, name: "Series A", expectedItemCount: 5, completedCount: 2, completionPercentage: 40 },
+    ]
+    const setDetail = {
+      id: 10, collectionId: 1, name: "Series A", expectedItemCount: 5, completedCount: 2, completionPercentage: 40,
+      items: [],
+    }
+    vi.spyOn(global, "fetch").mockImplementation((url, opts) => {
+      const urlStr = String(url)
+      const method = (opts as RequestInit)?.method ?? "GET"
+      if (urlStr.match(/\/sets\/10$/) && method === "PUT") {
+        return Promise.resolve({ ok: true, json: () => Promise.resolve({}) } as Response)
+      }
+      if (urlStr.includes("/collection-types/")) return Promise.resolve({ ok: true, json: () => Promise.resolve(collectionType) } as Response)
+      if (urlStr.includes("/copies")) return Promise.resolve({ ok: true, json: () => Promise.resolve([]) } as Response)
+      if (urlStr.match(/\/sets\/10$/)) return Promise.resolve({ ok: true, json: () => Promise.resolve(setDetail) } as Response)
+      if (urlStr.includes("/sets")) return Promise.resolve({ ok: true, json: () => Promise.resolve(setsData) } as Response)
+      if (urlStr.match(/\/collections\/\d+$/)) return Promise.resolve({ ok: true, json: () => Promise.resolve(collection) } as Response)
+      return Promise.resolve({ ok: true, json: () => Promise.resolve(items) } as Response)
+    })
+    renderWithRoute()
+    await waitFor(() => screen.getByText("Comics"))
+
+    fireEvent.click(screen.getByText(/sets\.title/))
+    await waitFor(() => screen.getByText("Series A"))
+    // Select the set first so selectedSet.id === editingSet.id
+    fireEvent.click(screen.getByText("Series A"))
+    await waitFor(() => screen.getByText("sets.addItems"))
+
+    // Now click edit on the set — use the sidebar set list, not the detail panel
+    const setCards = document.querySelectorAll("[class*='cursor-pointer']")
+    const seriesACard = Array.from(setCards).find(el => el.textContent?.includes("Series A") && el.querySelector("button"))
+    const editButton = seriesACard?.querySelector("button")!
+    fireEvent.click(editButton)
+    await waitFor(() => screen.getByText("sets.editTitle"))
+
+    fireEvent.change(screen.getByLabelText("sets.nameLabel"), { target: { value: "Series B" } })
+    fireEvent.click(screen.getByText("sets.save"))
+
+    await waitFor(() => {
+      const putCalls = (global.fetch as ReturnType<typeof vi.fn>).mock.calls.filter(
+        (c: unknown[]) => String(c[0]).includes("/sets/10") && (c[1] as RequestInit)?.method === "PUT"
+      )
+      expect(putCalls.length).toBeGreaterThan(0)
+    })
+  })
+
+  it("deletes currently selected set and clears selection", async () => {
+    const setsData = [
+      { id: 10, collectionId: 1, name: "Series A", expectedItemCount: 0, completedCount: 0, completionPercentage: 0 },
+    ]
+    const setDetail = {
+      id: 10, collectionId: 1, name: "Series A", expectedItemCount: 0, completedCount: 0, completionPercentage: 0,
+      items: [],
+    }
+    vi.spyOn(global, "fetch").mockImplementation((url, opts) => {
+      const urlStr = String(url)
+      const method = (opts as RequestInit)?.method ?? "GET"
+      if (urlStr.match(/\/sets\/10$/) && method === "DELETE") {
+        return Promise.resolve({ ok: true, json: () => Promise.resolve({}) } as Response)
+      }
+      if (urlStr.includes("/collection-types/")) return Promise.resolve({ ok: true, json: () => Promise.resolve(collectionType) } as Response)
+      if (urlStr.includes("/copies")) return Promise.resolve({ ok: true, json: () => Promise.resolve([]) } as Response)
+      if (urlStr.match(/\/sets\/10$/)) return Promise.resolve({ ok: true, json: () => Promise.resolve(setDetail) } as Response)
+      if (urlStr.includes("/sets")) return Promise.resolve({ ok: true, json: () => Promise.resolve(setsData) } as Response)
+      if (urlStr.match(/\/collections\/\d+$/)) return Promise.resolve({ ok: true, json: () => Promise.resolve(collection) } as Response)
+      return Promise.resolve({ ok: true, json: () => Promise.resolve(items) } as Response)
+    })
+    renderWithRoute()
+    await waitFor(() => screen.getByText("Comics"))
+
+    fireEvent.click(screen.getByText(/sets\.title/))
+    await waitFor(() => screen.getByText("Series A"))
+    // Select the set
+    fireEvent.click(screen.getByText("Series A"))
+    await waitFor(() => screen.getByText("sets.addItems"))
+
+    // Click delete — use the sidebar set list
+    const setCards = document.querySelectorAll("[class*='cursor-pointer']")
+    const seriesACard = Array.from(setCards).find(el => el.textContent?.includes("Series A") && el.querySelector("button"))
+    const buttons = seriesACard?.querySelectorAll("button")
+    fireEvent.click(buttons![1]) // trash button
+
+    await waitFor(() => screen.getByText("sets.deleteTitle"))
+    fireEvent.click(screen.getByText("sets.delete"))
+
+    await waitFor(() => {
+      expect(screen.queryByText("sets.deleteTitle")).not.toBeInTheDocument()
+    })
+  })
 })

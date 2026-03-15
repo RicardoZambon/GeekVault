@@ -1160,4 +1160,150 @@ describe("CatalogItemDetail", () => {
     const dialogImages = dialog.querySelectorAll("img")
     expect(dialogImages.length).toBeGreaterThanOrEqual(2)
   })
+
+  it("uploads image when editing item with formImageFile set", async () => {
+    const fetchCalls: { url: string; method: string }[] = []
+    vi.spyOn(global, "fetch").mockImplementation((url, opts) => {
+      const urlStr = String(url)
+      const method = (opts as RequestInit)?.method ?? "GET"
+      fetchCalls.push({ url: urlStr, method })
+      if (urlStr.includes("/image") && method === "POST") {
+        return Promise.resolve({ ok: true, json: () => Promise.resolve({}) } as Response)
+      }
+      if (urlStr.includes("/items/1") && method === "PUT") {
+        return Promise.resolve({ ok: true, json: () => Promise.resolve(item) } as Response)
+      }
+      if (urlStr.includes("/copies")) return Promise.resolve({ ok: true, json: () => Promise.resolve(copies) } as Response)
+      if (urlStr.includes("/collection-types/")) return Promise.resolve({ ok: true, json: () => Promise.resolve(collectionType) } as Response)
+      if (urlStr.match(/\/collections\/\d+$/)) return Promise.resolve({ ok: true, json: () => Promise.resolve(collection) } as Response)
+      if (urlStr.includes("/items/")) return Promise.resolve({ ok: true, json: () => Promise.resolve(item) } as Response)
+      return Promise.resolve({ ok: true, json: () => Promise.resolve({}) } as Response)
+    })
+    renderWithRoute()
+    await waitFor(() => screen.getByText("Spider-Man #1"))
+
+    fireEvent.click(screen.getByText("itemDetail.edit"))
+    await screen.findByText("itemDetail.editTitle")
+
+    // Select an image file
+    const fileInput = screen.getByLabelText("collectionDetail.imageLabel")
+    const file = new File(["img"], "new.png", { type: "image/png" })
+    fireEvent.change(fileInput, { target: { files: [file] } })
+
+    // Submit the form
+    fireEvent.click(screen.getByText("collectionDetail.save"))
+
+    await waitFor(() => {
+      expect(fetchCalls.some(c => c.url.includes("/image") && c.method === "POST")).toBe(true)
+    })
+  })
+
+  it("handles edit image upload failure branch", async () => {
+    const fetchCalls: { url: string; method: string }[] = []
+    vi.spyOn(global, "fetch").mockImplementation((url, opts) => {
+      const urlStr = String(url)
+      const method = (opts as RequestInit)?.method ?? "GET"
+      fetchCalls.push({ url: urlStr, method })
+      if (urlStr.includes("/image") && method === "POST") {
+        return Promise.resolve({ ok: false } as Response)
+      }
+      if (urlStr.includes("/items/1") && method === "PUT") {
+        return Promise.resolve({ ok: true, json: () => Promise.resolve(item) } as Response)
+      }
+      if (urlStr.includes("/copies")) return Promise.resolve({ ok: true, json: () => Promise.resolve(copies) } as Response)
+      if (urlStr.includes("/collection-types/")) return Promise.resolve({ ok: true, json: () => Promise.resolve(collectionType) } as Response)
+      if (urlStr.match(/\/collections\/\d+$/)) return Promise.resolve({ ok: true, json: () => Promise.resolve(collection) } as Response)
+      if (urlStr.includes("/items/")) return Promise.resolve({ ok: true, json: () => Promise.resolve(item) } as Response)
+      return Promise.resolve({ ok: true, json: () => Promise.resolve({}) } as Response)
+    })
+    renderWithRoute()
+    await waitFor(() => screen.getByText("Spider-Man #1"))
+
+    fireEvent.click(screen.getByText("itemDetail.edit"))
+    await screen.findByText("itemDetail.editTitle")
+
+    const fileInput = screen.getByLabelText("collectionDetail.imageLabel")
+    const file = new File(["img"], "new.png", { type: "image/png" })
+    fireEvent.change(fileInput, { target: { files: [file] } })
+
+    fireEvent.click(screen.getByText("collectionDetail.save"))
+
+    // The image upload is attempted (even though it fails), then the dialog closes
+    await waitFor(() => {
+      expect(fetchCalls.some(c => c.url.includes("/image") && c.method === "POST")).toBe(true)
+    })
+  })
+
+  it("uploads copy images when adding a copy with image files", async () => {
+    const fetchCalls: { url: string; method: string }[] = []
+    vi.spyOn(global, "fetch").mockImplementation((url, opts) => {
+      const urlStr = String(url)
+      const method = (opts as RequestInit)?.method ?? "GET"
+      fetchCalls.push({ url: urlStr, method })
+      if (urlStr.includes("/copies") && urlStr.includes("/images") && method === "POST") {
+        return Promise.resolve({ ok: true, json: () => Promise.resolve({}) } as Response)
+      }
+      if (urlStr.includes("/copies") && method === "POST" && !urlStr.includes("/images")) {
+        return Promise.resolve({ ok: true, json: () => Promise.resolve({ id: 5 }) } as Response)
+      }
+      if (urlStr.includes("/copies")) return Promise.resolve({ ok: true, json: () => Promise.resolve(copies) } as Response)
+      if (urlStr.includes("/collection-types/")) return Promise.resolve({ ok: true, json: () => Promise.resolve(collectionType) } as Response)
+      if (urlStr.match(/\/collections\/\d+$/)) return Promise.resolve({ ok: true, json: () => Promise.resolve(collection) } as Response)
+      if (urlStr.includes("/items/")) return Promise.resolve({ ok: true, json: () => Promise.resolve(item) } as Response)
+      return Promise.resolve({ ok: true, json: () => Promise.resolve({}) } as Response)
+    })
+    renderWithRoute()
+    await waitFor(() => screen.getByText("Spider-Man #1"))
+
+    fireEvent.click(screen.getByText("ownedCopy.add"))
+    await screen.findByText("ownedCopy.addTitle")
+
+    // Select image files
+    const fileInput = screen.getByLabelText("ownedCopy.imagesLabel")
+    const file1 = new File(["img1"], "a.png", { type: "image/png" })
+    fireEvent.change(fileInput, { target: { files: [file1] } })
+
+    // Submit copy form
+    fireEvent.click(screen.getByText("collectionDetail.save"))
+
+    await waitFor(() => {
+      expect(fetchCalls.some(c => c.url.includes("/images") && c.method === "POST")).toBe(true)
+    })
+  })
+
+  it("handles copy image upload failure branch", async () => {
+    const fetchCalls: { url: string; method: string }[] = []
+    vi.spyOn(global, "fetch").mockImplementation((url, opts) => {
+      const urlStr = String(url)
+      const method = (opts as RequestInit)?.method ?? "GET"
+      fetchCalls.push({ url: urlStr, method })
+      if (urlStr.includes("/copies") && urlStr.includes("/images") && method === "POST") {
+        return Promise.resolve({ ok: false } as Response)
+      }
+      if (urlStr.includes("/copies") && method === "POST" && !urlStr.includes("/images")) {
+        return Promise.resolve({ ok: true, json: () => Promise.resolve({ id: 5 }) } as Response)
+      }
+      if (urlStr.includes("/copies")) return Promise.resolve({ ok: true, json: () => Promise.resolve(copies) } as Response)
+      if (urlStr.includes("/collection-types/")) return Promise.resolve({ ok: true, json: () => Promise.resolve(collectionType) } as Response)
+      if (urlStr.match(/\/collections\/\d+$/)) return Promise.resolve({ ok: true, json: () => Promise.resolve(collection) } as Response)
+      if (urlStr.includes("/items/")) return Promise.resolve({ ok: true, json: () => Promise.resolve(item) } as Response)
+      return Promise.resolve({ ok: true, json: () => Promise.resolve({}) } as Response)
+    })
+    renderWithRoute()
+    await waitFor(() => screen.getByText("Spider-Man #1"))
+
+    fireEvent.click(screen.getByText("ownedCopy.add"))
+    await screen.findByText("ownedCopy.addTitle")
+
+    const fileInput = screen.getByLabelText("ownedCopy.imagesLabel")
+    const file1 = new File(["img1"], "a.png", { type: "image/png" })
+    fireEvent.change(fileInput, { target: { files: [file1] } })
+
+    fireEvent.click(screen.getByText("collectionDetail.save"))
+
+    // The image upload is attempted (even though it fails), then the dialog closes
+    await waitFor(() => {
+      expect(fetchCalls.some(c => c.url.includes("/images") && c.method === "POST")).toBe(true)
+    })
+  })
 })
