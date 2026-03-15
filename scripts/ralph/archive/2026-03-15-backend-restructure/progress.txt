@@ -1,0 +1,19 @@
+# Ralph Progress Log
+Started: Sat Mar 15 2026
+Feature: Frontend Redesign
+---
+
+## Codebase Patterns
+- Tailwind CSS v4 via @tailwindcss/postcss (not vite plugin — incompatible with Vite 8)
+- shadcn/ui set up manually (CLI incompatible with Node 24)
+- Path alias: @/ maps to src/ (configured in vite.config.ts and tsconfig)
+- API proxy: /api and /uploads -> http://localhost:5099 (configured in vite.config.ts)
+- i18n: react-i18next — translations in src/i18n/locales/{en,pt}.json, add keys to BOTH files when adding UI strings
+- React 19 + TypeScript 5.9 + Vite 8
+- Components use forwardRef pattern with React.ComponentProps for prop spreading
+- Theme uses CSS custom properties in OKLch color space in index.css, toggled via .dark class on html
+- Auth token stored in localStorage key "geekvault-token", injected as Bearer header
+- All existing page components are monolithic single-file components in src/pages/ (will be moved to src/features/)
+- Tests use vitest + @testing-library/react + jsdom — run with: npm test, coverage with: npm run test:coverage
+- Build: npm run build, Typecheck: npx tsc -b
+---
