@@ -11,6 +11,8 @@ public class Collection
     public string? Description { get; set; }
     public string? CoverImage { get; set; }
     public Visibility Visibility { get; set; } = Visibility.Private;
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime? UpdatedAt { get; set; }
 
     public User User { get; set; } = null!;
     public CollectionType CollectionType { get; set; } = null!;

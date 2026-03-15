@@ -22,7 +22,7 @@ public class CollectionsService : ICollectionsService
         {
             var itemCount = await _repository.GetItemCountAsync(c.Id);
             responses.Add(new CollectionResponse(c.Id, c.Name, c.Description, c.CoverImage,
-                c.Visibility.ToString(), c.CollectionTypeId, itemCount));
+                c.Visibility.ToString(), c.CollectionTypeId, itemCount, c.CreatedAt, c.UpdatedAt));
         }
         return responses;
     }
@@ -34,7 +34,7 @@ public class CollectionsService : ICollectionsService
 
         var itemCount = await _repository.GetItemCountAsync(c.Id);
         return new CollectionResponse(c.Id, c.Name, c.Description, c.CoverImage,
-            c.Visibility.ToString(), c.CollectionTypeId, itemCount);
+            c.Visibility.ToString(), c.CollectionTypeId, itemCount, c.CreatedAt, c.UpdatedAt);
     }
 
     public async Task<CollectionResponse> CreateAsync(string userId, CreateCollectionRequest request)
@@ -48,14 +48,15 @@ public class CollectionsService : ICollectionsService
             CollectionTypeId = request.CollectionTypeId,
             Name = request.Name,
             Description = request.Description,
-            Visibility = visibility
+            Visibility = visibility,
+            CreatedAt = DateTime.UtcNow
         };
 
         await _repository.AddAsync(collection);
         await _repository.SaveChangesAsync();
 
         return new CollectionResponse(collection.Id, collection.Name, collection.Description, collection.CoverImage,
-            collection.Visibility.ToString(), collection.CollectionTypeId, 0);
+            collection.Visibility.ToString(), collection.CollectionTypeId, 0, collection.CreatedAt, collection.UpdatedAt);
     }
 
     public async Task<CollectionResponse?> UpdateAsync(int id, string userId, UpdateCollectionRequest request)
@@ -67,12 +68,14 @@ public class CollectionsService : ICollectionsService
         collection.Description = request.Description;
         if (request.Visibility != null && Enum.TryParse<Visibility>(request.Visibility, true, out var vis))
             collection.Visibility = vis;
+        collection.UpdatedAt = DateTime.UtcNow;
 
         await _repository.SaveChangesAsync();
 
         var itemCount = await _repository.GetItemCountAsync(collection.Id);
         return new CollectionResponse(collection.Id, collection.Name, collection.Description,
-            collection.CoverImage, collection.Visibility.ToString(), collection.CollectionTypeId, itemCount);
+            collection.CoverImage, collection.Visibility.ToString(), collection.CollectionTypeId, itemCount,
+            collection.CreatedAt, collection.UpdatedAt);
     }
 
     public async Task<bool> DeleteAsync(int id, string userId)
@@ -109,6 +112,7 @@ public class CollectionsService : ICollectionsService
         }
 
         collection.CoverImage = $"/uploads/{fileName}";
+        collection.UpdatedAt = DateTime.UtcNow;
         await _repository.SaveChangesAsync();
 
         return (collection.CoverImage, false, null);
