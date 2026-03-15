@@ -1,0 +1,27 @@
+## Codebase Patterns
+- i18n: All UI strings go in both `src/web/src/i18n/locales/en.json` and `pt.json` — nested keys under feature namespaces
+- Typecheck: `cd src/web && npx tsc -b` must pass before committing
+- Frontend tests: `cd src/web && npm test` to run all tests
+
+---
+
+## 2026-03-15 - US-001
+- Added i18n keys for sidebar and toolbar redesign to both en.json and pt.json
+- Keys added: `app.tagline`, `nav.groups.*`, `nav.userMenu.*`, `toolbar.*`
+- Files changed: `src/web/src/i18n/locales/en.json`, `src/web/src/i18n/locales/pt.json`
+- **Learnings for future iterations:**
+  - The locale files are plain JSON with nested namespaces — follow existing grouping conventions
+  - Both locale files must stay in sync — same keys, translated values
+---
+
+## 2026-03-15 - US-002
+- DropdownMenu component already existed at `src/web/src/components/ds/dropdown-menu.tsx`
+- It wraps `@radix-ui/react-dropdown-menu` (already installed) and exports all required primitives
+- Barrel export in `ds/index.ts` already includes all DropdownMenu exports
+- No code changes needed — verified existing implementation meets all acceptance criteria
+- Files changed: none (just PRD update)
+- **Learnings for future iterations:**
+  - The `components/ds/` directory is where shadcn/ui-style components live (not `components/ui/`)
+  - `components/ui/` has lower-level primitives (button, dialog, input, label, sheet)
+  - Always check existing components before creating new ones — the PRD notes hint at this
+---
