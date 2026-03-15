@@ -2,3 +2,7 @@ export { Card, CardHeader, CardFooter, CardTitle, CardDescription, CardContent, 
 export type { CardProps } from "./card"
 export { Badge, badgeVariants } from "./badge"
 export type { BadgeProps } from "./badge"
+export { EmptyState } from "./empty-state"
+export type { EmptyStateProps } from "./empty-state"
+export { PageHeader } from "./page-header"
+export type { PageHeaderProps } from "./page-header"
