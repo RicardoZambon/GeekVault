@@ -12,6 +12,7 @@ public class CatalogItem
     public string? ReferenceCode { get; set; }
     public string? Image { get; set; }
     public string? Rarity { get; set; }
+    public int SortOrder { get; set; }
     public List<CustomFieldValue> CustomFieldValues { get; set; } = new();
 
     public Collection Collection { get; set; } = null!;

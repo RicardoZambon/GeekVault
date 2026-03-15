@@ -66,7 +66,7 @@ public class CatalogItemsService : ICatalogItemsService
             "name" => isDesc ? query.OrderByDescending(i => i.Name) : query.OrderBy(i => i.Name),
             "date" => isDesc ? query.OrderByDescending(i => i.ReleaseDate) : query.OrderBy(i => i.ReleaseDate),
             "rarity" => isDesc ? query.OrderByDescending(i => i.Rarity) : query.OrderBy(i => i.Rarity),
-            _ => query.OrderBy(i => i.Id)
+            _ => query.OrderBy(i => i.SortOrder).ThenBy(i => i.Id)
         };
 
         // Pagination
@@ -144,6 +144,8 @@ public class CatalogItemsService : ICatalogItemsService
             }).ToList()
         };
 
+        item.SortOrder = await _catalogItemsRepository.GetMaxSortOrderAsync(collectionId) + 1;
+
         await _catalogItemsRepository.AddAsync(item);
         await _catalogItemsRepository.SaveChangesAsync();
 
@@ -202,6 +204,26 @@ public class CatalogItemsService : ICatalogItemsService
         _catalogItemsRepository.Remove(item);
         await _catalogItemsRepository.SaveChangesAsync();
         return true;
+    }
+
+    public async Task<(bool Success, bool NotFound, string? Error)> ReorderAsync(
+        int collectionId, string userId, List<int> itemIds)
+    {
+        var collection = await _collectionsRepository.GetByIdAndUserIdAsync(collectionId, userId);
+        if (collection == null) return (false, true, null);
+
+        var items = await _catalogItemsRepository.GetByIdsAndCollectionIdAsync(itemIds, collectionId);
+        if (items.Count != itemIds.Count)
+            return (false, false, "Some item IDs do not belong to this collection");
+
+        for (var i = 0; i < itemIds.Count; i++)
+        {
+            var item = items.First(x => x.Id == itemIds[i]);
+            item.SortOrder = i;
+        }
+
+        await _catalogItemsRepository.SaveChangesAsync();
+        return (true, false, null);
     }
 
     public async Task<(string? ImageUrl, bool NotFound, string? Error)> UploadImageAsync(

@@ -10,5 +10,6 @@ public interface ICatalogItemsService
     Task<(CatalogItemResponse? Response, bool NotFound, string? Error)> CreateAsync(int collectionId, string userId, CreateCatalogItemRequest request);
     Task<(CatalogItemResponse? Response, bool NotFound, string? Error)> UpdateAsync(int collectionId, int id, string userId, UpdateCatalogItemRequest request);
     Task<bool?> DeleteAsync(int collectionId, int id, string userId);
+    Task<(bool Success, bool NotFound, string? Error)> ReorderAsync(int collectionId, string userId, List<int> itemIds);
     Task<(string? ImageUrl, bool NotFound, string? Error)> UploadImageAsync(int collectionId, int id, string userId, IFormFile file, string webRootPath);
 }

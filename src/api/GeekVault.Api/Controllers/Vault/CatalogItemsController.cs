@@ -106,6 +106,23 @@ public static class CatalogItemsController
         .WithName("DeleteCatalogItem")
         .WithOpenApi();
 
+        app.MapPost("/api/collections/{collectionId:int}/items/reorder", async (
+            int collectionId,
+            ReorderItemsRequest request,
+            ClaimsPrincipal principal,
+            ICatalogItemsService service) =>
+        {
+            var userId = principal.FindFirstValue(ClaimTypes.NameIdentifier)!;
+            var (success, notFound, error) = await service.ReorderAsync(collectionId, userId, request.ItemIds);
+            if (notFound) return Results.NotFound();
+            if (error != null) return Results.BadRequest(new { error });
+
+            return Results.NoContent();
+        })
+        .RequireAuthorization()
+        .WithName("ReorderCatalogItems")
+        .WithOpenApi();
+
         app.MapPost("/api/collections/{collectionId:int}/items/{id:int}/image", async (
             int collectionId,
             int id,
