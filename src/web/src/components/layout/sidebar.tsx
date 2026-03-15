@@ -14,6 +14,7 @@ import { useAuth } from "@/components/auth-provider"
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ds"
 import { cn } from "@/lib/utils"
 import { useMediaQuery } from "@/hooks"
+import { UserMenu } from "./user-menu"
 import logoFull from "@/assets/logo-full.png"
 import vaultIcon from "@/assets/vault-icon.png"
 
@@ -172,31 +173,28 @@ export function Sidebar() {
 
       {/* User section */}
       <div className="border-t border-sidebar-border p-2">
-        {collapsed ? (
-          <Tooltip delayDuration={0}>
-            <TooltipTrigger asChild>
-              <div className="flex justify-center">
-                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-sidebar-primary text-sidebar-primary-foreground text-xs font-bold">
-                  {initials}
-                </div>
-              </div>
-            </TooltipTrigger>
-            <TooltipContent side="right">
-              {user?.displayName || user?.email}
-            </TooltipContent>
-          </Tooltip>
-        ) : (
-          <div className="flex items-center gap-3 px-2 py-1">
+        <UserMenu side="top" align="start">
+          <button
+            className={cn(
+              "flex w-full items-center rounded-lg py-2 transition-colors hover:bg-sidebar-accent/50",
+              collapsed ? "justify-center px-2" : "gap-3 px-2"
+            )}
+          >
             <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-sidebar-primary text-sidebar-primary-foreground text-xs font-bold">
               {initials}
             </div>
-            <div className="flex-1 min-w-0">
-              <p className="truncate text-sm font-medium text-sidebar-foreground">
-                {user?.displayName}
-              </p>
-            </div>
-          </div>
-        )}
+            {!collapsed && (
+              <div className="flex-1 min-w-0 text-left">
+                <p className="truncate text-sm font-medium text-sidebar-foreground">
+                  {user?.displayName}
+                </p>
+                <p className="truncate text-xs text-sidebar-foreground/50">
+                  {user?.email}
+                </p>
+              </div>
+            )}
+          </button>
+        </UserMenu>
       </div>
 
       {/* Edge collapse toggle */}
@@ -274,16 +272,21 @@ export function MobileSidebarContent({ onClose }: { onClose: () => void }) {
 
       {/* User section */}
       <div className="border-t border-sidebar-border p-4">
-        <div className="flex items-center gap-3 px-2 py-1">
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-sidebar-primary text-sidebar-primary-foreground text-xs font-bold">
-            {initials}
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="truncate text-sm font-medium text-sidebar-foreground">
-              {user?.displayName}
-            </p>
-          </div>
-        </div>
+        <UserMenu side="top" align="start">
+          <button className="flex w-full items-center gap-3 rounded-lg px-2 py-2 transition-colors hover:bg-sidebar-accent/50">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-sidebar-primary text-sidebar-primary-foreground text-xs font-bold">
+              {initials}
+            </div>
+            <div className="flex-1 min-w-0 text-left">
+              <p className="truncate text-sm font-medium text-sidebar-foreground">
+                {user?.displayName}
+              </p>
+              <p className="truncate text-xs text-sidebar-foreground/50">
+                {user?.email}
+              </p>
+            </div>
+          </button>
+        </UserMenu>
       </div>
     </div>
   )

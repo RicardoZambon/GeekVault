@@ -173,7 +173,7 @@
         "Verify in browser using dev-browser skill"
       ],
       "priority": 10,
-      "passes": false,
+      "passes": true,
       "notes": "Extract a shared UserMenu component that can be reused in the top toolbar (US-013). Use DropdownMenu from US-002."
     },
     {

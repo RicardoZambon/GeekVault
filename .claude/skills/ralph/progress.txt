@@ -105,4 +105,19 @@
   - Logout will be in the user profile dropdown (US-010)
   - The edge toggle uses absolute positioning with translate-x-1/2 to sit on the sidebar edge
   - `group/sidebar` is a named Tailwind group for scoped hover
+- UserMenu shared component at `src/web/src/components/layout/user-menu.tsx` — reusable in toolbar and sidebar
+---
+
+## 2026-03-15 - US-010
+- Created shared `UserMenu` component at `components/layout/user-menu.tsx`
+- UserMenu wraps DropdownMenu with: user name/email label, Profile, Settings (disabled), Help (disabled), Logout
+- Desktop sidebar user block is now clickable and opens UserMenu dropdown
+- Collapsed sidebar shows avatar icon, clicks open the same dropdown
+- Mobile sidebar updated with same UserMenu dropdown
+- Email shown in both expanded profile block and dropdown label
+- Files changed: `src/web/src/components/layout/user-menu.tsx` (new), `src/web/src/components/layout/sidebar.tsx`
+- **Learnings for future iterations:**
+  - UserMenu accepts `side` and `align` props for positioning flexibility
+  - Uses `children` as trigger via DropdownMenuTrigger asChild
+  - Settings and Help items are disabled with opacity-50 and cursor-not-allowed
 ---
