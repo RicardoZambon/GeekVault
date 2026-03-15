@@ -149,3 +149,9 @@
 - All buttons use ghost variant with size="icon"
 - Files changed: `src/web/src/components/layout/top-toolbar.tsx`
 ---
+
+## 2026-03-15 - US-014
+- All acceptance criteria already met by prior stories (US-003, US-006, US-009, US-010)
+- MobileSidebarContent has grouped nav with labels, UserMenu dropdown, no standalone logout
+- No code changes needed
+---
