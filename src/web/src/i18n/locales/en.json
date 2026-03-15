@@ -15,6 +15,7 @@
   "dashboard": {
     "title": "Dashboard",
     "description": "Overview of your collections and stats.",
+    "welcome": "Welcome back, {{name}}",
     "loading": "Loading dashboard...",
     "fetchError": "Failed to load dashboard data",
     "totalCollections": "Collections",

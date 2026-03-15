@@ -15,6 +15,7 @@
   "dashboard": {
     "title": "Painel",
     "description": "Visão geral das suas coleções e estatísticas.",
+    "welcome": "Bem-vindo de volta, {{name}}",
     "loading": "Carregando painel...",
     "fetchError": "Falha ao carregar dados do painel",
     "totalCollections": "Coleções",
