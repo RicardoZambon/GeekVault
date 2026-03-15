@@ -1,7 +1,41 @@
-import { useState, useEffect, type FormEvent } from "react"
+import { useState, useEffect, useMemo, type FormEvent } from "react"
 import { useTranslation } from "react-i18next"
-import { Plus, Pencil, Trash2, Heart, Link } from "lucide-react"
-import { EmptyState } from "@/components/ds"
+import {
+  Plus,
+  Pencil,
+  Trash2,
+  Heart,
+  Link,
+  MoreVertical,
+  ChevronDown,
+  ChevronRight,
+  DollarSign,
+  FileText,
+  Loader2,
+} from "lucide-react"
+import { motion, AnimatePresence } from "framer-motion"
+import {
+  EmptyState,
+  PageHeader,
+  Card,
+  CardContent,
+  Badge,
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+  StaggerChildren,
+  staggerItemVariants,
+  SkeletonRect,
+  SkeletonText,
+  toast,
+} from "@/components/ds"
+import { FadeIn } from "@/components/ds"
 import { useAuth } from "@/components/auth-provider"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -13,6 +47,9 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog"
+import {
+  ConfirmDialog,
+} from "@/components/ui/confirm-dialog"
 
 interface Collection {
   id: number
@@ -40,13 +77,57 @@ interface GroupedWishlist {
   items: WishlistItem[]
 }
 
+type PriorityFilter = "all" | "high" | "medium" | "low"
+type SortOption = "priority" | "price" | "name"
+
+function getPriorityVariant(priority: number): "destructive" | "accent" | "default" {
+  if (priority <= 1) return "destructive"
+  if (priority <= 2) return "accent"
+  return "default"
+}
+
+function getPriorityLabel(priority: number, t: (key: string) => string): string {
+  if (priority <= 1) return t("wishlist.priorityHigh")
+  if (priority <= 2) return t("wishlist.priorityMedium")
+  return t("wishlist.priorityLow")
+}
+
+function WishlistSkeleton() {
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center gap-3">
+        <SkeletonRect width="8rem" height="1.5rem" />
+        <SkeletonRect width="2rem" height="1.5rem" />
+      </div>
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {Array.from({ length: 6 }).map((_, i) => (
+          <div key={i} className="rounded-xl border bg-card p-4 space-y-3">
+            <div className="flex items-center gap-2">
+              <SkeletonRect width="4rem" height="1.25rem" />
+              <SkeletonRect width="5rem" height="1.25rem" />
+            </div>
+            <SkeletonText lines={2} />
+            <SkeletonRect width="6rem" height="1rem" />
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 export default function Wishlist() {
   const { t } = useTranslation()
   const { token } = useAuth()
 
   const [groups, setGroups] = useState<GroupedWishlist[]>([])
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState("")
+
+  // Filters
+  const [priorityFilter, setPriorityFilter] = useState<PriorityFilter>("all")
+  const [sortBy, setSortBy] = useState<SortOption>("priority")
+
+  // Collapsible groups
+  const [expandedGroups, setExpandedGroups] = useState<Set<number>>(new Set())
 
   // Dialog state
   const [dialogOpen, setDialogOpen] = useState(false)
@@ -93,8 +174,10 @@ export default function Wishlist() {
         }
       }
       setGroups(grouped)
+      // Expand all groups by default
+      setExpandedGroups(new Set(grouped.map((g) => g.collection.id)))
     } catch {
-      setError(t("wishlist.fetchError"))
+      toast.error(t("wishlist.fetchError"))
     } finally {
       setLoading(false)
     }
@@ -103,6 +186,39 @@ export default function Wishlist() {
   useEffect(() => {
     fetchData()
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Filter and sort groups
+  const filteredGroups = useMemo(() => {
+    return groups
+      .map((group) => {
+        let items = [...group.items]
+
+        // Filter by priority
+        if (priorityFilter === "high") items = items.filter((i) => i.priority <= 1)
+        else if (priorityFilter === "medium") items = items.filter((i) => i.priority === 2)
+        else if (priorityFilter === "low") items = items.filter((i) => i.priority >= 3)
+
+        // Sort
+        items.sort((a, b) => {
+          if (sortBy === "priority") return a.priority - b.priority
+          if (sortBy === "price") return (a.targetPrice ?? Infinity) - (b.targetPrice ?? Infinity)
+          if (sortBy === "name") return a.name.localeCompare(b.name)
+          return 0
+        })
+
+        return { ...group, items }
+      })
+      .filter((group) => group.items.length > 0)
+  }, [groups, priorityFilter, sortBy])
+
+  function toggleGroup(collectionId: number) {
+    setExpandedGroups((prev) => {
+      const next = new Set(prev)
+      if (next.has(collectionId)) next.delete(collectionId)
+      else next.add(collectionId)
+      return next
+    })
+  }
 
   function openCreate() {
     setEditingItem(null)
@@ -204,6 +320,7 @@ export default function Wishlist() {
       }
 
       setDialogOpen(false)
+      toast.success(editingItem ? t("wishlist.updateSuccess") : t("wishlist.addSuccess"))
       setLoading(true)
       await fetchData()
     } catch (err) {
@@ -225,10 +342,11 @@ export default function Wishlist() {
       )
       if (!res.ok) throw new Error("Failed to delete")
       setDeleteItem(null)
+      toast.success(t("wishlist.deleteSuccess"))
       setLoading(true)
       await fetchData()
     } catch {
-      setError(t("wishlist.deleteFailed"))
+      toast.error(t("wishlist.deleteFailed"))
     } finally {
       setDeleting(false)
     }
@@ -236,36 +354,41 @@ export default function Wishlist() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-12">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
-      </div>
+      <FadeIn>
+        <PageHeader
+          title={t("wishlist.title")}
+          actions={
+            <Button disabled>
+              <Plus className="mr-2 h-4 w-4" />
+              {t("wishlist.add")}
+            </Button>
+          }
+        />
+        <div className="mt-6">
+          <WishlistSkeleton />
+        </div>
+      </FadeIn>
     )
   }
 
   const totalItems = groups.reduce((sum, g) => sum + g.items.length, 0)
 
   return (
-    <div>
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">
-            {t("wishlist.title")}
-          </h1>
-          <p className="mt-2 text-muted-foreground">
-            {t("wishlist.description")}
-          </p>
-        </div>
-        <Button onClick={openCreate} disabled={collections.length === 0}>
-          <Plus className="h-4 w-4" />
-          {t("wishlist.add")}
-        </Button>
-      </div>
-
-      {error && (
-        <div className="mt-4 rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive-foreground">
-          {error}
-        </div>
-      )}
+    <FadeIn>
+      <PageHeader
+        title={t("wishlist.title")}
+        description={t("wishlist.description")}
+        actions={
+          <Button
+            onClick={openCreate}
+            disabled={collections.length === 0}
+            className="bg-accent text-accent-foreground hover:bg-accent/90"
+          >
+            <Plus className="mr-2 h-4 w-4" />
+            {t("wishlist.add")}
+          </Button>
+        }
+      />
 
       {totalItems === 0 ? (
         <EmptyState
@@ -273,66 +396,161 @@ export default function Wishlist() {
           title={t("emptyStates.wishlist.title")}
           description={t("emptyStates.wishlist.description")}
           actionLabel={t("emptyStates.wishlist.action")}
-          onAction={() => setDialogOpen(true)}
+          onAction={openCreate}
         />
       ) : (
-        <div className="mt-6 space-y-8">
-          {groups.map((group) => (
-            <div key={group.collection.id}>
-              <h2 className="mb-3 text-lg font-semibold text-foreground">
-                {group.collection.name}
-              </h2>
-              <div className="space-y-2">
-                {group.items.map((item) => (
-                  <div
-                    key={item.id}
-                    className="flex items-center gap-4 rounded-lg border bg-card p-4 shadow-sm"
+        <>
+          {/* Filter/Sort Toolbar */}
+          <div className="mt-6 flex flex-wrap items-center gap-3">
+            <Select value={priorityFilter} onValueChange={(v) => setPriorityFilter(v as PriorityFilter)}>
+              <SelectTrigger className="w-[160px]">
+                <SelectValue placeholder={t("wishlist.filterPriority")} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">{t("wishlist.priorityAll")}</SelectItem>
+                <SelectItem value="high">{t("wishlist.priorityHigh")}</SelectItem>
+                <SelectItem value="medium">{t("wishlist.priorityMedium")}</SelectItem>
+                <SelectItem value="low">{t("wishlist.priorityLow")}</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Select value={sortBy} onValueChange={(v) => setSortBy(v as SortOption)}>
+              <SelectTrigger className="w-[160px]">
+                <SelectValue placeholder={t("wishlist.sortBy")} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="priority">{t("wishlist.sortPriority")}</SelectItem>
+                <SelectItem value="price">{t("wishlist.sortPrice")}</SelectItem>
+                <SelectItem value="name">{t("wishlist.sortName")}</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <span className="ml-auto text-sm text-muted-foreground">
+              {t("wishlist.itemCount", { count: totalItems })}
+            </span>
+          </div>
+
+          {/* Grouped items */}
+          <div className="mt-6 space-y-6">
+            {filteredGroups.map((group) => {
+              const isExpanded = expandedGroups.has(group.collection.id)
+              return (
+                <div key={group.collection.id}>
+                  {/* Collection group header */}
+                  <button
+                    onClick={() => toggleGroup(group.collection.id)}
+                    className="flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left transition-colors hover:bg-muted/50"
                   >
-                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary">
-                      {item.priority}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2">
-                        <span className="truncate font-medium">{item.name}</span>
-                        {item.catalogItemId && (
-                          <Link className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-                        )}
-                      </div>
-                      <div className="mt-0.5 flex items-center gap-3 text-sm text-muted-foreground">
-                        {item.targetPrice != null && (
-                          <span>{t("wishlist.targetPrice")}: ${item.targetPrice.toFixed(2)}</span>
-                        )}
-                        {item.notes && (
-                          <span className="truncate">{item.notes}</span>
-                        )}
-                      </div>
-                    </div>
-                    <div className="flex shrink-0 items-center gap-1">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8"
-                        onClick={() => openEdit(item)}
-                        aria-label={t("wishlist.edit")}
+                    {isExpanded ? (
+                      <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                    ) : (
+                      <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                    )}
+                    <h2 className="font-display text-lg font-semibold">
+                      {group.collection.name}
+                    </h2>
+                    <Badge variant="default" size="sm">
+                      {group.items.length}
+                    </Badge>
+                  </button>
+
+                  <AnimatePresence initial={false}>
+                    {isExpanded && (
+                      <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: "auto", opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.2, ease: "easeInOut" }}
+                        className="overflow-hidden"
                       >
-                        <Pencil className="h-3.5 w-3.5" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 text-destructive"
-                        onClick={() => setDeleteItem(item)}
-                        aria-label={t("wishlist.delete")}
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </Button>
-                    </div>
-                  </div>
-                ))}
+                        <StaggerChildren className="mt-3 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                          {group.items.map((item) => (
+                            <motion.div key={item.id} variants={staggerItemVariants}>
+                              <Card className="group relative h-full">
+                                <CardContent className="p-4">
+                                  {/* Header: name + priority badge */}
+                                  <div className="flex items-start justify-between gap-2">
+                                    <div className="min-w-0 flex-1">
+                                      <div className="flex items-center gap-2">
+                                        <span className="truncate font-semibold text-foreground">
+                                          {item.name}
+                                        </span>
+                                        {item.catalogItemId && (
+                                          <Link className="h-3.5 w-3.5 shrink-0 text-accent" />
+                                        )}
+                                      </div>
+                                      <Badge
+                                        variant={getPriorityVariant(item.priority)}
+                                        size="sm"
+                                        className="mt-1.5"
+                                      >
+                                        {getPriorityLabel(item.priority, t)}
+                                      </Badge>
+                                    </div>
+
+                                    {/* Actions dropdown */}
+                                    <DropdownMenu>
+                                      <DropdownMenuTrigger asChild>
+                                        <Button
+                                          variant="ghost"
+                                          size="icon"
+                                          className="h-8 w-8 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                                        >
+                                          <MoreVertical className="h-4 w-4" />
+                                        </Button>
+                                      </DropdownMenuTrigger>
+                                      <DropdownMenuContent align="end">
+                                        <DropdownMenuItem onClick={() => openEdit(item)}>
+                                          <Pencil className="mr-2 h-4 w-4" />
+                                          {t("wishlist.edit")}
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem
+                                          onClick={() => setDeleteItem(item)}
+                                          className="text-destructive focus:text-destructive"
+                                        >
+                                          <Trash2 className="mr-2 h-4 w-4" />
+                                          {t("wishlist.delete")}
+                                        </DropdownMenuItem>
+                                      </DropdownMenuContent>
+                                    </DropdownMenu>
+                                  </div>
+
+                                  {/* Target price */}
+                                  {item.targetPrice != null && (
+                                    <div className="mt-3 flex items-center gap-1.5 text-sm text-muted-foreground">
+                                      <DollarSign className="h-3.5 w-3.5" />
+                                      <span>
+                                        {t("wishlist.targetPrice")}: ${item.targetPrice.toFixed(2)}
+                                      </span>
+                                    </div>
+                                  )}
+
+                                  {/* Notes */}
+                                  {item.notes && (
+                                    <div className="mt-2 flex items-start gap-1.5 text-sm text-muted-foreground">
+                                      <FileText className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                                      <span className="line-clamp-2">{item.notes}</span>
+                                    </div>
+                                  )}
+                                </CardContent>
+                              </Card>
+                            </motion.div>
+                          ))}
+                        </StaggerChildren>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              )
+            })}
+
+            {filteredGroups.length === 0 && (
+              <div className="py-12 text-center text-muted-foreground">
+                {t("wishlist.noResults")}
               </div>
-            </div>
-          ))}
-        </div>
+            )}
+          </div>
+        </>
       )}
 
       {/* Create/Edit Dialog */}
@@ -359,22 +577,21 @@ export default function Wishlist() {
             {!editingItem && (
               <div className="space-y-2">
                 <Label htmlFor="wl-collection">{t("wishlist.collectionLabel")}</Label>
-                <select
-                  id="wl-collection"
-                  value={formCollectionId}
-                  onChange={(e) =>
-                    setFormCollectionId(e.target.value ? Number(e.target.value) : "")
-                  }
-                  disabled={submitting}
-                  className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50"
+                <Select
+                  value={formCollectionId ? String(formCollectionId) : ""}
+                  onValueChange={(v) => setFormCollectionId(v ? Number(v) : "")}
                 >
-                  <option value="">{t("wishlist.selectCollection")}</option>
-                  {collections.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.name}
-                    </option>
-                  ))}
-                </select>
+                  <SelectTrigger>
+                    <SelectValue placeholder={t("wishlist.selectCollection")} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {collections.map((c) => (
+                      <SelectItem key={c.id} value={String(c.id)}>
+                        {c.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             )}
 
@@ -392,14 +609,19 @@ export default function Wishlist() {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="wl-priority">{t("wishlist.priorityLabel")}</Label>
-                <Input
-                  id="wl-priority"
-                  type="number"
-                  min={1}
-                  value={formPriority}
-                  onChange={(e) => setFormPriority(Number(e.target.value) || 1)}
-                  disabled={submitting}
-                />
+                <Select
+                  value={String(formPriority)}
+                  onValueChange={(v) => setFormPriority(Number(v))}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="1">{t("wishlist.priorityHigh")}</SelectItem>
+                    <SelectItem value="2">{t("wishlist.priorityMedium")}</SelectItem>
+                    <SelectItem value="3">{t("wishlist.priorityLow")}</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="wl-price">{t("wishlist.targetPriceLabel")}</Label>
@@ -432,7 +654,7 @@ export default function Wishlist() {
               <Label>{t("wishlist.linkCatalogItem")}</Label>
               {formCatalogItemId ? (
                 <div className="flex items-center gap-2 rounded-md border px-3 py-2 text-sm">
-                  <Link className="h-3.5 w-3.5 text-muted-foreground" />
+                  <Link className="h-3.5 w-3.5 text-accent" />
                   <span className="flex-1">{t("wishlist.linked")}</span>
                   <Button
                     type="button"
@@ -458,7 +680,7 @@ export default function Wishlist() {
                         <button
                           key={ci.id}
                           type="button"
-                          className="flex w-full items-center gap-2 px-3 py-1.5 text-sm hover:bg-accent"
+                          className="flex w-full items-center gap-2 px-3 py-1.5 text-sm hover:bg-accent/10"
                           onClick={() => {
                             setFormCatalogItemId(ci.id)
                             setFormName(formName || ci.name)
@@ -490,6 +712,7 @@ export default function Wishlist() {
                 {t("wishlist.cancel")}
               </Button>
               <Button type="submit" disabled={submitting}>
+                {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 {submitting
                   ? t("wishlist.saving")
                   : editingItem
@@ -502,35 +725,18 @@ export default function Wishlist() {
       </Dialog>
 
       {/* Delete Confirmation Dialog */}
-      <Dialog
+      <ConfirmDialog
         open={deleteItem !== null}
         onOpenChange={(open) => !open && setDeleteItem(null)}
-      >
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>{t("wishlist.deleteTitle")}</DialogTitle>
-            <DialogDescription>
-              {t("wishlist.deleteConfirm")}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="flex justify-end gap-2">
-            <Button
-              variant="outline"
-              onClick={() => setDeleteItem(null)}
-              disabled={deleting}
-            >
-              {t("wishlist.cancel")}
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={handleDelete}
-              disabled={deleting}
-            >
-              {deleting ? t("wishlist.deleting") : t("wishlist.delete")}
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-    </div>
+        title={t("wishlist.deleteTitle")}
+        description={t("wishlist.deleteConfirm")}
+        confirmLabel={t("wishlist.delete")}
+        cancelLabel={t("wishlist.cancel")}
+        loadingLabel={t("wishlist.deleting")}
+        loading={deleting}
+        onConfirm={handleDelete}
+        variant="destructive"
+      />
+    </FadeIn>
   )
 }

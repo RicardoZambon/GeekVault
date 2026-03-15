@@ -342,7 +342,21 @@
     "deleteFailed": "Failed to delete wishlist item",
     "saveFailed": "Failed to save wishlist item",
     "fetchError": "Failed to load wishlist",
-    "empty": "Your wishlist is empty. Add items you want to acquire."
+    "empty": "Your wishlist is empty. Add items you want to acquire.",
+    "filterPriority": "Filter by priority",
+    "priorityAll": "All Priorities",
+    "priorityHigh": "High",
+    "priorityMedium": "Medium",
+    "priorityLow": "Low",
+    "sortBy": "Sort by",
+    "sortPriority": "Priority",
+    "sortPrice": "Price",
+    "sortName": "Name",
+    "itemCount": "{{count}} items",
+    "noResults": "No items match the selected filters.",
+    "updateSuccess": "Wishlist item updated successfully.",
+    "addSuccess": "Wishlist item added successfully.",
+    "deleteSuccess": "Wishlist item deleted successfully."
   },
   "profile": {
     "title": "Profile",

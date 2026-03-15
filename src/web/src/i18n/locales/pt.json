@@ -342,7 +342,21 @@
     "deleteFailed": "Falha ao excluir item da lista de desejos",
     "saveFailed": "Falha ao salvar item da lista de desejos",
     "fetchError": "Falha ao carregar lista de desejos",
-    "empty": "Sua lista de desejos está vazia. Adicione itens que deseja adquirir."
+    "empty": "Sua lista de desejos está vazia. Adicione itens que deseja adquirir.",
+    "filterPriority": "Filtrar por prioridade",
+    "priorityAll": "Todas as Prioridades",
+    "priorityHigh": "Alta",
+    "priorityMedium": "Média",
+    "priorityLow": "Baixa",
+    "sortBy": "Ordenar por",
+    "sortPriority": "Prioridade",
+    "sortPrice": "Preço",
+    "sortName": "Nome",
+    "itemCount": "{{count}} itens",
+    "noResults": "Nenhum item corresponde aos filtros selecionados.",
+    "updateSuccess": "Item da lista de desejos atualizado com sucesso.",
+    "addSuccess": "Item adicionado à lista de desejos com sucesso.",
+    "deleteSuccess": "Item da lista de desejos excluído com sucesso."
   },
   "profile": {
     "title": "Perfil",
