@@ -405,6 +405,11 @@
       "title": "Nenhum tipo de coleção definido",
       "description": "Tipos de coleção permitem personalizar campos para diferentes tipos de colecionáveis.",
       "action": "Criar Tipo de Coleção"
+    },
+    "ownedCopies": {
+      "title": "Nenhuma cópia possuída ainda",
+      "description": "Adicione uma cópia para rastrear sua condição, preço de compra e valor.",
+      "action": "Adicionar Cópia"
     }
   },
   "auth": {

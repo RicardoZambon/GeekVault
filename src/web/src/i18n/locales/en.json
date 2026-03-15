@@ -405,6 +405,11 @@
       "title": "No collection types defined",
       "description": "Collection types let you customize fields for different kinds of collectibles.",
       "action": "Create Collection Type"
+    },
+    "ownedCopies": {
+      "title": "No copies owned yet",
+      "description": "Add a copy to track its condition, purchase price, and value.",
+      "action": "Add Copy"
     }
   },
   "auth": {

@@ -5,13 +5,17 @@ import {
   Image,
   Pencil,
   Trash2,
-  Package,
+  Box,
   Plus,
   ChevronRight,
   Calendar,
   Check,
   X,
   Loader2,
+  DollarSign,
+  Tag,
+  FileText,
+  ShoppingBag,
 } from "lucide-react"
 import { useAuth } from "@/components/auth-provider"
 import { Button } from "@/components/ui/button"
@@ -29,12 +33,16 @@ import {
   Card,
   CardContent,
   Badge,
+  EmptyState,
   PageHeader,
   SkeletonRect,
   SkeletonText,
+  StaggerChildren,
+  staggerItemVariants,
   FadeIn,
   toast,
 } from "@/components/ds"
+import { motion } from "framer-motion"
 
 const CONDITIONS = ["Mint", "NearMint", "Excellent", "Good", "Fair", "Poor"] as const
 
@@ -682,96 +690,120 @@ export default function CatalogItemDetail() {
             className="mb-4"
           />
           {copies.length === 0 ? (
-            <Card variant="flat" className="py-8">
-              <div className="flex flex-col items-center justify-center text-center px-4">
-                <Package className="h-10 w-10 text-muted-foreground/30 mb-3" />
-                <p className="text-sm text-muted-foreground">{t("itemDetail.noCopies")}</p>
-              </div>
-            </Card>
+            <EmptyState
+              icon={<Box />}
+              title={t("emptyStates.ownedCopies.title")}
+              description={t("emptyStates.ownedCopies.description")}
+              actionLabel={t("emptyStates.ownedCopies.action")}
+              onAction={openAddCopy}
+            />
           ) : (
-            <div className="grid gap-4 sm:grid-cols-2">
+            <StaggerChildren className="grid gap-4 sm:grid-cols-2">
               {copies.map((copy) => (
-                <Card key={copy.id} variant="flat">
-                  <CardContent className="p-5">
-                    <div className="flex items-start justify-between mb-3">
-                      <Badge
-                        variant={
-                          copy.condition === "Mint" || copy.condition === "NearMint"
-                            ? "success"
-                            : copy.condition === "Excellent" || copy.condition === "Good"
-                              ? "primary"
-                              : "warning"
-                        }
-                        size="sm"
-                      >
-                        {formatCondition(copy.condition)}
-                      </Badge>
-                      <div className="flex gap-1">
-                        <Button variant="ghost" size="sm" onClick={() => openEditCopy(copy)}>
-                          <Pencil className="h-3.5 w-3.5" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => { setCopyToDelete(copy); setDeleteCopyOpen(true) }}
-                          className="text-destructive hover:text-destructive"
+                <motion.div key={copy.id} variants={staggerItemVariants}>
+                  <Card variant="flat" className="group h-full">
+                    <CardContent className="p-5">
+                      {/* Header: condition badge + actions */}
+                      <div className="flex items-start justify-between mb-4">
+                        <Badge
+                          variant={
+                            copy.condition === "Mint" || copy.condition === "NearMint"
+                              ? "success"
+                              : copy.condition === "Excellent" || copy.condition === "Good"
+                                ? "primary"
+                                : "warning"
+                          }
+                          size="md"
                         >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </Button>
+                          {formatCondition(copy.condition)}
+                        </Badge>
+                        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <Button variant="ghost" size="sm" onClick={() => openEditCopy(copy)}>
+                            <Pencil className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => { setCopyToDelete(copy); setDeleteCopyOpen(true) }}
+                            className="text-destructive hover:text-destructive"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
                       </div>
-                    </div>
 
-                    <div className="grid gap-3 sm:grid-cols-2">
-                      {copy.purchasePrice != null && (
-                        <div>
-                          <span className="text-xs font-medium text-muted-foreground">{t("itemDetail.purchasePrice")}</span>
-                          <p className="text-sm font-medium">${copy.purchasePrice.toFixed(2)}</p>
-                        </div>
-                      )}
-                      {copy.estimatedValue != null && (
-                        <div>
-                          <span className="text-xs font-medium text-muted-foreground">{t("itemDetail.estimatedValue")}</span>
-                          <p className="text-sm font-medium">${copy.estimatedValue.toFixed(2)}</p>
-                        </div>
-                      )}
-                      {copy.acquisitionDate && (
-                        <div>
-                          <span className="text-xs font-medium text-muted-foreground">{t("itemDetail.acquisitionDate")}</span>
-                          <p className="text-sm">{formatDate(copy.acquisitionDate)}</p>
-                        </div>
-                      )}
-                      {copy.acquisitionSource && (
-                        <div>
-                          <span className="text-xs font-medium text-muted-foreground">{t("itemDetail.acquisitionSource")}</span>
-                          <p className="text-sm">{copy.acquisitionSource}</p>
-                        </div>
-                      )}
-                    </div>
-
-                    {copy.notes && (
-                      <div className="mt-3 pt-3 border-t border-border">
-                        <span className="text-xs font-medium text-muted-foreground">{t("itemDetail.notes")}</span>
-                        <p className="text-sm mt-0.5">{copy.notes}</p>
+                      {/* Copy details grid */}
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        {copy.purchasePrice != null && (
+                          <div className="flex items-start gap-2">
+                            <DollarSign className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
+                            <div>
+                              <span className="text-xs font-medium text-muted-foreground">{t("itemDetail.purchasePrice")}</span>
+                              <p className="text-sm font-semibold">${copy.purchasePrice.toFixed(2)}</p>
+                            </div>
+                          </div>
+                        )}
+                        {copy.estimatedValue != null && (
+                          <div className="flex items-start gap-2">
+                            <Tag className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
+                            <div>
+                              <span className="text-xs font-medium text-muted-foreground">{t("itemDetail.estimatedValue")}</span>
+                              <p className="text-sm font-semibold">${copy.estimatedValue.toFixed(2)}</p>
+                            </div>
+                          </div>
+                        )}
+                        {copy.acquisitionDate && (
+                          <div className="flex items-start gap-2">
+                            <Calendar className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
+                            <div>
+                              <span className="text-xs font-medium text-muted-foreground">{t("itemDetail.acquisitionDate")}</span>
+                              <p className="text-sm">{formatDate(copy.acquisitionDate)}</p>
+                            </div>
+                          </div>
+                        )}
+                        {copy.acquisitionSource && (
+                          <div className="flex items-start gap-2">
+                            <ShoppingBag className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
+                            <div>
+                              <span className="text-xs font-medium text-muted-foreground">{t("itemDetail.acquisitionSource")}</span>
+                              <p className="text-sm">{copy.acquisitionSource}</p>
+                            </div>
+                          </div>
+                        )}
                       </div>
-                    )}
 
-                    {copy.images.length > 0 && (
-                      <div className="mt-3 pt-3 border-t border-border flex gap-2 flex-wrap">
-                        {copy.images.map((img, idx) => (
-                          <img
-                            key={idx}
-                            src={img}
-                            alt={`${t("ownedCopy.imageAlt")} ${idx + 1}`}
-                            className="h-16 w-16 rounded-md border object-cover"
-                            loading="lazy"
-                          />
-                        ))}
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
+                      {/* Notes */}
+                      {copy.notes && (
+                        <div className="mt-3 pt-3 border-t border-border flex items-start gap-2">
+                          <FileText className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
+                          <div>
+                            <span className="text-xs font-medium text-muted-foreground">{t("itemDetail.notes")}</span>
+                            <p className="text-sm mt-0.5">{copy.notes}</p>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Thumbnail gallery */}
+                      {copy.images.length > 0 && (
+                        <div className="mt-3 pt-3 border-t border-border">
+                          <div className="flex gap-2 flex-wrap">
+                            {copy.images.map((img, idx) => (
+                              <img
+                                key={idx}
+                                src={img}
+                                alt={`${t("ownedCopy.imageAlt")} ${idx + 1}`}
+                                className="h-16 w-16 rounded-md border object-cover hover:ring-2 hover:ring-accent transition-shadow"
+                                loading="lazy"
+                              />
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                </motion.div>
               ))}
-            </div>
+            </StaggerChildren>
           )}
         </div>
       </div>
