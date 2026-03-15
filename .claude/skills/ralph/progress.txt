@@ -84,3 +84,10 @@
   - NavLink in react-router-dom v7 supports both `className` and `children` as render functions simultaneously
   - Use `{({ isActive }) => (...)}` as children to conditionally style inner elements
 ---
+
+## 2026-03-15 - US-008
+- All acceptance criteria already met by previous stories (US-005, US-006, US-007)
+- Collapsed width 72px, centered icons h-5 w-5, tooltips on right, active state with bg + 3px border + colored icon, group separators
+- No code changes needed
+- Files changed: none (just PRD update)
+---
