@@ -117,13 +117,13 @@ export function Sidebar() {
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 overflow-y-auto p-2">
+      <nav className={cn("flex-1 overflow-y-auto", collapsed ? "p-1.5" : "p-2")}>
         <div className="flex flex-col gap-4">
           {navGroups.map((group, groupIndex) => (
             <div key={group.labelKey} className="flex flex-col gap-1">
               {collapsed ? (
                 groupIndex > 0 && (
-                  <div className="mx-3 border-t border-sidebar-border" />
+                  <div className="mx-2 my-1.5 border-t border-sidebar-border" />
                 )
               ) : (
                 <span className="px-3 pb-1 text-xs font-semibold uppercase text-sidebar-foreground/50">
@@ -138,8 +138,8 @@ export function Sidebar() {
                     end={item.to === "/"}
                     className={({ isActive }) =>
                       cn(
-                        "flex items-center rounded-lg text-sm font-medium transition-colors relative min-h-[44px]",
-                        collapsed ? "justify-center px-2" : "gap-3 px-3",
+                        "flex items-center rounded-lg font-medium transition-colors relative",
+                        collapsed ? "justify-center px-0 min-h-[48px] text-base" : "gap-3 px-3 min-h-[44px] text-sm",
                         isActive
                           ? "bg-sidebar-accent text-sidebar-accent-foreground border-l-[3px] border-sidebar-primary"
                           : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground"
@@ -148,7 +148,7 @@ export function Sidebar() {
                   >
                     {({ isActive }) => (
                       <>
-                        <item.icon className={cn("h-5 w-5 shrink-0", isActive && "text-sidebar-primary")} />
+                        <item.icon className={cn("shrink-0", collapsed ? "h-6 w-6" : "h-5 w-5", isActive && "text-sidebar-primary")} />
                         {!collapsed && <span>{t(item.labelKey)}</span>}
                       </>
                     )}
@@ -181,9 +181,9 @@ export function Sidebar() {
             )}
           >
             {user?.avatar ? (
-              <img src={user.avatar} alt="" className="h-8 w-8 shrink-0 rounded-full object-cover" />
+              <img src={user.avatar} alt="" className={cn("shrink-0 rounded-full object-cover", collapsed ? "h-9 w-9" : "h-8 w-8")} />
             ) : (
-              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-sidebar-primary text-sidebar-primary-foreground text-xs font-bold">
+              <div className={cn("flex shrink-0 items-center justify-center rounded-full bg-sidebar-primary text-sidebar-primary-foreground font-bold", collapsed ? "h-9 w-9 text-sm" : "h-8 w-8 text-xs")}>
                 {initials}
               </div>
             )}
