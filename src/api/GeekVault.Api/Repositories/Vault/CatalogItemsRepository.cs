@@ -36,9 +36,9 @@ public class CatalogItemsRepository : ICatalogItemsRepository
 
     public async Task<int> GetMaxSortOrderAsync(int collectionId)
     {
-        var items = _db.CatalogItems.Where(i => i.CollectionId == collectionId);
-        if (!await items.AnyAsync()) return -1;
-        return await items.MaxAsync(i => i.SortOrder);
+        return await _db.CatalogItems
+            .Where(i => i.CollectionId == collectionId)
+            .MaxAsync(i => (int?)i.SortOrder) ?? -1;
     }
 
     public async Task<List<CatalogItem>> GetByIdsAndCollectionIdAsync(IEnumerable<int> ids, int collectionId)

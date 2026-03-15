@@ -44,9 +44,9 @@ public class WishlistRepository : IWishlistRepository
 
     public async Task<int> GetMaxSortOrderAsync(int collectionId)
     {
-        var items = _db.WishlistItems.Where(w => w.CollectionId == collectionId);
-        if (!await items.AnyAsync()) return -1;
-        return await items.MaxAsync(w => w.SortOrder);
+        return await _db.WishlistItems
+            .Where(w => w.CollectionId == collectionId)
+            .MaxAsync(w => (int?)w.SortOrder) ?? -1;
     }
 
     public async Task<List<WishlistItem>> GetByIdsAndCollectionIdAsync(IEnumerable<int> ids, int collectionId)

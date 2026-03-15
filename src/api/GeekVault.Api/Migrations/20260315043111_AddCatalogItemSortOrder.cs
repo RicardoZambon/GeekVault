@@ -17,6 +17,22 @@ namespace GeekVault.Api.Migrations
                 type: "int",
                 nullable: false,
                 defaultValue: 0);
+
+            migrationBuilder.Sql(@"
+                WITH OrderedItems AS (
+                    SELECT
+                        Id,
+                        ROW_NUMBER() OVER (
+                            PARTITION BY CollectionId
+                            ORDER BY Id
+                        ) - 1 AS NewSortOrder
+                    FROM [Vault].[CatalogItems]
+                )
+                UPDATE ci
+                SET ci.SortOrder = oi.NewSortOrder
+                FROM [Vault].[CatalogItems] AS ci
+                INNER JOIN OrderedItems AS oi ON ci.Id = oi.Id;
+            ");
         }
 
         /// <inheritdoc />

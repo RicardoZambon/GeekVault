@@ -180,6 +180,24 @@ public class WishlistEndpointsTests : IClassFixture<TestFactory<WishlistEndpoint
     }
 
     [Fact]
+    public async Task ReorderWishlistItems_WithInvalidItemIds_ReturnsBadRequest()
+    {
+        var (client, collectionId) = await CreateAuthenticatedClientWithCollectionAsync("wishlist-reorder-invalid@example.com");
+
+        var r1 = await client.PostAsJsonAsync($"/api/collections/{collectionId}/wishlist", new { Name = "Item A", Priority = 1 });
+        var item1 = await r1.Content.ReadFromJsonAsync<WishlistResult>();
+        var r2 = await client.PostAsJsonAsync($"/api/collections/{collectionId}/wishlist", new { Name = "Item B", Priority = 2 });
+        var item2 = await r2.Content.ReadFromJsonAsync<WishlistResult>();
+
+        // Include an ID that does not belong to the collection
+        var reorderResponse = await client.PostAsJsonAsync($"/api/collections/{collectionId}/wishlist/reorder", new
+        {
+            ItemIds = new[] { item1!.Id, 99999, item2!.Id }
+        });
+        Assert.Equal(HttpStatusCode.BadRequest, reorderResponse.StatusCode);
+    }
+
+    [Fact]
     public async Task ReorderWishlistItems_WrongCollection_ReturnsNotFound()
     {
         var (client, _) = await CreateAuthenticatedClientWithCollectionAsync("wishlist-reorder-notfound@example.com");

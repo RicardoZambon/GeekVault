@@ -17,6 +17,22 @@ namespace GeekVault.Api.Migrations
                 type: "int",
                 nullable: false,
                 defaultValue: 0);
+
+            migrationBuilder.Sql(@"
+                WITH Ordered AS (
+                    SELECT
+                        Id,
+                        ROW_NUMBER() OVER (
+                            PARTITION BY CollectionId
+                            ORDER BY Priority DESC, Id ASC
+                        ) - 1 AS SortOrder
+                    FROM [Vault].[WishlistItems]
+                )
+                UPDATE wi
+                SET wi.SortOrder = o.SortOrder
+                FROM [Vault].[WishlistItems] AS wi
+                INNER JOIN Ordered AS o ON wi.Id = o.Id;
+            ");
         }
 
         /// <inheritdoc />

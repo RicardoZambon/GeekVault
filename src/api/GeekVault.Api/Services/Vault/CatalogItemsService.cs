@@ -212,14 +212,17 @@ public class CatalogItemsService : ICatalogItemsService
         var collection = await _collectionsRepository.GetByIdAndUserIdAsync(collectionId, userId);
         if (collection == null) return (false, true, null);
 
+        if (itemIds.Count != itemIds.Distinct().Count())
+            return (false, false, "Duplicate item IDs are not allowed");
+
         var items = await _catalogItemsRepository.GetByIdsAndCollectionIdAsync(itemIds, collectionId);
         if (items.Count != itemIds.Count)
             return (false, false, "Some item IDs do not belong to this collection");
 
+        var itemsById = items.ToDictionary(x => x.Id);
         for (var i = 0; i < itemIds.Count; i++)
         {
-            var item = items.First(x => x.Id == itemIds[i]);
-            item.SortOrder = i;
+            itemsById[itemIds[i]].SortOrder = i;
         }
 
         await _catalogItemsRepository.SaveChangesAsync();
