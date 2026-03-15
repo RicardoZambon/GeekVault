@@ -515,4 +515,78 @@ describe("Wishlist", () => {
       expect(screen.queryByText("FI-001")).not.toBeInTheDocument()
     })
   })
+
+  it("opens edit dialog for item with null targetPrice and notes", async () => {
+    mockFetch()
+    render(<MemoryRouter><Wishlist /></MemoryRouter>)
+    await waitFor(() => screen.getByText("X-Men #1"))
+    // X-Men #1 is the second item with targetPrice: null, notes: null
+    const editButtons = screen.getAllByLabelText("wishlist.edit")
+    fireEvent.click(editButtons[1])
+    await screen.findByText("wishlist.editTitle")
+    // The form should show empty values for null targetPrice and notes
+    expect(screen.getByLabelText("wishlist.targetPriceLabel")).toHaveValue(null)
+    expect(screen.getByLabelText("wishlist.notesLabel")).toHaveValue("")
+  })
+
+  it("resets collection select to empty in create dialog", async () => {
+    mockFetch()
+    render(<MemoryRouter><Wishlist /></MemoryRouter>)
+    await waitFor(() => screen.getByText("Spider-Man #50"))
+    fireEvent.click(screen.getAllByText("wishlist.add")[0])
+    await screen.findByText("wishlist.addTitle")
+
+    const colSelect = screen.getByLabelText("wishlist.collectionLabel")
+    // Select a value then reset to empty
+    fireEvent.change(colSelect, { target: { value: "1" } })
+    fireEvent.change(colSelect, { target: { value: "" } })
+  })
+
+  it("handles priority input with zero value", async () => {
+    mockFetch()
+    render(<MemoryRouter><Wishlist /></MemoryRouter>)
+    await waitFor(() => screen.getByText("Spider-Man #50"))
+    fireEvent.click(screen.getAllByText("wishlist.add")[0])
+    await screen.findByText("wishlist.addTitle")
+
+    const priorityInput = screen.getByLabelText("wishlist.priorityLabel")
+    // Set to 0 which triggers Number(e.target.value) || 1 falsy branch
+    fireEvent.change(priorityInput, { target: { value: "0" } })
+  })
+
+  it("clears catalog items when search is empty string", async () => {
+    vi.spyOn(global, "fetch").mockImplementation((url) => {
+      const urlStr = String(url)
+      if (urlStr.includes("/items?search=")) {
+        return Promise.resolve({ ok: true, json: () => Promise.resolve({ items: [{ id: 10, name: "Found Item", identifier: "FI-001" }] }) } as Response)
+      }
+      if (urlStr.includes("/collections/1/wishlist")) {
+        return Promise.resolve({ ok: true, json: () => Promise.resolve(wishlistItems) } as Response)
+      }
+      if (urlStr.includes("/wishlist")) {
+        return Promise.resolve({ ok: true, json: () => Promise.resolve([]) } as Response)
+      }
+      if (urlStr.includes("/collections")) {
+        return Promise.resolve({ ok: true, json: () => Promise.resolve(collections) } as Response)
+      }
+      return Promise.resolve({ ok: true, json: () => Promise.resolve([]) } as Response)
+    })
+
+    render(<MemoryRouter><Wishlist /></MemoryRouter>)
+    await waitFor(() => screen.getByText("Spider-Man #50"))
+
+    fireEvent.click(screen.getAllByText("wishlist.add")[0])
+    await screen.findByText("wishlist.addTitle")
+
+    const searchInput = screen.getByPlaceholderText("wishlist.searchCatalogPlaceholder")
+    // First type something to trigger search
+    fireEvent.change(searchInput, { target: { value: "Found" } })
+    await waitFor(() => screen.getByText("Found Item"))
+
+    // Then clear the search - triggers the empty string branch in searchCatalogItems
+    fireEvent.change(searchInput, { target: { value: "" } })
+    await waitFor(() => {
+      expect(screen.queryByText("Found Item")).not.toBeInTheDocument()
+    })
+  })
 })

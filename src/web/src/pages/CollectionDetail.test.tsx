@@ -1719,4 +1719,116 @@ describe("CollectionDetail", () => {
       expect(screen.queryByText("sets.addItemsTitle")).not.toBeInTheDocument()
     })
   })
+
+  it("does not show view item link for set item without catalogItemId", async () => {
+    const setsData = [
+      { id: 10, collectionId: 1, name: "Series A", expectedItemCount: 1, completedCount: 0, completionPercentage: 0 },
+    ]
+    const setDetail = {
+      id: 10, collectionId: 1, name: "Series A", expectedItemCount: 1, completedCount: 0, completionPercentage: 0,
+      items: [
+        { id: 101, setId: 10, catalogItemId: null, name: "No Link Item", sortOrder: 1 },
+      ],
+    }
+    vi.spyOn(global, "fetch").mockImplementation((url) => {
+      const urlStr = String(url)
+      if (urlStr.includes("/collection-types/")) {
+        return Promise.resolve({ ok: true, json: () => Promise.resolve(collectionType) } as Response)
+      }
+      if (urlStr.includes("/copies")) {
+        return Promise.resolve({ ok: true, json: () => Promise.resolve([]) } as Response)
+      }
+      if (urlStr.match(/\/sets\/10$/)) {
+        return Promise.resolve({ ok: true, json: () => Promise.resolve(setDetail) } as Response)
+      }
+      if (urlStr.includes("/sets")) {
+        return Promise.resolve({ ok: true, json: () => Promise.resolve(setsData) } as Response)
+      }
+      if (urlStr.match(/\/collections\/\d+$/)) {
+        return Promise.resolve({ ok: true, json: () => Promise.resolve(collection) } as Response)
+      }
+      return Promise.resolve({ ok: true, json: () => Promise.resolve(items) } as Response)
+    })
+    renderWithRoute()
+    await waitFor(() => screen.getByText("Comics"))
+
+    fireEvent.click(screen.getByText(/sets\.title/))
+    await waitFor(() => screen.getByText("Series A"))
+    fireEvent.click(screen.getByText("Series A"))
+
+    await waitFor(() => screen.getByText("No Link Item"))
+    expect(screen.queryByText("sets.viewItem")).not.toBeInTheDocument()
+  })
+
+  it("handles file input change for item image", async () => {
+    mockFetch()
+    renderWithRoute()
+    await waitFor(() => screen.getByText("Comics"))
+    const addButtons = screen.getAllByText("collectionDetail.addItem")
+    fireEvent.click(addButtons[0])
+    await screen.findByText("collectionDetail.addItemTitle")
+
+    const fileInput = screen.getByLabelText("collectionDetail.imageLabel")
+    const file = new File(["img"], "test.png", { type: "image/png" })
+    fireEvent.change(fileInput, { target: { files: [file] } })
+    // Also test with no files (null branch)
+    fireEvent.change(fileInput, { target: { files: null } })
+  })
+
+  it("closes delete set item dialog via Escape to clear state", async () => {
+    const setsData = [
+      { id: 10, collectionId: 1, name: "Series A", expectedItemCount: 2, completedCount: 0, completionPercentage: 0 },
+    ]
+    const setDetail = {
+      id: 10, collectionId: 1, name: "Series A", expectedItemCount: 2, completedCount: 0, completionPercentage: 0,
+      items: [
+        { id: 100, setId: 10, catalogItemId: 1, name: "Spider-Man #1", sortOrder: 1 },
+        { id: 101, setId: 10, catalogItemId: null, name: "Item B", sortOrder: 2 },
+      ],
+    }
+    vi.spyOn(global, "fetch").mockImplementation((url) => {
+      const urlStr = String(url)
+      if (urlStr.includes("/collection-types/")) {
+        return Promise.resolve({ ok: true, json: () => Promise.resolve(collectionType) } as Response)
+      }
+      if (urlStr.includes("/items/1/copies")) {
+        return Promise.resolve({ ok: true, json: () => Promise.resolve([{ id: 1 }]) } as Response)
+      }
+      if (urlStr.includes("/copies")) {
+        return Promise.resolve({ ok: true, json: () => Promise.resolve([]) } as Response)
+      }
+      if (urlStr.match(/\/sets\/10$/)) {
+        return Promise.resolve({ ok: true, json: () => Promise.resolve(setDetail) } as Response)
+      }
+      if (urlStr.includes("/sets")) {
+        return Promise.resolve({ ok: true, json: () => Promise.resolve(setsData) } as Response)
+      }
+      if (urlStr.match(/\/collections\/\d+$/)) {
+        return Promise.resolve({ ok: true, json: () => Promise.resolve(collection) } as Response)
+      }
+      return Promise.resolve({ ok: true, json: () => Promise.resolve(items) } as Response)
+    })
+    renderWithRoute()
+    await waitFor(() => screen.getByText("Comics"))
+
+    fireEvent.click(screen.getByText(/sets\.title/))
+    await waitFor(() => screen.getByText("Series A"))
+    fireEvent.click(screen.getByText("Series A"))
+
+    await waitFor(() => screen.getByText("Item B"))
+
+    // Click the delete button on the set item (the trash icon button)
+    const listItems = document.querySelectorAll("li")
+    const itemBLi = Array.from(listItems).find((li) => li.textContent?.includes("Item B"))
+    const deleteBtn = itemBLi?.querySelector("button.rounded.p-1")
+    fireEvent.click(deleteBtn!)
+
+    await waitFor(() => screen.getByText("sets.removeItemTitle"))
+
+    // Press Escape to close - triggers onOpenChange(false) which clears deletingSetItemId
+    fireEvent.keyDown(screen.getByRole("dialog"), { key: "Escape" })
+    await waitFor(() => {
+      expect(screen.queryByText("sets.removeItemTitle")).not.toBeInTheDocument()
+    })
+  })
 })
