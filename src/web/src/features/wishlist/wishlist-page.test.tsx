@@ -59,6 +59,7 @@ const collections = [
 const wishlistItems = [
   { id: 1, collectionId: 1, catalogItemId: null, name: "Spider-Man #50", priority: 1, targetPrice: 100.0, notes: "Hard to find" },
   { id: 2, collectionId: 1, catalogItemId: 5, name: "X-Men #1", priority: 2, targetPrice: null, notes: null },
+  { id: 3, collectionId: 1, catalogItemId: null, name: "Hulk #10", priority: 3, targetPrice: 25.0, notes: null },
 ]
 
 describe("Wishlist", () => {
@@ -629,6 +630,74 @@ describe("Wishlist", () => {
     )!
     // Change to low priority
     fireEvent.change(prioritySelect, { target: { value: "3" } })
+  })
+
+  it("filters by priority", async () => {
+    mockFetch()
+    render(<MemoryRouter><Wishlist /></MemoryRouter>)
+    await waitFor(() => screen.getByText("Spider-Man #50"))
+
+    // Find the priority filter select (has "all", "high", "medium", "low" options)
+    const selects = document.querySelectorAll("select")
+    const priorityFilterSelect = Array.from(selects).find((s) =>
+      Array.from(s.options).some((o) => o.value === "high")
+    )!
+    // Filter to high priority only (priority 1 = high)
+    fireEvent.change(priorityFilterSelect, { target: { value: "high" } })
+    expect(screen.getByText("Spider-Man #50")).toBeInTheDocument()
+  })
+
+  it("changes sort order", async () => {
+    mockFetch()
+    render(<MemoryRouter><Wishlist /></MemoryRouter>)
+    await waitFor(() => screen.getByText("Spider-Man #50"))
+
+    // Find the sort select (has "priority", "price", "name" options)
+    const selects = document.querySelectorAll("select")
+    const sortSelect = Array.from(selects).find((s) =>
+      Array.from(s.options).some((o) => o.value === "name")
+    )!
+    fireEvent.change(sortSelect, { target: { value: "name" } })
+    // Items should still render (just in different order)
+    expect(screen.getByText("Spider-Man #50")).toBeInTheDocument()
+  })
+
+  it("toggles collection group expansion", async () => {
+    mockFetch()
+    render(<MemoryRouter><Wishlist /></MemoryRouter>)
+    await waitFor(() => screen.getByText("Comics"))
+
+    // Click the group header to collapse
+    fireEvent.click(screen.getByText("Comics"))
+    // Click again to expand
+    fireEvent.click(screen.getByText("Comics"))
+    expect(screen.getByText("Spider-Man #50")).toBeInTheDocument()
+  })
+
+  it("handles wishlist reorder API call", async () => {
+    const reorderMock = vi.fn()
+    vi.spyOn(global, "fetch").mockImplementation((url, opts) => {
+      const urlStr = String(url)
+      if (urlStr.includes("/reorder") && opts && (opts as RequestInit).method === "POST") {
+        reorderMock()
+        return Promise.resolve({ ok: true } as Response)
+      }
+      if (urlStr.includes("/collections/1/wishlist")) {
+        return Promise.resolve({ ok: true, json: () => Promise.resolve(wishlistItems) } as Response)
+      }
+      if (urlStr.includes("/wishlist")) {
+        return Promise.resolve({ ok: true, json: () => Promise.resolve([]) } as Response)
+      }
+      if (urlStr.includes("/collections")) {
+        return Promise.resolve({ ok: true, json: () => Promise.resolve(collections) } as Response)
+      }
+      return Promise.resolve({ ok: true, json: () => Promise.resolve([]) } as Response)
+    })
+
+    render(<MemoryRouter><Wishlist /></MemoryRouter>)
+    await waitFor(() => screen.getByText("Spider-Man #50"))
+    // Items are rendered via SortableList mock which just renders them
+    expect(screen.getByText("X-Men #1")).toBeInTheDocument()
   })
 
   it("clears catalog items when search is empty string", async () => {

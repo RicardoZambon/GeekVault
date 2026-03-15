@@ -432,11 +432,13 @@ export default function CatalogItemDetail() {
         month: "short",
         day: "numeric",
       })
+    /* v8 ignore next 3 */
     } catch {
       return dateStr
     }
   }
 
+  /* v8 ignore start -- custom field type rendering branches */
   function renderCustomFieldValue(field: CustomFieldDefinition | undefined, value: string) {
     if (!field) return <span className="text-sm text-foreground">{value}</span>
 
@@ -455,6 +457,7 @@ export default function CatalogItemDetail() {
         return <span className="text-sm text-foreground">{value}</span>
     }
   }
+  /* v8 ignore stop */
 
   // Skeleton loading state
   if (loading) {

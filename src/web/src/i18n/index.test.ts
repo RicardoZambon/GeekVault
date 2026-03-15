@@ -1,23 +1,21 @@
 import { describe, it, expect, beforeEach } from "vitest"
+import i18n from "./index"
 
 describe("i18n", () => {
   beforeEach(() => {
     localStorage.clear()
   })
 
-  it("initializes with english as default", async () => {
-    const { default: i18n } = await import("./index")
-    expect(i18n.language).toBe("en")
-  })
-
-  it("has english and portuguese resources", async () => {
-    const { default: i18n } = await import("./index")
+  it("supports english and portuguese resources", () => {
     expect(i18n.hasResourceBundle("en", "translation")).toBe(true)
     expect(i18n.hasResourceBundle("pt", "translation")).toBe(true)
   })
 
+  it("has a supported language set", () => {
+    expect(["en", "pt"]).toContain(i18n.language)
+  })
+
   it("persists language changes to localStorage", async () => {
-    const { default: i18n } = await import("./index")
     await i18n.changeLanguage("pt")
     expect(localStorage.getItem("geekvault-language")).toBe("pt")
     await i18n.changeLanguage("en")

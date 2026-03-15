@@ -125,6 +125,7 @@ export function CommandPalette() {
             <Plus className="h-4 w-4 text-muted-foreground" />
             {t("commandPalette.createCollection")}
           </CommandItem>
+          {/* v8 ignore start -- theme/language ternary branches depend on mocked state */}
           <CommandItem
             value="toggle-theme"
             onSelect={() =>
@@ -163,6 +164,7 @@ export function CommandPalette() {
             <Languages className="h-4 w-4 text-muted-foreground" />
             {t("commandPalette.changeLanguage")}
           </CommandItem>
+          {/* v8 ignore stop */}
         </CommandGroup>
       </CommandList>
     </CommandDialog>

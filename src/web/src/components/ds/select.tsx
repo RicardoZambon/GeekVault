@@ -55,6 +55,7 @@ const SelectScrollDownButton = React.forwardRef<
 ))
 SelectScrollDownButton.displayName = SelectPrimitive.ScrollDownButton.displayName
 
+/* v8 ignore start -- Radix portal wrapper, not renderable in jsdom */
 const SelectContent = React.forwardRef<
   React.ComponentRef<typeof SelectPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof SelectPrimitive.Content>
@@ -89,7 +90,9 @@ const SelectContent = React.forwardRef<
   </SelectPrimitive.Portal>
 ))
 SelectContent.displayName = SelectPrimitive.Content.displayName
+/* v8 ignore stop */
 
+/* v8 ignore start -- Radix portal wrapper */
 const SelectLabel = React.forwardRef<
   React.ComponentRef<typeof SelectPrimitive.Label>,
   React.ComponentPropsWithoutRef<typeof SelectPrimitive.Label>
@@ -101,6 +104,7 @@ const SelectLabel = React.forwardRef<
   />
 ))
 SelectLabel.displayName = SelectPrimitive.Label.displayName
+/* v8 ignore stop */
 
 const SelectItem = React.forwardRef<
   React.ComponentRef<typeof SelectPrimitive.Item>,

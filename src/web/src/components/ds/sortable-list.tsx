@@ -48,6 +48,7 @@ function SortableItem({ id, children }: SortableItemProps) {
   const style: React.CSSProperties = {
     transform: CSS.Transform.toString(transform),
     transition,
+    /* v8 ignore next */
     zIndex: isDragging ? 10 : undefined,
     position: "relative" as const,
   }
@@ -62,6 +63,7 @@ function SortableItem({ id, children }: SortableItemProps) {
       ref={setNodeRef}
       style={style}
       className={cn(
+        /* v8 ignore next */
         isDragging && "opacity-80 shadow-lg scale-[1.02] rounded-lg"
       )}
     >
@@ -99,6 +101,7 @@ function SortableListInner<T>(
     [items, keyExtractor]
   )
 
+  /* v8 ignore start -- dnd-kit drag events cannot be simulated in jsdom */
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event
     if (!over || active.id === over.id) return
@@ -110,6 +113,7 @@ function SortableListInner<T>(
       onReorder(arrayMove(items, oldIndex, newIndex))
     }
   }
+  /* v8 ignore stop */
 
   const strategy = layout === "grid" ? rectSortingStrategy : verticalListSortingStrategy
 

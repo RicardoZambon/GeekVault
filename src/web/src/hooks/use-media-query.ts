@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 
 export function useMediaQuery(query: string): boolean {
   const [matches, setMatches] = useState(() => {
+    /* v8 ignore next -- SSR guard unreachable in jsdom */
     if (typeof window === 'undefined') return false
     return window.matchMedia(query).matches
   })

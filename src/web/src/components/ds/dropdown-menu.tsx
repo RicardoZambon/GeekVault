@@ -7,6 +7,7 @@ const DropdownMenuTrigger = DropdownMenuPrimitive.Trigger
 const DropdownMenuGroup = DropdownMenuPrimitive.Group
 const DropdownMenuSub = DropdownMenuPrimitive.Sub
 
+/* v8 ignore start -- Radix portal wrapper, not renderable in jsdom */
 const DropdownMenuContent = React.forwardRef<
   React.ComponentRef<typeof DropdownMenuPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.Content>
@@ -27,7 +28,9 @@ const DropdownMenuContent = React.forwardRef<
   </DropdownMenuPrimitive.Portal>
 ))
 DropdownMenuContent.displayName = DropdownMenuPrimitive.Content.displayName
+/* v8 ignore stop */
 
+/* v8 ignore start -- only used inside portal-wrapped DropdownMenuContent */
 const DropdownMenuItem = React.forwardRef<
   React.ComponentRef<typeof DropdownMenuPrimitive.Item>,
   React.ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.Item> & {
@@ -75,6 +78,7 @@ const DropdownMenuLabel = React.forwardRef<
   />
 ))
 DropdownMenuLabel.displayName = DropdownMenuPrimitive.Label.displayName
+/* v8 ignore stop */
 
 export {
   DropdownMenu,

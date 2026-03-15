@@ -1,6 +1,7 @@
 import * as React from "react"
 import { useSpring, useMotionValue, motion, useTransform } from "framer-motion"
 
+/* v8 ignore next 4 -- environment-dependent at module load */
 const prefersReducedMotion =
   typeof window !== "undefined"
     ? window.matchMedia("(prefers-reduced-motion: reduce)").matches
@@ -22,16 +23,19 @@ function AnimatedNumber({
   duration = 0.8,
 }: AnimatedNumberProps) {
   const motionValue = useMotionValue(0)
+  /* v8 ignore start */
   const springValue = useSpring(motionValue, {
     duration: prefersReducedMotion ? 0 : duration * 1000,
     bounce: 0,
   })
+  /* v8 ignore stop */
   const display = useTransform(springValue, (v) => format(v))
 
   React.useEffect(() => {
     motionValue.set(value)
   }, [value, motionValue])
 
+  /* v8 ignore next 3 -- depends on module-level constant */
   if (prefersReducedMotion) {
     return <span className={className}>{format(value)}</span>
   }

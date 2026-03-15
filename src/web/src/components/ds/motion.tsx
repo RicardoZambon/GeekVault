@@ -2,6 +2,7 @@ import * as React from "react"
 import { motion, type HTMLMotionProps, type Variants } from "framer-motion"
 import { cn } from "@/lib/utils"
 
+/* v8 ignore next 4 -- environment-dependent at module load */
 const prefersReducedMotion =
   typeof window !== "undefined"
     ? window.matchMedia("(prefers-reduced-motion: reduce)").matches
@@ -9,6 +10,7 @@ const prefersReducedMotion =
 
 const noopVariants: Variants = { initial: {}, animate: {}, exit: {} }
 
+/* v8 ignore next 3 -- branches depend on module-level constant */
 function getVariants(variants: Variants): Variants {
   return prefersReducedMotion ? noopVariants : variants
 }
@@ -81,6 +83,7 @@ export interface StaggerChildrenProps extends HTMLMotionProps<"div"> {
   staggerDelay?: number
 }
 
+/* v8 ignore next 5 -- branches depend on module-level constant */
 export const staggerItemVariants: Variants = prefersReducedMotion
   ? { initial: {}, animate: {} }
   : {
@@ -90,6 +93,7 @@ export const staggerItemVariants: Variants = prefersReducedMotion
 
 const StaggerChildren = React.forwardRef<HTMLDivElement, StaggerChildrenProps>(
   ({ className, children, staggerDelay, ...props }, ref) => {
+    /* v8 ignore next 4 -- branches depend on module-level constant */
     const container: Variants = prefersReducedMotion
       ? { initial: {}, animate: {} }
       : {

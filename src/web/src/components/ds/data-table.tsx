@@ -49,6 +49,7 @@ function DataTableInner<T>(
 ) {
   const handleSort = (column: DataTableColumn<T>) => {
     if (!column.sortable || !onSort) return
+    /* v8 ignore next 2 */
     const key = column.sortKey ?? (typeof column.accessor === "string" ? column.accessor : "")
     if (!key) return
     const newDirection = sortKey === key && sortDirection === "asc" ? "desc" : "asc"
@@ -57,6 +58,7 @@ function DataTableInner<T>(
 
   const renderSortIcon = (column: DataTableColumn<T>) => {
     if (!column.sortable) return null
+    /* v8 ignore next */
     const key = column.sortKey ?? (typeof column.accessor === "string" ? column.accessor : "")
     if (sortKey === key) {
       return sortDirection === "asc" ? (

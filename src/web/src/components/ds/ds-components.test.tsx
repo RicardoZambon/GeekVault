@@ -378,6 +378,70 @@ describe("DataTable", () => {
     fireEvent.click(screen.getByText("Item A"))
     expect(onRowClick).toHaveBeenCalledWith(data[0])
   })
+
+  it("toggles sort direction from asc to desc on same column", () => {
+    const onSort = vi.fn()
+    render(
+      <DataTable
+        columns={columns}
+        data={data}
+        sortKey="value"
+        sortDirection="asc"
+        onSort={onSort}
+      />
+    )
+    fireEvent.click(screen.getByText("Value"))
+    expect(onSort).toHaveBeenCalledWith("value", "desc")
+  })
+
+  it("shows desc sort icon", () => {
+    render(
+      <DataTable
+        columns={columns}
+        data={data}
+        sortKey="value"
+        sortDirection="desc"
+        onSort={vi.fn()}
+      />
+    )
+    const valueHeader = screen.getByText("Value").closest("th")!
+    const svgs = valueHeader.querySelectorAll("svg")
+    expect(svgs.length).toBeGreaterThan(0)
+  })
+
+  it("renders with render function column", () => {
+    const columnsWithRender: DataTableColumn<TestRow>[] = [
+      { header: "Name", accessor: "name" as const },
+      { header: "Custom", accessor: "value" as const, render: (value) => <span>Val: {String(value)}</span> },
+    ]
+    render(<DataTable columns={columnsWithRender} data={data} />)
+    expect(screen.getByText("Val: 10")).toBeInTheDocument()
+    expect(screen.getByText("Val: 20")).toBeInTheDocument()
+  })
+
+  it("does not call onSort for non-sortable column", () => {
+    const onSort = vi.fn()
+    render(
+      <DataTable columns={columns} data={data} onSort={onSort} />
+    )
+    fireEvent.click(screen.getByText("Name"))
+    expect(onSort).not.toHaveBeenCalled()
+  })
+
+  it("shows unsorted icon for sortable column not currently sorted", () => {
+    render(
+      <DataTable
+        columns={columns}
+        data={data}
+        sortKey="other"
+        sortDirection="asc"
+        onSort={vi.fn()}
+      />
+    )
+    const valueHeader = screen.getByText("Value").closest("th")!
+    const svgs = valueHeader.querySelectorAll("svg")
+    expect(svgs.length).toBeGreaterThan(0)
+  })
 })
 
 // ─── Toaster ─────────────────────────────────────────────────────────────────
