@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, type FormEvent } from "react"
 import { useParams, useNavigate, useSearchParams } from "react-router-dom"
 import { useTranslation } from "react-i18next"
 import { motion, AnimatePresence } from "framer-motion"
-import { Plus, ArrowLeft, Image, Package, Check, Trash2, Pencil, Search, CheckCircle2, Circle, ArrowUp, ArrowDown, Download, Upload, LayoutGrid, List, ChevronDown } from "lucide-react"
+import { Plus, ArrowLeft, Image, Package, Check, Trash2, Pencil, Search, CheckCircle2, Circle, ArrowUp, ArrowDown, Download, Upload, LayoutGrid, List, ChevronDown, GripVertical } from "lucide-react"
 import { ImportWizard } from "./components/import-wizard"
 import {
   EmptyState,
@@ -11,8 +11,6 @@ import {
   Card,
   CardContent,
   DataTable,
-  StaggerChildren,
-  staggerItemVariants,
   SkeletonRect,
   Select,
   SelectTrigger,
@@ -20,6 +18,7 @@ import {
   SelectItem,
   SelectValue,
   toast,
+  SortableList,
 } from "@/components/ds"
 import type { DataTableColumn } from "@/components/ds"
 import { useAuth } from "@/components/auth-provider"
@@ -608,6 +607,23 @@ export default function CollectionDetail() {
     toast.success(t("collectionDetail.importCompleteToast"))
   }
 
+  async function handleReorderItems(newItems: CatalogItem[]) {
+    const previousItems = items
+    setItems(newItems)
+
+    try {
+      const res = await fetch(`/api/collections/${id}/items/reorder`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ itemIds: newItems.map((i) => i.id) }),
+      })
+      if (!res.ok) throw new Error("Failed to reorder")
+    } catch {
+      toast.error(t("collectionDetail.reorderFailed"))
+      setItems(previousItems)
+    }
+  }
+
   // Filter catalog items for the search in add-items dialog
   const filteredCatalogItems = items.filter((item) => {
     if (!itemSearchQuery.trim()) return true
@@ -910,59 +926,72 @@ export default function CollectionDetail() {
               onAction={() => setDialogOpen(true)}
             />
           ) : viewMode === "grid" ? (
-            <StaggerChildren className="mt-4 grid gap-4 grid-cols-2 sm:grid-cols-3 md:grid-cols-4">
-              {items.map((item) => {
+            <SortableList
+              items={items}
+              keyExtractor={(item) => item.id}
+              layout="grid"
+              gridClassName="mt-4 grid gap-4 grid-cols-2 sm:grid-cols-3 md:grid-cols-4"
+              onReorder={handleReorderItems}
+              renderItem={(item, { dragHandleProps, isDragging }) => {
                 const isOwned = ownedItemIds.has(item.id)
                 return (
-                  <motion.div key={item.id} variants={staggerItemVariants}>
-                    <Card
-                      className={`group cursor-pointer overflow-hidden transition-all hover:shadow-lg hover:-translate-y-0.5 ${
-                        isOwned ? "ring-2 ring-success/50" : ""
-                      }`}
-                      onClick={() => navigate(`/collections/${id}/items/${item.id}`)}
+                  <Card
+                    className={`relative group cursor-pointer overflow-hidden transition-all hover:shadow-lg hover:-translate-y-0.5 ${
+                      isOwned ? "ring-2 ring-success/50" : ""
+                    } ${isDragging ? "ring-2 ring-accent shadow-lg" : ""}`}
+                    onClick={() => navigate(`/collections/${id}/items/${item.id}`)}
+                  >
+                    {/* Drag handle */}
+                    <button
+                      type="button"
+                      className="absolute top-2 left-2 z-10 cursor-grab touch-none rounded bg-black/40 p-1 text-white opacity-0 transition-opacity group-hover:opacity-100"
+                      onClick={(e) => e.stopPropagation()}
+                      {...dragHandleProps}
                     >
-                      {/* Item image */}
-                      <div className="relative aspect-square bg-muted">
-                        {item.image ? (
-                          <img
-                            src={item.image}
-                            alt={item.name}
-                            loading="lazy"
-                            className="h-full w-full object-cover"
-                          />
-                        ) : (
-                          <div className="flex h-full items-center justify-center bg-gradient-to-br from-primary/5 to-accent/5">
-                            <Image className="h-10 w-10 text-muted-foreground/30" />
-                          </div>
-                        )}
-                        {/* Owned badge */}
-                        {isOwned && (
-                          <div className="absolute top-2 right-2 rounded-full bg-success p-1 text-white shadow-sm">
-                            <Check className="h-3 w-3" />
-                          </div>
-                        )}
-                        {/* Hover overlay with quick action */}
-                        <div className="absolute inset-0 flex items-center justify-center bg-black/0 opacity-0 transition-all group-hover:bg-black/20 group-hover:opacity-100">
-                          <span className="rounded-md bg-white/90 px-3 py-1.5 text-xs font-medium text-foreground shadow">
-                            {t("collections.view")}
-                          </span>
-                        </div>
-                      </div>
+                      <GripVertical className="h-3.5 w-3.5" />
+                    </button>
 
-                      <CardContent className="p-3">
-                        <h3 className="truncate text-sm font-semibold">{item.name}</h3>
-                        <p className="mt-0.5 truncate text-xs text-muted-foreground">
-                          {item.identifier}
-                        </p>
-                        {isOwned && (
-                          <Badge variant="success" size="sm" className="mt-1.5">{t("collectionDetail.ownedOwned")}</Badge>
-                        )}
-                      </CardContent>
-                    </Card>
-                  </motion.div>
+                    {/* Item image */}
+                    <div className="relative aspect-square bg-muted">
+                      {item.image ? (
+                        <img
+                          src={item.image}
+                          alt={item.name}
+                          loading="lazy"
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        <div className="flex h-full items-center justify-center bg-gradient-to-br from-primary/5 to-accent/5">
+                          <Image className="h-10 w-10 text-muted-foreground/30" />
+                        </div>
+                      )}
+                      {/* Owned badge */}
+                      {isOwned && (
+                        <div className="absolute top-2 right-2 rounded-full bg-success p-1 text-white shadow-sm">
+                          <Check className="h-3 w-3" />
+                        </div>
+                      )}
+                      {/* Hover overlay with quick action */}
+                      <div className="absolute inset-0 flex items-center justify-center bg-black/0 opacity-0 transition-all group-hover:bg-black/20 group-hover:opacity-100">
+                        <span className="rounded-md bg-white/90 px-3 py-1.5 text-xs font-medium text-foreground shadow">
+                          {t("collections.view")}
+                        </span>
+                      </div>
+                    </div>
+
+                    <CardContent className="p-3">
+                      <h3 className="truncate text-sm font-semibold">{item.name}</h3>
+                      <p className="mt-0.5 truncate text-xs text-muted-foreground">
+                        {item.identifier}
+                      </p>
+                      {isOwned && (
+                        <Badge variant="success" size="sm" className="mt-1.5">{t("collectionDetail.ownedOwned")}</Badge>
+                      )}
+                    </CardContent>
+                  </Card>
                 )
-              })}
-            </StaggerChildren>
+              }}
+            />
           ) : (
             <div className="mt-4">
               <DataTable<CatalogItem>

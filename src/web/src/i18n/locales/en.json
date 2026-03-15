@@ -228,7 +228,8 @@
     "importOrBrowse": "Supports .csv files",
     "importClickToChange": "Click to choose a different file",
     "importConfirmCount": "Import {{count}} items",
-    "importCompleteToast": "Import completed successfully"
+    "importCompleteToast": "Import completed successfully",
+    "reorderFailed": "Failed to reorder items"
   },
   "itemDetail": {
     "fetchError": "Failed to load item",

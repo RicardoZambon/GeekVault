@@ -228,7 +228,8 @@
     "importOrBrowse": "Suporta arquivos .csv",
     "importClickToChange": "Clique para escolher outro arquivo",
     "importConfirmCount": "Importar {{count}} itens",
-    "importCompleteToast": "Importação concluída com sucesso"
+    "importCompleteToast": "Importação concluída com sucesso",
+    "reorderFailed": "Falha ao reordenar itens"
   },
   "itemDetail": {
     "fetchError": "Falha ao carregar item",
