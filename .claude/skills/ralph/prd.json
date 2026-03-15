@@ -115,7 +115,7 @@
         "Verify in browser using dev-browser skill"
       ],
       "priority": 7,
-      "passes": false,
+      "passes": true,
       "notes": "Current implementation already has border-l-2 — increase to 3px and ensure icon color changes on active."
     },
     {

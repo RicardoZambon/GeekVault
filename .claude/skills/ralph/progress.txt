@@ -72,3 +72,15 @@
   - Collapsed mode uses border-t separators between groups instead of text labels
   - Group labels use `font-semibold uppercase text-sidebar-foreground/50`
 ---
+
+## 2026-03-15 - US-007
+- Active nav item now has 3px left border (border-l-[3px]) instead of 2px
+- Active icon colored with sidebar-primary color
+- Hover state uses lighter bg (bg-sidebar-accent/50) without left border — distinct from active
+- Used NavLink render function children pattern to conditionally color icons
+- Applied to both Sidebar and MobileSidebarContent
+- Files changed: `src/web/src/components/layout/sidebar.tsx`
+- **Learnings for future iterations:**
+  - NavLink in react-router-dom v7 supports both `className` and `children` as render functions simultaneously
+  - Use `{({ isActive }) => (...)}` as children to conditionally style inner elements
+---

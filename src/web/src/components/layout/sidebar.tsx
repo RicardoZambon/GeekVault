@@ -147,13 +147,17 @@ export function Sidebar() {
                         "flex items-center rounded-lg text-sm font-medium transition-colors relative min-h-[44px]",
                         collapsed ? "justify-center px-2" : "gap-3 px-3",
                         isActive
-                          ? "bg-sidebar-accent text-sidebar-accent-foreground border-l-2 border-sidebar-primary"
-                          : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground border-l-2 border-transparent"
+                          ? "bg-sidebar-accent text-sidebar-accent-foreground border-l-[3px] border-sidebar-primary"
+                          : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground"
                       )
                     }
                   >
-                    <item.icon className="h-5 w-5 shrink-0" />
-                    {!collapsed && <span>{t(item.labelKey)}</span>}
+                    {({ isActive }) => (
+                      <>
+                        <item.icon className={cn("h-5 w-5 shrink-0", isActive && "text-sidebar-primary")} />
+                        {!collapsed && <span>{t(item.labelKey)}</span>}
+                      </>
+                    )}
                   </NavLink>
                 )
 
@@ -285,15 +289,19 @@ export function MobileSidebarContent({ onClose }: { onClose: () => void }) {
                   onClick={onClose}
                   className={({ isActive }) =>
                     cn(
-                      "flex items-center gap-3 rounded-lg px-3 text-sm font-medium transition-colors border-l-2 min-h-[44px]",
+                      "flex items-center gap-3 rounded-lg px-3 text-sm font-medium transition-colors min-h-[44px]",
                       isActive
-                        ? "bg-sidebar-accent text-sidebar-accent-foreground border-sidebar-primary"
-                        : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground border-transparent"
+                        ? "bg-sidebar-accent text-sidebar-accent-foreground border-l-[3px] border-sidebar-primary"
+                        : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground"
                     )
                   }
                 >
-                  <item.icon className="h-5 w-5" />
-                  {t(item.labelKey)}
+                  {({ isActive }) => (
+                    <>
+                      <item.icon className={cn("h-5 w-5", isActive && "text-sidebar-primary")} />
+                      {t(item.labelKey)}
+                    </>
+                  )}
                 </NavLink>
               ))}
             </div>
