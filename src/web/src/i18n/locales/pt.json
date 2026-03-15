@@ -70,7 +70,16 @@
     "empty": "Nenhuma coleção ainda. Crie uma para começar.",
     "itemCount_one": "{{count}} item",
     "itemCount_other": "{{count}} itens",
-    "itemCount": "{{count}} itens"
+    "itemCount": "{{count}} itens",
+    "searchPlaceholder": "Buscar coleções...",
+    "filterByType": "Filtrar por tipo",
+    "allTypes": "Todos os Tipos",
+    "noResults": "Nenhuma coleção corresponde à sua busca.",
+    "view": "Ver",
+    "dropCoverHere": "Solte uma imagem aqui ou clique para procurar",
+    "saveSuccess": "Coleção salva com sucesso.",
+    "createSuccess": "Coleção criada com sucesso.",
+    "deleteSuccess": "Coleção excluída com sucesso."
   },
   "collectionTypes": {
     "title": "Tipos de Coleção",

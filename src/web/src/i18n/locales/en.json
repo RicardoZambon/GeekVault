@@ -70,7 +70,16 @@
     "empty": "No collections yet. Create one to get started.",
     "itemCount_one": "{{count}} item",
     "itemCount_other": "{{count}} items",
-    "itemCount": "{{count}} items"
+    "itemCount": "{{count}} items",
+    "searchPlaceholder": "Search collections...",
+    "filterByType": "Filter by type",
+    "allTypes": "All Types",
+    "noResults": "No collections match your search.",
+    "view": "View",
+    "dropCoverHere": "Drop an image here or click to browse",
+    "saveSuccess": "Collection saved successfully.",
+    "createSuccess": "Collection created successfully.",
+    "deleteSuccess": "Collection deleted successfully."
   },
   "collectionTypes": {
     "title": "Collection Types",

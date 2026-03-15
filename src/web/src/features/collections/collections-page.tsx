@@ -1,8 +1,38 @@
 import { useState, useEffect, useRef, type FormEvent } from "react"
 import { useNavigate, useSearchParams } from "react-router-dom"
 import { useTranslation } from "react-i18next"
-import { Plus, Pencil, Trash2, MoreVertical, Image, Library } from "lucide-react"
-import { EmptyState } from "@/components/ds"
+import { motion } from "framer-motion"
+import {
+  Plus,
+  Pencil,
+  Trash2,
+  Library,
+  Search,
+  Upload,
+  Loader2,
+  Eye,
+} from "lucide-react"
+import {
+  EmptyState,
+  PageHeader,
+  Card,
+  CardContent,
+  CardFooter,
+  Badge,
+  SkeletonRect,
+  StaggerChildren,
+  staggerItemVariants,
+  toast,
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from "@/components/ds"
 import { useAuth } from "@/components/auth-provider"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -15,6 +45,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog"
 import { ConfirmDialog } from "@/components/ui/confirm-dialog"
+import { useDebounce } from "@/hooks"
 
 interface CollectionType {
   id: number
@@ -42,7 +73,11 @@ export default function Collections() {
   const [collections, setCollections] = useState<Collection[]>([])
   const [collectionTypes, setCollectionTypes] = useState<CollectionType[]>([])
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState("")
+
+  // Search & filter
+  const [searchQuery, setSearchQuery] = useState("")
+  const [filterType, setFilterType] = useState<string>("all")
+  const debouncedSearch = useDebounce(searchQuery, 300)
 
   // Dialog state
   const [dialogOpen, setDialogOpen] = useState(false)
@@ -59,9 +94,8 @@ export default function Collections() {
   const [deleteId, setDeleteId] = useState<number | null>(null)
   const [deleting, setDeleting] = useState(false)
 
-  // Card menu
-  const [menuOpenId, setMenuOpenId] = useState<number | null>(null)
-  const menuRef = useRef<HTMLDivElement>(null)
+  // File input ref for dropzone
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const headers = {
     Authorization: `Bearer ${token}`,
@@ -75,7 +109,7 @@ export default function Collections() {
       const data = await res.json()
       setCollections(data)
     } catch {
-      setError(t("collections.fetchError"))
+      toast.error(t("collections.fetchError"))
     } finally {
       setLoading(false)
     }
@@ -105,18 +139,15 @@ export default function Collections() {
     }
   }, [loading]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Close menu on outside click
-  useEffect(() => {
-    function handleClick(e: MouseEvent) {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
-        setMenuOpenId(null)
-      }
-    }
-    if (menuOpenId !== null) {
-      document.addEventListener("mousedown", handleClick)
-      return () => document.removeEventListener("mousedown", handleClick)
-    }
-  }, [menuOpenId])
+  // Filtered collections
+  const filteredCollections = collections.filter((c) => {
+    const matchesSearch =
+      !debouncedSearch ||
+      c.name.toLowerCase().includes(debouncedSearch.toLowerCase())
+    const matchesType =
+      filterType === "all" || c.collectionTypeId === Number(filterType)
+    return matchesSearch && matchesType
+  })
 
   function openCreate() {
     setEditingId(null)
@@ -137,7 +168,6 @@ export default function Collections() {
     setFormVisibility("Private")
     setFormCoverFile(null)
     setFormError("")
-    setMenuOpenId(null)
     setDialogOpen(true)
   }
 
@@ -195,6 +225,11 @@ export default function Collections() {
       }
 
       setDialogOpen(false)
+      toast.success(
+        editingId
+          ? t("collections.saveSuccess")
+          : t("collections.createSuccess")
+      )
       await fetchCollections()
     } catch (err) {
       setFormError(
@@ -215,44 +250,63 @@ export default function Collections() {
       })
       if (!res.ok) throw new Error("Failed to delete")
       setDeleteId(null)
+      toast.success(t("collections.deleteSuccess"))
       await fetchCollections()
     } catch {
-      setError(t("collections.deleteFailed"))
+      toast.error(t("collections.deleteFailed"))
     } finally {
       setDeleting(false)
     }
   }
 
+  function handleDrop(e: React.DragEvent) {
+    e.preventDefault()
+    const file = e.dataTransfer.files[0]
+    if (file && file.type.startsWith("image/")) {
+      setFormCoverFile(file)
+    }
+  }
+
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-12">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+      <div>
+        <PageHeader
+          title={t("collections.title")}
+          description={t("collections.description")}
+        />
+        <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <Card key={i} variant="flat" className="overflow-hidden">
+              <SkeletonRect height={144} className="w-full rounded-none" />
+              <CardContent className="pt-4">
+                <SkeletonRect height={20} width="60%" />
+                <SkeletonRect height={14} width="30%" className="mt-2" />
+                <SkeletonRect height={14} width="90%" className="mt-3" />
+                <SkeletonRect height={14} width="75%" className="mt-1" />
+                <SkeletonRect height={12} width="20%" className="mt-3" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
       </div>
     )
   }
 
   return (
     <div>
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">
-            {t("collections.title")}
-          </h1>
-          <p className="mt-2 text-muted-foreground">
-            {t("collections.description")}
-          </p>
-        </div>
-        <Button onClick={openCreate}>
-          <Plus className="h-4 w-4" />
-          {t("collections.create")}
-        </Button>
-      </div>
-
-      {error && (
-        <div className="mt-4 rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive-foreground">
-          {error}
-        </div>
-      )}
+      <PageHeader
+        title={t("collections.title")}
+        description={t("collections.description")}
+        actions={
+          <Button
+            onClick={openCreate}
+            className="bg-accent text-accent-foreground hover:bg-accent/90"
+          >
+            <Plus className="mr-1.5 h-4 w-4" />
+            {t("collections.create")}
+          </Button>
+        }
+      />
 
       {collections.length === 0 ? (
         <EmptyState
@@ -263,90 +317,156 @@ export default function Collections() {
           onAction={openCreate}
         />
       ) : (
-        <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {collections.map((c) => (
-            <div
-              key={c.id}
-              className="group relative cursor-pointer overflow-hidden rounded-lg border bg-card shadow-sm transition-shadow hover:shadow-md"
-              onClick={() => navigate(`/collections/${c.id}`)}
-            >
-              {/* Cover image */}
-              <div className="relative h-36 bg-muted">
-                {c.coverImage ? (
-                  <img
-                    src={c.coverImage}
-                    alt={c.name}
-                    className="h-full w-full object-cover"
-                  />
-                ) : (
-                  <div className="flex h-full items-center justify-center">
-                    <Image className="h-10 w-10 text-muted-foreground/40" />
-                  </div>
-                )}
-              </div>
-
-              {/* Card body */}
-              <div className="p-4">
-                <div className="flex items-start justify-between">
-                  <div className="min-w-0 flex-1">
-                    <h3 className="truncate font-semibold">{c.name}</h3>
-                    <p className="mt-0.5 text-xs text-muted-foreground">
-                      {c.collectionTypeName}
-                    </p>
-                  </div>
-                  {/* Menu button */}
-                  <div className="relative" ref={menuOpenId === c.id ? menuRef : null}>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 shrink-0"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        setMenuOpenId(menuOpenId === c.id ? null : c.id)
-                      }}
-                      aria-label={t("collections.actions")}
-                    >
-                      <MoreVertical className="h-4 w-4" />
-                    </Button>
-                    {menuOpenId === c.id && (
-                      <div className="absolute right-0 z-10 mt-1 w-36 rounded-md border bg-popover p-1 shadow-md">
-                        <button
-                          className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-accent"
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            openEdit(c)
-                          }}
-                        >
-                          <Pencil className="h-3.5 w-3.5" />
-                          {t("collections.edit")}
-                        </button>
-                        <button
-                          className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm text-destructive hover:bg-accent"
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            setMenuOpenId(null)
-                            setDeleteId(c.id)
-                          }}
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                          {t("collections.delete")}
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                </div>
-                {c.description && (
-                  <p className="mt-2 line-clamp-2 text-sm text-muted-foreground">
-                    {c.description}
-                  </p>
-                )}
-                <p className="mt-3 text-xs font-medium text-muted-foreground">
-                  {t("collections.itemCount", { count: c.itemCount })}
-                </p>
-              </div>
+        <>
+          {/* Search & Filter toolbar */}
+          <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder={t("collections.searchPlaceholder")}
+                className="pl-9"
+              />
             </div>
-          ))}
-        </div>
+            <Select value={filterType} onValueChange={setFilterType}>
+              <SelectTrigger className="w-full sm:w-[200px]">
+                <SelectValue placeholder={t("collections.filterByType")} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">
+                  {t("collections.allTypes")}
+                </SelectItem>
+                {collectionTypes.map((ct) => (
+                  <SelectItem key={ct.id} value={String(ct.id)}>
+                    {ct.icon ? `${ct.icon} ` : ""}
+                    {ct.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Collection cards grid */}
+          {filteredCollections.length === 0 ? (
+            <div className="mt-12 text-center text-muted-foreground">
+              {t("collections.noResults")}
+            </div>
+          ) : (
+            <StaggerChildren className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {filteredCollections.map((c) => (
+                <motion.div key={c.id} variants={staggerItemVariants}>
+                  <Card className="group cursor-pointer overflow-hidden">
+                    {/* Cover image */}
+                    <div
+                      className="relative aspect-video bg-muted"
+                      onClick={() => navigate(`/collections/${c.id}`)}
+                    >
+                      {c.coverImage ? (
+                        <img
+                          src={c.coverImage}
+                          alt={c.name}
+                          loading="lazy"
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        <div className="flex h-full items-center justify-center bg-gradient-to-br from-primary/10 to-accent/10">
+                          <Library className="h-10 w-10 text-muted-foreground/40" />
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Card body */}
+                    <CardContent className="pt-4">
+                      <div className="flex items-start justify-between gap-2">
+                        <div
+                          className="min-w-0 flex-1 cursor-pointer"
+                          onClick={() => navigate(`/collections/${c.id}`)}
+                        >
+                          <h3 className="truncate font-display font-semibold">
+                            {c.name}
+                          </h3>
+                          <Badge variant="outline" size="sm" className="mt-1">
+                            {c.collectionTypeName}
+                          </Badge>
+                        </div>
+                        {/* Overflow menu */}
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 shrink-0 opacity-0 transition-opacity group-hover:opacity-100 focus:opacity-100"
+                              onClick={(e) => e.stopPropagation()}
+                              aria-label={t("collections.actions")}
+                            >
+                              <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                width="16"
+                                height="16"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="2"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                              >
+                                <circle cx="12" cy="12" r="1" />
+                                <circle cx="12" cy="5" r="1" />
+                                <circle cx="12" cy="19" r="1" />
+                              </svg>
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                openEdit(c)
+                              }}
+                            >
+                              <Pencil className="h-4 w-4" />
+                              {t("collections.edit")}
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              className="text-destructive focus:text-destructive"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                setDeleteId(c.id)
+                              }}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                              {t("collections.delete")}
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+                      {c.description && (
+                        <p className="mt-2 line-clamp-2 text-sm text-muted-foreground">
+                          {c.description}
+                        </p>
+                      )}
+                    </CardContent>
+
+                    <CardFooter className="justify-between border-t px-6 py-3">
+                      <span className="text-xs font-medium text-muted-foreground">
+                        {t("collections.itemCount", { count: c.itemCount })}
+                      </span>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 text-xs"
+                        onClick={() => navigate(`/collections/${c.id}`)}
+                      >
+                        <Eye className="mr-1 h-3 w-3" />
+                        {t("collections.view")}
+                      </Button>
+                    </CardFooter>
+                  </Card>
+                </motion.div>
+              ))}
+            </StaggerChildren>
+          )}
+        </>
       )}
 
       {/* Create/Edit Dialog */}
@@ -397,36 +517,55 @@ export default function Collections() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="col-type">{t("collections.typeLabel")}</Label>
-              <select
-                id="col-type"
-                value={formTypeId}
-                onChange={(e) =>
-                  setFormTypeId(e.target.value ? Number(e.target.value) : "")
-                }
-                disabled={submitting || (editingId !== null)}
-                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50"
+              <Label>{t("collections.typeLabel")}</Label>
+              <Select
+                value={formTypeId ? String(formTypeId) : ""}
+                onValueChange={(v) => setFormTypeId(v ? Number(v) : "")}
+                disabled={submitting || editingId !== null}
               >
-                <option value="">{t("collections.selectType")}</option>
-                {collectionTypes.map((ct) => (
-                  <option key={ct.id} value={ct.id}>
-                    {ct.icon ? `${ct.icon} ` : ""}{ct.name}
-                  </option>
-                ))}
-              </select>
+                <SelectTrigger>
+                  <SelectValue placeholder={t("collections.selectType")} />
+                </SelectTrigger>
+                <SelectContent>
+                  {collectionTypes.map((ct) => (
+                    <SelectItem key={ct.id} value={String(ct.id)}>
+                      {ct.icon ? `${ct.icon} ` : ""}
+                      {ct.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="col-cover">{t("collections.coverLabel")}</Label>
-              <Input
-                id="col-cover"
-                type="file"
-                accept="image/*"
-                onChange={(e) =>
-                  setFormCoverFile(e.target.files?.[0] ?? null)
-                }
-                disabled={submitting}
-              />
+              <Label>{t("collections.coverLabel")}</Label>
+              <div
+                onDrop={handleDrop}
+                onDragOver={(e) => e.preventDefault()}
+                onClick={() => fileInputRef.current?.click()}
+                className="flex cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-muted-foreground/25 px-6 py-8 text-center transition-colors hover:border-accent/50 hover:bg-accent/5"
+              >
+                <Upload className="mb-2 h-8 w-8 text-muted-foreground/50" />
+                {formCoverFile ? (
+                  <p className="text-sm font-medium text-foreground">
+                    {formCoverFile.name}
+                  </p>
+                ) : (
+                  <p className="text-sm text-muted-foreground">
+                    {t("collections.dropCoverHere")}
+                  </p>
+                )}
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) =>
+                    setFormCoverFile(e.target.files?.[0] ?? null)
+                  }
+                  disabled={submitting}
+                />
+              </div>
             </div>
 
             <div className="flex justify-end gap-2 pt-2">
@@ -439,6 +578,9 @@ export default function Collections() {
                 {t("collections.cancel")}
               </Button>
               <Button type="submit" disabled={submitting}>
+                {submitting && (
+                  <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
+                )}
                 {submitting
                   ? t("collections.saving")
                   : editingId
