@@ -141,18 +141,18 @@ export function Sidebar() {
                         "font-medium transition-colors relative block rounded-md",
                         !collapsed && "rounded-lg",
                         isActive
-                          ? "bg-sidebar-accent text-sidebar-accent-foreground border-sidebar-primary"
-                          : "border-transparent text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground"
+                          ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                          : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground"
                       )
                     }
                   >
                     {({ isActive }) =>
                       collapsed ? (
-                        <div className="flex items-center justify-center h-[48px]">
+                        <div className={cn("flex items-center justify-center h-[48px] border-l-[3px]", isActive ? "border-sidebar-primary" : "border-transparent")}>
                           <item.icon className={cn("h-6 w-6", isActive && "text-sidebar-primary")} />
                         </div>
                       ) : (
-                        <div className="flex items-center gap-3 px-3 min-h-[44px] text-sm">
+                        <div className={cn("flex items-center gap-3 px-3 min-h-[44px] text-sm border-l-[3px]", isActive ? "border-sidebar-primary" : "border-transparent")}>
                           <item.icon className={cn("h-5 w-5 shrink-0", isActive && "text-sidebar-primary")} />
                           <span>{t(item.labelKey)}</span>
                         </div>
