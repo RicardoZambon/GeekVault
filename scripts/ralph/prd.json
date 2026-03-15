@@ -623,7 +623,7 @@
         "Verify in browser using dev-browser skill"
       ],
       "priority": 33,
-      "passes": false,
+      "passes": true,
       "notes": "Depends on US-032 (wishlist reorder endpoint)"
     },
     {

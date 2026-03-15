@@ -559,3 +559,18 @@ Started: Sun Mar 15 02:52:16 AM UTC 2026
   - When adding SortOrder to an entity, remember to update: entity, migration, repository (ordering + helpers), service (create auto-assign + reorder), controller (endpoint), DTOs (response + request), and tests (result record + ordering test)
   - Existing ordering tests need to be updated when switching from Priority to SortOrder ordering
 ---
+
+## 2026-03-15 - US-033
+- Added drag-and-drop reordering to wishlist items within each collection group using SortableList component
+- Added GripVertical drag handle to each wishlist card
+- Implemented optimistic reorder with API call to POST /api/collections/{id}/wishlist/reorder, reverts on failure
+- Added i18n keys for reorder error ("reorderFailed") in both en.json and pt.json
+- Collection type custom field builder already had SortableList from US-028 — no changes needed there
+- Removed unused StaggerChildren/staggerItemVariants imports from wishlist page
+- Files changed: src/web/src/features/wishlist/wishlist-page.tsx, src/web/src/i18n/locales/en.json, src/web/src/i18n/locales/pt.json
+- **Learnings for future iterations:**
+  - SortableList with layout="grid" and gridClassName works well for card grid drag-and-drop
+  - When replacing StaggerChildren with SortableList, remember to clean up unused animation imports
+  - Optimistic updates for reorder: update state immediately, revert by re-fetching on API failure
+  - The wishlist reorder API expects { itemIds: int[] } body format
+---
