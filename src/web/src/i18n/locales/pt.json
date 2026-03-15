@@ -379,10 +379,22 @@
     "avatarLabel": "Avatar",
     "uploadAvatar": "Enviar Avatar",
     "avatarFailed": "Falha ao enviar avatar",
+    "avatarSuccess": "Avatar atualizado com sucesso.",
     "save": "Salvar Alterações",
     "saving": "Salvando...",
     "saveSuccess": "Perfil atualizado com sucesso.",
-    "saveFailed": "Falha ao salvar perfil"
+    "saveFailed": "Falha ao salvar perfil",
+    "sections": {
+      "avatar": "Avatar",
+      "accountInfo": "Informações da Conta",
+      "about": "Sobre",
+      "preferences": "Preferências",
+      "appearance": "Aparência",
+      "theme": "Tema",
+      "themeLight": "Claro",
+      "themeDark": "Escuro",
+      "themeSystem": "Sistema"
+    }
   },
   "language": {
     "label": "Idioma",

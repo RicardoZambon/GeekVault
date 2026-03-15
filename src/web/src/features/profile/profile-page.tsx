@@ -1,10 +1,29 @@
 import { useEffect, useState, useRef } from "react"
 import { useTranslation } from "react-i18next"
 import { useAuth } from "@/components/auth-provider"
+import { useTheme } from "@/components/theme-provider"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Loader2, Upload, User } from "lucide-react"
+import {
+  PageHeader,
+  Textarea,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  SkeletonRect,
+  SkeletonCircle,
+  SkeletonText,
+  FadeIn,
+  toast,
+} from "@/components/ds"
+import { Camera, Loader2, Moon, Sun, Monitor, User } from "lucide-react"
 
 interface ProfileData {
   id: string
@@ -19,11 +38,10 @@ interface ProfileData {
 export default function Profile() {
   const { t, i18n } = useTranslation()
   const { token } = useAuth()
+  const { theme, setTheme } = useTheme()
 
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState("")
   const [saving, setSaving] = useState(false)
-  const [saveSuccess, setSaveSuccess] = useState(false)
 
   const [profile, setProfile] = useState<ProfileData | null>(null)
   const [displayName, setDisplayName] = useState("")
@@ -54,15 +72,13 @@ export default function Profile() {
         setPreferredCurrency(data.preferredCurrency ?? "USD")
         setAvatarPreview(data.avatar ?? null)
       })
-      .catch(() => setError(t("profile.fetchError")))
+      .catch(() => toast.error(t("profile.fetchError")))
       .finally(() => setLoading(false))
   }, [token])
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault()
     setSaving(true)
-    setError("")
-    setSaveSuccess(false)
 
     try {
       const res = await fetch("/api/profile", {
@@ -86,10 +102,9 @@ export default function Profile() {
         i18n.changeLanguage(data.preferredLanguage)
       }
 
-      setSaveSuccess(true)
-      setTimeout(() => setSaveSuccess(false), 3000)
+      toast.success(t("profile.saveSuccess"))
     } catch {
-      setError(t("profile.saveFailed"))
+      toast.error(t("profile.saveFailed"))
     } finally {
       setSaving(false)
     }
@@ -105,7 +120,6 @@ export default function Profile() {
     reader.readAsDataURL(file)
 
     setUploadingAvatar(true)
-    setError("")
 
     try {
       const formData = new FormData()
@@ -121,8 +135,9 @@ export default function Profile() {
 
       const data = await res.json()
       setAvatarPreview(data.avatarUrl)
+      toast.success(t("profile.avatarSuccess"))
     } catch {
-      setError(t("profile.avatarFailed"))
+      toast.error(t("profile.avatarFailed"))
       setAvatarPreview(profile?.avatar ?? null)
     } finally {
       setUploadingAvatar(false)
@@ -131,148 +146,229 @@ export default function Profile() {
 
   if (loading) {
     return (
-      <div className="flex items-center gap-2 py-8 text-muted-foreground">
-        <Loader2 className="h-4 w-4 animate-spin" />
-        {t("profile.loading")}
+      <div className="space-y-6">
+        <div className="space-y-2">
+          <SkeletonRect className="h-8 w-32" />
+          <SkeletonRect className="h-5 w-64" />
+        </div>
+        <Card>
+          <CardContent className="flex items-center gap-6 pt-6">
+            <SkeletonCircle size={120} />
+            <SkeletonText lines={2} className="w-48" />
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="space-y-4 pt-6">
+            <SkeletonRect className="h-5 w-24" />
+            <SkeletonRect className="h-10 w-full" />
+            <SkeletonRect className="h-5 w-24" />
+            <SkeletonRect className="h-10 w-full" />
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="space-y-4 pt-6">
+            <SkeletonRect className="h-5 w-24" />
+            <SkeletonRect className="h-24 w-full" />
+          </CardContent>
+        </Card>
       </div>
     )
   }
 
+  const themeOptions: Array<{ value: string; icon: React.ReactNode; label: string }> = [
+    { value: "light", icon: <Sun className="h-4 w-4" />, label: t("profile.sections.themeLight") },
+    { value: "dark", icon: <Moon className="h-4 w-4" />, label: t("profile.sections.themeDark") },
+    { value: "system", icon: <Monitor className="h-4 w-4" />, label: t("profile.sections.themeSystem") },
+  ]
+
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">{t("profile.title")}</h1>
-        <p className="mt-2 text-muted-foreground">{t("profile.description")}</p>
-      </div>
+    <FadeIn>
+      <div className="space-y-6">
+        <PageHeader title={t("profile.title")} description={t("profile.description")} />
 
-      {error && (
-        <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
-          {error}
-        </div>
-      )}
-
-      {saveSuccess && (
-        <div className="rounded-md bg-green-500/10 p-3 text-sm text-green-700 dark:text-green-400">
-          {t("profile.saveSuccess")}
-        </div>
-      )}
-
-      {/* Avatar Section */}
-      <div className="flex items-center gap-6">
-        <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-full border bg-muted">
-          {avatarPreview ? (
-            <img
-              src={avatarPreview}
-              alt={t("profile.avatarLabel")}
-              className="h-full w-full object-cover"
-            />
-          ) : (
-            <div className="flex h-full w-full items-center justify-center">
-              <User className="h-8 w-8 text-muted-foreground" />
+        {/* Avatar Section */}
+        <Card>
+          <CardHeader>
+            <CardTitle>{t("profile.sections.avatar")}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center gap-6">
+              <div
+                className="group relative h-[120px] w-[120px] shrink-0 cursor-pointer overflow-hidden rounded-full border-2 border-muted bg-muted"
+                onClick={() => !uploadingAvatar && fileInputRef.current?.click()}
+              >
+                {avatarPreview ? (
+                  <img
+                    src={avatarPreview}
+                    alt={t("profile.avatarLabel")}
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  <div className="flex h-full w-full items-center justify-center">
+                    <User className="h-12 w-12 text-muted-foreground" />
+                  </div>
+                )}
+                {uploadingAvatar ? (
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/50">
+                    <Loader2 className="h-6 w-6 animate-spin text-white" />
+                  </div>
+                ) : (
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition-opacity group-hover:opacity-100">
+                    <Camera className="h-6 w-6 text-white" />
+                  </div>
+                )}
+              </div>
+              <div className="space-y-1">
+                <p className="text-sm font-medium">{profile?.displayName || profile?.email}</p>
+                <p className="text-xs text-muted-foreground">{t("profile.uploadAvatar")}</p>
+              </div>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleAvatarUpload}
+              />
             </div>
-          )}
-          {uploadingAvatar && (
-            <div className="absolute inset-0 flex items-center justify-center bg-black/40">
-              <Loader2 className="h-5 w-5 animate-spin text-white" />
-            </div>
-          )}
-        </div>
-        <div>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            disabled={uploadingAvatar}
-            onClick={() => fileInputRef.current?.click()}
-          >
-            <Upload className="mr-2 h-4 w-4" />
-            {t("profile.uploadAvatar")}
-          </Button>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*"
-            className="hidden"
-            onChange={handleAvatarUpload}
-          />
-        </div>
+          </CardContent>
+        </Card>
+
+        <form onSubmit={handleSave} className="space-y-6">
+          {/* Account Info Section */}
+          <Card>
+            <CardHeader>
+              <CardTitle>{t("profile.sections.accountInfo")}</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label>{t("profile.emailLabel")}</Label>
+                <Input value={profile?.email ?? ""} disabled className="bg-muted/50" />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="displayName">{t("profile.displayNameLabel")}</Label>
+                <Input
+                  id="displayName"
+                  value={displayName}
+                  onChange={(e) => setDisplayName(e.target.value)}
+                  placeholder={t("profile.displayNamePlaceholder")}
+                  disabled={saving}
+                />
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* About Section */}
+          <Card>
+            <CardHeader>
+              <CardTitle>{t("profile.sections.about")}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                <Label htmlFor="bio">{t("profile.bioLabel")}</Label>
+                <Textarea
+                  id="bio"
+                  value={bio}
+                  onChange={(e) => setBio(e.target.value)}
+                  placeholder={t("profile.bioPlaceholder")}
+                  disabled={saving}
+                  rows={4}
+                />
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Preferences Section */}
+          <Card>
+            <CardHeader>
+              <CardTitle>{t("profile.sections.preferences")}</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label>{t("profile.languageLabel")}</Label>
+                <Select
+                  value={preferredLanguage}
+                  onValueChange={setPreferredLanguage}
+                  disabled={saving}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="en">{t("language.en")}</SelectItem>
+                    <SelectItem value="pt">{t("language.pt")}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label>{t("profile.currencyLabel")}</Label>
+                <Select
+                  value={preferredCurrency}
+                  onValueChange={setPreferredCurrency}
+                  disabled={saving}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="USD">USD - US Dollar</SelectItem>
+                    <SelectItem value="EUR">EUR - Euro</SelectItem>
+                    <SelectItem value="GBP">GBP - British Pound</SelectItem>
+                    <SelectItem value="BRL">BRL - Real Brasileiro</SelectItem>
+                    <SelectItem value="JPY">JPY - Japanese Yen</SelectItem>
+                    <SelectItem value="CAD">CAD - Canadian Dollar</SelectItem>
+                    <SelectItem value="AUD">AUD - Australian Dollar</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Appearance Section */}
+          <Card>
+            <CardHeader>
+              <CardTitle>{t("profile.sections.appearance")}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                <Label>{t("profile.sections.theme")}</Label>
+                <div className="inline-flex items-center rounded-lg border bg-muted/50 p-1">
+                  {themeOptions.map((option) => (
+                    <button
+                      key={option.value}
+                      type="button"
+                      onClick={() => setTheme(option.value as "light" | "dark" | "system")}
+                      className={`inline-flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+                        theme === option.value
+                          ? "bg-background text-foreground shadow-sm"
+                          : "text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      {option.icon}
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Save Button - sticky on mobile */}
+          <div className="sticky bottom-4 z-10 flex sm:static sm:bottom-auto">
+            <Button type="submit" disabled={saving} className="w-full sm:w-auto">
+              {saving ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  {t("profile.saving")}
+                </>
+              ) : (
+                t("profile.save")
+              )}
+            </Button>
+          </div>
+        </form>
       </div>
-
-      {/* Profile Form */}
-      <form onSubmit={handleSave} className="max-w-lg space-y-4">
-        <div className="space-y-2">
-          <Label>{t("profile.emailLabel")}</Label>
-          <Input value={profile?.email ?? ""} disabled />
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="displayName">{t("profile.displayNameLabel")}</Label>
-          <Input
-            id="displayName"
-            value={displayName}
-            onChange={(e) => setDisplayName(e.target.value)}
-            placeholder={t("profile.displayNamePlaceholder")}
-            disabled={saving}
-          />
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="bio">{t("profile.bioLabel")}</Label>
-          <textarea
-            id="bio"
-            value={bio}
-            onChange={(e) => setBio(e.target.value)}
-            placeholder={t("profile.bioPlaceholder")}
-            disabled={saving}
-            rows={4}
-            className="flex w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50"
-          />
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="language">{t("profile.languageLabel")}</Label>
-          <select
-            id="language"
-            value={preferredLanguage}
-            onChange={(e) => setPreferredLanguage(e.target.value)}
-            disabled={saving}
-            className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50"
-          >
-            <option value="en">{t("language.en")}</option>
-            <option value="pt">{t("language.pt")}</option>
-          </select>
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="currency">{t("profile.currencyLabel")}</Label>
-          <select
-            id="currency"
-            value={preferredCurrency}
-            onChange={(e) => setPreferredCurrency(e.target.value)}
-            disabled={saving}
-            className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50"
-          >
-            <option value="USD">USD - US Dollar</option>
-            <option value="EUR">EUR - Euro</option>
-            <option value="GBP">GBP - British Pound</option>
-            <option value="BRL">BRL - Real Brasileiro</option>
-            <option value="JPY">JPY - Japanese Yen</option>
-            <option value="CAD">CAD - Canadian Dollar</option>
-            <option value="AUD">AUD - Australian Dollar</option>
-          </select>
-        </div>
-
-        <Button type="submit" disabled={saving}>
-          {saving ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              {t("profile.saving")}
-            </>
-          ) : (
-            t("profile.save")
-          )}
-        </Button>
-      </form>
-    </div>
+    </FadeIn>
   )
 }

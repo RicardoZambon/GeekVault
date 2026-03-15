@@ -379,10 +379,22 @@
     "avatarLabel": "Avatar",
     "uploadAvatar": "Upload Avatar",
     "avatarFailed": "Failed to upload avatar",
+    "avatarSuccess": "Avatar updated successfully.",
     "save": "Save Changes",
     "saving": "Saving...",
     "saveSuccess": "Profile updated successfully.",
-    "saveFailed": "Failed to save profile"
+    "saveFailed": "Failed to save profile",
+    "sections": {
+      "avatar": "Avatar",
+      "accountInfo": "Account Info",
+      "about": "About",
+      "preferences": "Preferences",
+      "appearance": "Appearance",
+      "theme": "Theme",
+      "themeLight": "Light",
+      "themeDark": "Dark",
+      "themeSystem": "System"
+    }
   },
   "language": {
     "label": "Language",
