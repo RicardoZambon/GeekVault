@@ -574,3 +574,18 @@ Started: Sun Mar 15 02:52:16 AM UTC 2026
   - Optimistic updates for reorder: update state immediately, revert by re-fetching on API failure
   - The wishlist reorder API expects { itemIds: int[] } body format
 ---
+
+## 2026-03-15 - US-034
+- Wrapped collection detail grid view items in SortableList with layout="grid"
+- Added handleReorderItems() with optimistic UI update and revert on API failure
+- Added GripVertical drag handle overlay on cards (visible on hover)
+- Visual feedback during drag: ring-2 ring-accent + shadow-lg
+- Added i18n keys for reorderFailed in both en.json and pt.json
+- Removed unused StaggerChildren/staggerItemVariants imports
+- Files changed: src/web/src/features/collections/collection-detail-page.tsx, src/web/src/i18n/locales/en.json, src/web/src/i18n/locales/pt.json
+- **Learnings for future iterations:**
+  - SortableList with layout="grid" handles grid sorting strategy automatically via rectSortingStrategy
+  - Card component doesn't have position:relative by default — must add it when using absolute-positioned child elements like drag handles
+  - For grid cards with images, overlay the drag handle on the card (absolute positioned with bg-black/40) rather than adding it inline, to preserve card layout
+  - Click-through prevention: use onClick={(e) => e.stopPropagation()} on drag handle to prevent navigation when grabbing
+---
