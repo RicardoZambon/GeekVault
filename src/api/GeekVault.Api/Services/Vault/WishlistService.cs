@@ -29,6 +29,8 @@ public class WishlistService : IWishlistService
         var collection = await _collectionsRepository.GetByIdAndUserIdAsync(collectionId, userId);
         if (collection == null) return null;
 
+        var maxSortOrder = await _wishlistRepository.GetMaxSortOrderAsync(collectionId);
+
         var item = new WishlistItem
         {
             CollectionId = collectionId,
@@ -36,7 +38,8 @@ public class WishlistService : IWishlistService
             Name = request.Name,
             Priority = request.Priority,
             TargetPrice = request.TargetPrice,
-            Notes = request.Notes
+            Notes = request.Notes,
+            SortOrder = maxSortOrder + 1
         };
 
         await _wishlistRepository.AddAsync(item);
@@ -79,6 +82,26 @@ public class WishlistService : IWishlistService
         return true;
     }
 
+    public async Task<(bool Success, bool NotFound, string? Error)> ReorderAsync(
+        int collectionId, string userId, List<int> itemIds)
+    {
+        var collection = await _collectionsRepository.GetByIdAndUserIdAsync(collectionId, userId);
+        if (collection == null) return (false, true, null);
+
+        var items = await _wishlistRepository.GetByIdsAndCollectionIdAsync(itemIds, collectionId);
+        if (items.Count != itemIds.Count)
+            return (false, false, "Some item IDs do not belong to this collection");
+
+        for (var i = 0; i < itemIds.Count; i++)
+        {
+            var item = items.First(x => x.Id == itemIds[i]);
+            item.SortOrder = i;
+        }
+
+        await _wishlistRepository.SaveChangesAsync();
+        return (true, false, null);
+    }
+
     private static WishlistItemResponse MapToResponse(WishlistItem w) =>
-        new(w.Id, w.CollectionId, w.CatalogItemId, w.Name, w.Priority, w.TargetPrice, w.Notes);
+        new(w.Id, w.CollectionId, w.CatalogItemId, w.Name, w.Priority, w.TargetPrice, w.Notes, w.SortOrder);
 }

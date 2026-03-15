@@ -9,4 +9,6 @@ public interface IWishlistRepository
     Task AddAsync(WishlistItem item);
     Task SaveChangesAsync();
     void Remove(WishlistItem item);
+    Task<int> GetMaxSortOrderAsync(int collectionId);
+    Task<List<WishlistItem>> GetByIdsAndCollectionIdAsync(IEnumerable<int> ids, int collectionId);
 }

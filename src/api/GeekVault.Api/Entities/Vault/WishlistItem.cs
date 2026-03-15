@@ -9,6 +9,7 @@ public class WishlistItem
     public int Priority { get; set; }
     public decimal? TargetPrice { get; set; }
     public string? Notes { get; set; }
+    public int SortOrder { get; set; }
 
     public Collection Collection { get; set; } = null!;
     public CatalogItem? CatalogItem { get; set; }

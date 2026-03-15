@@ -17,7 +17,7 @@ public class WishlistRepository : IWishlistRepository
     {
         return await _db.WishlistItems
             .Where(w => w.CollectionId == collectionId)
-            .OrderBy(w => w.Priority)
+            .OrderBy(w => w.SortOrder)
             .ToListAsync();
     }
 
@@ -40,5 +40,19 @@ public class WishlistRepository : IWishlistRepository
     public void Remove(WishlistItem item)
     {
         _db.WishlistItems.Remove(item);
+    }
+
+    public async Task<int> GetMaxSortOrderAsync(int collectionId)
+    {
+        var items = _db.WishlistItems.Where(w => w.CollectionId == collectionId);
+        if (!await items.AnyAsync()) return -1;
+        return await items.MaxAsync(w => w.SortOrder);
+    }
+
+    public async Task<List<WishlistItem>> GetByIdsAndCollectionIdAsync(IEnumerable<int> ids, int collectionId)
+    {
+        return await _db.WishlistItems
+            .Where(w => ids.Contains(w.Id) && w.CollectionId == collectionId)
+            .ToListAsync();
     }
 }
