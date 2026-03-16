@@ -62,8 +62,8 @@ vi.mock("@/hooks", () => ({
 }))
 
 const collections = [
-  { id: 1, name: "Comics", description: "My comics", coverImage: null, visibility: "Private", collectionTypeId: 1, collectionTypeName: "Comic Books", itemCount: 5 },
-  { id: 2, name: "Cards", description: "", coverImage: "http://img.jpg", visibility: "Private", collectionTypeId: 2, collectionTypeName: "Trading Cards", itemCount: 10 },
+  { id: 1, name: "Comics", description: "My comics", coverImage: null, visibility: "Private", collectionTypeId: 1, collectionTypeName: "Comic Books", itemCount: 5, ownedCount: 3, completionPercentage: 60, createdAt: "2026-01-01T00:00:00Z", updatedAt: "2026-03-15T12:00:00Z" },
+  { id: 2, name: "Cards", description: "", coverImage: "http://img.jpg", visibility: "Private", collectionTypeId: 2, collectionTypeName: "Trading Cards", itemCount: 10, ownedCount: 0, completionPercentage: 0, createdAt: "2026-02-01T00:00:00Z", updatedAt: null },
 ]
 
 const collectionTypes = [
@@ -513,11 +513,13 @@ describe("Collections", () => {
     fireEvent.change(fileInput, { target: { files: null } })
   })
 
-  it("shows item count on cover card", async () => {
+  it("shows metadata line with item count and completion on cover card", async () => {
     mockFetch()
     render(<MemoryRouter><Collections /></MemoryRouter>)
     await waitFor(() => screen.getByText("Comics"))
-    expect(screen.getByText("collections.itemCount:5")).toBeInTheDocument()
+    // Comics: 5 items, 60% complete, has updatedAt — all joined with " · "
+    const metadataEl = screen.getByText((content) => content.includes("collections.itemCount:5") && content.includes("collections.complete"))
+    expect(metadataEl).toBeInTheDocument()
   })
 
   it("shows toast on successful create", async () => {

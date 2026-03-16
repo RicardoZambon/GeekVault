@@ -59,6 +59,10 @@ interface Collection {
   collectionTypeId: number
   collectionTypeName: string
   itemCount: number
+  ownedCount: number
+  completionPercentage: number
+  createdAt: string
+  updatedAt: string | null
 }
 
 export default function Collections() {
@@ -152,6 +156,34 @@ export default function Collections() {
       filterType === "all" || c.collectionTypeId === Number(filterType)
     return matchesSearch && matchesType
   })
+
+  function getRelativeTime(dateStr: string): string {
+    const now = Date.now()
+    const then = new Date(dateStr).getTime()
+    const diffSec = Math.round((now - then) / 1000)
+    const rtf = new Intl.RelativeTimeFormat(undefined, { numeric: "auto" })
+    if (diffSec < 60) return rtf.format(-diffSec, "second")
+    const diffMin = Math.round(diffSec / 60)
+    if (diffMin < 60) return rtf.format(-diffMin, "minute")
+    const diffHr = Math.round(diffMin / 60)
+    if (diffHr < 24) return rtf.format(-diffHr, "hour")
+    const diffDay = Math.round(diffHr / 24)
+    if (diffDay < 30) return rtf.format(-diffDay, "day")
+    const diffMonth = Math.round(diffDay / 30)
+    if (diffMonth < 12) return rtf.format(-diffMonth, "month")
+    return rtf.format(-Math.round(diffDay / 365), "year")
+  }
+
+  function getMetadataLine(c: Collection): string {
+    const parts: string[] = [t("collections.itemCount", { count: c.itemCount })]
+    if (c.itemCount > 0) {
+      parts.push(t("collections.complete", { percent: Math.round(c.completionPercentage) }))
+    }
+    if (c.updatedAt) {
+      parts.push(t("collections.updated", { timeAgo: getRelativeTime(c.updatedAt) }))
+    }
+    return parts.join(" · ")
+  }
 
   function handleSortChange(value: string) {
     // value format: "name:asc", "updatedAt:desc", "itemCount:desc", "createdAt:desc"
@@ -456,7 +488,7 @@ export default function Collections() {
                           {c.name}
                         </h3>
                         <p className="text-[13px] text-white/85">
-                          {t("collections.itemCount", { count: c.itemCount })}
+                          {getMetadataLine(c)}
                         </p>
                       </div>
                     </div>
