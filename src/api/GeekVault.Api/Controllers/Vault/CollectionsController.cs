@@ -110,6 +110,25 @@ public static class CollectionsController
         .WithOpenApi()
         .DisableAntiforgery();
 
+        app.MapPost("/api/collections/{id:int}/cover-from-item/{itemId:int}", async (
+            int id,
+            int itemId,
+            ClaimsPrincipal principal,
+            ICollectionsService service,
+            IWebHostEnvironment env) =>
+        {
+            var userId = principal.FindFirstValue(ClaimTypes.NameIdentifier)!;
+            var webRootPath = env.WebRootPath ?? Path.Combine(env.ContentRootPath, "wwwroot");
+            var (coverUrl, notFound, error) = await service.CoverFromItemAsync(id, itemId, userId, webRootPath);
+            if (notFound) return Results.NotFound(error != null ? new { error } : null);
+            if (error != null) return Results.BadRequest(new { error });
+
+            return Results.Ok(new { coverUrl });
+        })
+        .RequireAuthorization()
+        .WithName("CoverFromItem")
+        .WithOpenApi();
+
         return app;
     }
 }

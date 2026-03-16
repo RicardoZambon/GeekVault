@@ -8,10 +8,12 @@ namespace GeekVault.Api.Services.Vault;
 public class CollectionsService : ICollectionsService
 {
     private readonly ICollectionsRepository _repository;
+    private readonly ICatalogItemsRepository _catalogItemsRepository;
 
-    public CollectionsService(ICollectionsRepository repository)
+    public CollectionsService(ICollectionsRepository repository, ICatalogItemsRepository catalogItemsRepository)
     {
         _repository = repository;
+        _catalogItemsRepository = catalogItemsRepository;
     }
 
     public async Task<List<CollectionResponse>> GetAllAsync(string userId, string? sortBy = null, string? sortDir = null)
@@ -114,6 +116,37 @@ public class CollectionsService : ICollectionsService
         {
             await file.CopyToAsync(stream);
         }
+
+        collection.CoverImage = $"/uploads/{fileName}";
+        collection.UpdatedAt = DateTime.UtcNow;
+        await _repository.SaveChangesAsync();
+
+        return (collection.CoverImage, false, null);
+    }
+
+    public async Task<(string? CoverUrl, bool NotFound, string? Error)> CoverFromItemAsync(int collectionId, int itemId, string userId, string webRootPath)
+    {
+        var collection = await _repository.GetByIdAndUserIdAsync(collectionId, userId);
+        if (collection == null) return (null, true, null);
+
+        var item = await _catalogItemsRepository.GetByIdAndCollectionIdAsync(itemId, collectionId);
+        if (item == null) return (null, true, null);
+
+        if (string.IsNullOrEmpty(item.Image))
+            return (null, true, "Item has no image");
+
+        var sourcePath = Path.Combine(webRootPath, item.Image.TrimStart('/'));
+        if (!File.Exists(sourcePath))
+            return (null, true, "Item image file not found");
+
+        var uploadsDir = Path.Combine(webRootPath, "uploads");
+        Directory.CreateDirectory(uploadsDir);
+
+        var extension = Path.GetExtension(sourcePath);
+        var fileName = $"collection-{collectionId}-{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}{extension}";
+        var destPath = Path.Combine(uploadsDir, fileName);
+
+        File.Copy(sourcePath, destPath, overwrite: true);
 
         collection.CoverImage = $"/uploads/{fileName}";
         collection.UpdatedAt = DateTime.UtcNow;

@@ -380,6 +380,84 @@ public class CollectionEndpointsTests : IClassFixture<TestFactory<CollectionEndp
     }
 
     [Fact]
+    public async Task CoverFromItem_HappyPath_CopiesItemImageAsCollectionCover()
+    {
+        var (client, typeId) = await CreateAuthenticatedClientWithTypeAsync("col-cover-item@example.com");
+
+        var createResponse = await client.PostAsJsonAsync("/api/collections", new
+        {
+            Name = "Cover From Item",
+            CollectionTypeId = typeId
+        });
+        var created = await createResponse.Content.ReadFromJsonAsync<CollectionResult>();
+
+        // Add a catalog item
+        var itemResp = await client.PostAsJsonAsync($"/api/collections/{created!.Id}/items", new { Identifier = "CFI-1", Name = "Item1" });
+        var item = await itemResp.Content.ReadFromJsonAsync<CatalogItemResult>();
+
+        // Upload an image to the catalog item
+        var imgContent = new MultipartFormDataContent();
+        var fileContent = new ByteArrayContent(new byte[] { 0x89, 0x50, 0x4E, 0x47 });
+        fileContent.Headers.ContentType = new MediaTypeHeaderValue("image/png");
+        imgContent.Add(fileContent, "image", "item.png");
+        var imgResp = await client.PostAsync($"/api/collections/{created.Id}/items/{item!.Id}/image", imgContent);
+        imgResp.EnsureSuccessStatusCode();
+
+        // Use item image as collection cover
+        var response = await client.PostAsync($"/api/collections/{created.Id}/cover-from-item/{item.Id}", null);
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var result = await response.Content.ReadFromJsonAsync<CoverResult>();
+        Assert.NotNull(result?.CoverUrl);
+        Assert.Contains("/uploads/", result.CoverUrl);
+
+        // Verify the collection now has the cover
+        var getResp = await client.GetAsync($"/api/collections/{created.Id}");
+        var col = await getResp.Content.ReadFromJsonAsync<CollectionResult>();
+        Assert.NotNull(col?.CoverImage);
+        Assert.Contains("/uploads/", col.CoverImage);
+    }
+
+    [Fact]
+    public async Task CoverFromItem_ItemNotInCollection_ReturnsNotFound()
+    {
+        var (client, typeId) = await CreateAuthenticatedClientWithTypeAsync("col-cover-item-notfound@example.com");
+
+        var col1Resp = await client.PostAsJsonAsync("/api/collections", new { Name = "Col1", CollectionTypeId = typeId });
+        var col1 = await col1Resp.Content.ReadFromJsonAsync<CollectionResult>();
+
+        var col2Resp = await client.PostAsJsonAsync("/api/collections", new { Name = "Col2", CollectionTypeId = typeId });
+        var col2 = await col2Resp.Content.ReadFromJsonAsync<CollectionResult>();
+
+        // Add item to col2
+        var itemResp = await client.PostAsJsonAsync($"/api/collections/{col2!.Id}/items", new { Identifier = "CFI-2", Name = "Item2" });
+        var item = await itemResp.Content.ReadFromJsonAsync<CatalogItemResult>();
+
+        // Try to use col2's item as col1's cover
+        var response = await client.PostAsync($"/api/collections/{col1!.Id}/cover-from-item/{item!.Id}", null);
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task CoverFromItem_ItemHasNoImage_ReturnsNotFound()
+    {
+        var (client, typeId) = await CreateAuthenticatedClientWithTypeAsync("col-cover-item-noimg@example.com");
+
+        var createResponse = await client.PostAsJsonAsync("/api/collections", new
+        {
+            Name = "No Image Test",
+            CollectionTypeId = typeId
+        });
+        var created = await createResponse.Content.ReadFromJsonAsync<CollectionResult>();
+
+        // Add item without uploading an image
+        var itemResp = await client.PostAsJsonAsync($"/api/collections/{created!.Id}/items", new { Identifier = "CFI-3", Name = "NoImage" });
+        var item = await itemResp.Content.ReadFromJsonAsync<CatalogItemResult>();
+
+        var response = await client.PostAsync($"/api/collections/{created.Id}/cover-from-item/{item!.Id}", null);
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
+    [Fact]
     public async Task Collection_RequiresAuth()
     {
         var client = _factory.CreateClient();

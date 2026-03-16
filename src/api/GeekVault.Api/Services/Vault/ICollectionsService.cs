@@ -10,4 +10,5 @@ public interface ICollectionsService
     Task<CollectionResponse?> UpdateAsync(int id, string userId, UpdateCollectionRequest request);
     Task<bool> DeleteAsync(int id, string userId);
     Task<(string? CoverUrl, bool NotFound, string? Error)> UploadCoverAsync(int id, string userId, IFormFile file, string webRootPath);
+    Task<(string? CoverUrl, bool NotFound, string? Error)> CoverFromItemAsync(int collectionId, int itemId, string userId, string webRootPath);
 }
