@@ -12,6 +12,7 @@
 - EF Core migrations: use `defaultValueSql: "GETUTCDATE()"` instead of `defaultValue` for UTC now defaults on existing rows
 - Catalog items endpoint: POST /api/collections/{collectionId}/items (requires Identifier field)
 - Both repositories share the same scoped DbContext — setting UpdatedAt on a Collection loaded by one repo and calling SaveChangesAsync on another repo persists all tracked changes
+- Collections reorder endpoint: POST /api/collections/reorder with `{ CollectionIds: [int] }` — default sort is now sortOrder (not name), use `?sortBy=name` for explicit alphabetical
 
 ---
 
@@ -121,4 +122,31 @@
   - Catalog item image upload endpoint: POST /api/collections/{collectionId}/items/{id}/image (multipart form, field name "image")
   - CatalogItem.Image stores the relative URL (e.g. "/uploads/item-123.png") — use Path.Combine(webRootPath, image.TrimStart('/')) to get the filesystem path
   - CollectionsService now has ICatalogItemsRepository injected — can look up items directly without going through CatalogItemsService
+---
+
+## 2026-03-16 - US-007
+- Added SortOrder (int, default 0) to Collection entity
+- Generated EF Core migration AddCollectionSortOrder (default 0 for existing rows)
+- Added ReorderCollectionsRequest DTO in CollectionDtos.cs
+- Added GetByIdsAndUserIdAsync to ICollectionsRepository + CollectionsRepository
+- Added ReorderAsync to ICollectionsService + CollectionsService (follows CatalogItemsService.ReorderAsync pattern)
+- Added POST /api/collections/reorder endpoint to CollectionsController
+- Changed default sort (no sortBy param) from name to sortOrder with ThenBy name as tiebreaker
+- Added explicit "name" case to sort switch so `?sortBy=name` still sorts alphabetically
+- Added 2 integration tests: ReorderCollections_UpdatesSortOrder, ReorderCollections_DuplicateIds_ReturnsBadRequest
+- All 141 tests pass, 94.59% line coverage, build succeeds
+- Files changed:
+  - src/api/GeekVault.Api/Entities/Vault/Collection.cs
+  - src/api/GeekVault.Api/DTOs/Vault/CollectionDtos.cs
+  - src/api/GeekVault.Api/Repositories/Vault/ICollectionsRepository.cs
+  - src/api/GeekVault.Api/Repositories/Vault/CollectionsRepository.cs
+  - src/api/GeekVault.Api/Services/Vault/ICollectionsService.cs
+  - src/api/GeekVault.Api/Services/Vault/CollectionsService.cs
+  - src/api/GeekVault.Api/Controllers/Vault/CollectionsController.cs
+  - src/api/GeekVault.Api/Migrations/20260316001217_AddCollectionSortOrder.cs
+  - src/api/GeekVault.Api.Tests/CollectionEndpointsTests.cs
+- **Learnings for future iterations:**
+  - Default sort is now sortOrder (not name) — explicit `?sortBy=name` still works
+  - ReorderCollectionsRequest uses CollectionIds (not ItemIds) — follows same pattern as ReorderItemsRequest but for collections
+  - When all SortOrder values are 0 (initial state), ThenBy Name ensures alphabetical tiebreaking
 ---

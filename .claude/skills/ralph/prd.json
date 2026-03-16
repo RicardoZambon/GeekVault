@@ -116,7 +116,7 @@
         "Typecheck passes (dotnet build)"
       ],
       "priority": 7,
-      "passes": false,
+      "passes": true,
       "notes": "Existing rows get SortOrder = 0 (will sort by creation order as tiebreaker)."
     },
     {
