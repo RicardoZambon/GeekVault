@@ -12,6 +12,7 @@ import {
   Loader2,
   Eye,
   ArrowUpDown,
+  SlidersHorizontal,
 } from "lucide-react"
 import {
   EmptyState,
@@ -81,6 +82,9 @@ export default function Collections() {
   const debouncedSearch = useDebounce(searchQuery, 300)
   const [sortBy, setSortBy] = useState<string>(() => localStorage.getItem("collections-sortBy") ?? "name")
   const [sortDir, setSortDir] = useState<string>(() => localStorage.getItem("collections-sortDir") ?? "asc")
+
+  // Mobile filter toggle
+  const [filtersOpen, setFiltersOpen] = useState(false)
 
   // Dialog state
   const [dialogOpen, setDialogOpen] = useState(false)
@@ -321,52 +325,105 @@ export default function Collections() {
         />
       ) : (
         <>
-          {/* Toolbar: search, type filter, sort, new collection button */}
-          <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center">
-            <div className="relative max-w-[420px] flex-1">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder={t("collections.searchPlaceholder")}
-                className="pl-9"
-              />
+          {/* Toolbar: search, filters toggle (mobile), type filter, sort, new collection button */}
+          <div className="mt-6 flex flex-col gap-3">
+            {/* Top row: search + filters toggle (mobile) + new collection button */}
+            <div className="flex items-center gap-3">
+              <div className="relative flex-1 sm:max-w-[420px]">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder={t("collections.searchPlaceholder")}
+                  className="pl-9"
+                />
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                className="sm:hidden"
+                onClick={() => setFiltersOpen((v) => !v)}
+                aria-label={t("collections.toolbar.filters")}
+              >
+                <SlidersHorizontal className="mr-1.5 h-4 w-4" />
+                {t("collections.toolbar.filters")}
+              </Button>
+              {/* Desktop: inline filters */}
+              <div className="hidden sm:flex sm:items-center sm:gap-3">
+                <Select value={filterType} onValueChange={setFilterType}>
+                  <SelectTrigger className="w-[200px]">
+                    <SelectValue placeholder={t("collections.filterByType")} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">
+                      {t("collections.allTypes")}
+                    </SelectItem>
+                    {collectionTypes.map((ct) => (
+                      <SelectItem key={ct.id} value={String(ct.id)}>
+                        {ct.icon ? `${ct.icon} ` : ""}
+                        {ct.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Select value={`${sortBy}:${sortDir}`} onValueChange={handleSortChange}>
+                  <SelectTrigger className="w-[200px]" aria-label={t("collections.toolbar.sortBy")}>
+                    <ArrowUpDown className="mr-2 h-4 w-4 shrink-0 text-muted-foreground" />
+                    <SelectValue placeholder={t("collections.toolbar.sortBy")} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="name:asc">{t("collections.sort.name")}</SelectItem>
+                    <SelectItem value="updatedAt:desc">{t("collections.sort.lastUpdated")}</SelectItem>
+                    <SelectItem value="itemCount:desc">{t("collections.sort.mostItems")}</SelectItem>
+                    <SelectItem value="createdAt:desc">{t("collections.sort.recentlyAdded")}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <Button
+                onClick={openCreate}
+                className="ml-auto bg-accent text-accent-foreground hover:bg-accent/90"
+              >
+                <Plus className="mr-1.5 h-4 w-4" />
+                {t("collections.create")}
+              </Button>
             </div>
-            <Select value={filterType} onValueChange={setFilterType}>
-              <SelectTrigger className="w-full sm:w-[200px]">
-                <SelectValue placeholder={t("collections.filterByType")} />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">
-                  {t("collections.allTypes")}
-                </SelectItem>
-                {collectionTypes.map((ct) => (
-                  <SelectItem key={ct.id} value={String(ct.id)}>
-                    {ct.icon ? `${ct.icon} ` : ""}
-                    {ct.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Select value={`${sortBy}:${sortDir}`} onValueChange={handleSortChange}>
-              <SelectTrigger className="w-full sm:w-[200px]" aria-label={t("collections.toolbar.sortBy")}>
-                <ArrowUpDown className="mr-2 h-4 w-4 shrink-0 text-muted-foreground" />
-                <SelectValue placeholder={t("collections.toolbar.sortBy")} />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="name:asc">{t("collections.sort.name")}</SelectItem>
-                <SelectItem value="updatedAt:desc">{t("collections.sort.lastUpdated")}</SelectItem>
-                <SelectItem value="itemCount:desc">{t("collections.sort.mostItems")}</SelectItem>
-                <SelectItem value="createdAt:desc">{t("collections.sort.recentlyAdded")}</SelectItem>
-              </SelectContent>
-            </Select>
-            <Button
-              onClick={openCreate}
-              className="ml-auto bg-accent text-accent-foreground hover:bg-accent/90"
+            {/* Mobile: collapsible filter row */}
+            <div
+              className={`grid transition-all duration-200 ease-in-out sm:hidden ${filtersOpen ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"}`}
             >
-              <Plus className="mr-1.5 h-4 w-4" />
-              {t("collections.create")}
-            </Button>
+              <div className="overflow-hidden">
+                <div className="flex gap-3">
+                  <Select value={filterType} onValueChange={setFilterType}>
+                    <SelectTrigger className="flex-1">
+                      <SelectValue placeholder={t("collections.filterByType")} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">
+                        {t("collections.allTypes")}
+                      </SelectItem>
+                      {collectionTypes.map((ct) => (
+                        <SelectItem key={ct.id} value={String(ct.id)}>
+                          {ct.icon ? `${ct.icon} ` : ""}
+                          {ct.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Select value={`${sortBy}:${sortDir}`} onValueChange={handleSortChange}>
+                    <SelectTrigger className="flex-1" aria-label={t("collections.toolbar.sortBy")}>
+                      <ArrowUpDown className="mr-2 h-4 w-4 shrink-0 text-muted-foreground" />
+                      <SelectValue placeholder={t("collections.toolbar.sortBy")} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="name:asc">{t("collections.sort.name")}</SelectItem>
+                      <SelectItem value="updatedAt:desc">{t("collections.sort.lastUpdated")}</SelectItem>
+                      <SelectItem value="itemCount:desc">{t("collections.sort.mostItems")}</SelectItem>
+                      <SelectItem value="createdAt:desc">{t("collections.sort.recentlyAdded")}</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </div>
           </div>
 
           {/* Collection cards grid */}
