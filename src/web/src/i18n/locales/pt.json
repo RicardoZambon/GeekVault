@@ -119,7 +119,10 @@
     "listUpdated": "Atualizado",
     "updated": "Atualizado {{timeAgo}}",
     "complete": "{{percent}}% completo",
-    "useAsCover": "Usar como Capa"
+    "useAsCover": "Usar como Capa",
+    "useAsCoverSuccess": "Imagem de capa atualizada com sucesso",
+    "useAsCoverFailed": "Falha ao atualizar imagem de capa",
+    "itemActions": "Ações do item"
   },
   "collectionTypes": {
     "title": "Tipos de Coleção",

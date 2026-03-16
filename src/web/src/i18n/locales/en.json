@@ -119,7 +119,10 @@
     "listUpdated": "Updated",
     "updated": "Updated {{timeAgo}}",
     "complete": "{{percent}}% complete",
-    "useAsCover": "Use as Cover"
+    "useAsCover": "Use as Cover",
+    "useAsCoverSuccess": "Cover image updated successfully",
+    "useAsCoverFailed": "Failed to update cover image",
+    "itemActions": "Item actions"
   },
   "collectionTypes": {
     "title": "Collection Types",

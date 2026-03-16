@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, type FormEvent } from "react"
 import { useParams, useNavigate, useSearchParams } from "react-router-dom"
 import { useTranslation } from "react-i18next"
 import { motion, AnimatePresence } from "framer-motion"
-import { Plus, ArrowLeft, Image, Package, Check, Trash2, Pencil, Search, CheckCircle2, Circle, ArrowUp, ArrowDown, Download, Upload, LayoutGrid, List, ChevronDown, GripVertical } from "lucide-react"
+import { Plus, ArrowLeft, Image, Package, Check, Trash2, Pencil, Search, CheckCircle2, Circle, ArrowUp, ArrowDown, Download, Upload, LayoutGrid, List, ChevronDown, GripVertical, MoreVertical } from "lucide-react"
 import { ImportWizard } from "./components/import-wizard"
 import {
   EmptyState,
@@ -19,6 +19,10 @@ import {
   SelectValue,
   toast,
   SortableList,
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
 } from "@/components/ds"
 import type { DataTableColumn } from "@/components/ds"
 import { useAuth } from "@/components/auth-provider"
@@ -625,6 +629,20 @@ export default function CollectionDetail() {
       setItems(previousItems)
     }
   }
+
+  async function handleUseAsCover(itemId: number) {
+    try {
+      const res = await fetch(`/api/collections/${id}/cover-from-item/${itemId}`, {
+        method: "POST",
+        headers,
+      })
+      if (!res.ok) throw new Error("Failed")
+      await fetchCollection()
+      toast.success(t("collections.useAsCoverSuccess"))
+    } catch {
+      toast.error(t("collections.useAsCoverFailed"))
+    }
+  }
   /* v8 ignore stop */
 
   // Filter catalog items for the search in add-items dialog
@@ -682,6 +700,25 @@ export default function CollectionDetail() {
     {
       header: t("collectionDetail.rarityLabel"),
       accessor: (row) => row.rarity ?? "—",
+    },
+    {
+      header: "",
+      accessor: (row) => row.image ? (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button type="button" className="rounded p-1 hover:bg-muted" aria-label={t("collections.itemActions")} onClick={(e) => e.stopPropagation()}>
+              <MoreVertical className="h-4 w-4 text-muted-foreground" />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleUseAsCover(row.id) }}>
+              <Image className="mr-2 h-4 w-4" />
+              {t("collections.useAsCover")}
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      ) : null,
+      className: "w-[48px]",
     },
     /* v8 ignore stop */
   ]
@@ -965,6 +1002,25 @@ export default function CollectionDetail() {
                     >
                       <GripVertical className="h-3.5 w-3.5" />
                     </button>
+
+                    {/* Context menu */}
+                    {item.image && (
+                      <div className="absolute top-2 right-2 z-10 opacity-0 transition-opacity group-hover:opacity-100" onClick={(e) => e.stopPropagation()}>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <button type="button" className="rounded bg-black/40 p-1 text-white backdrop-blur-sm hover:bg-black/60" aria-label={t("collections.itemActions")}>
+                              <MoreVertical className="h-3.5 w-3.5" />
+                            </button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => handleUseAsCover(item.id)}>
+                              <Image className="mr-2 h-4 w-4" />
+                              {t("collections.useAsCover")}
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+                    )}
 
                     {/* Item image */}
                     <div className="relative aspect-square bg-muted">
