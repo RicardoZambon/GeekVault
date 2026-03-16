@@ -115,6 +115,8 @@
     },
     "viewGrid": "Grid view",
     "viewList": "List view",
+    "listItems": "Items",
+    "listUpdated": "Updated",
     "updated": "Updated {{timeAgo}}",
     "complete": "{{percent}}% complete",
     "useAsCover": "Use as Cover"

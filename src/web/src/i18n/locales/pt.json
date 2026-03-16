@@ -115,6 +115,8 @@
     },
     "viewGrid": "Visualização em grade",
     "viewList": "Visualização em lista",
+    "listItems": "Itens",
+    "listUpdated": "Atualizado",
     "updated": "Atualizado {{timeAgo}}",
     "complete": "{{percent}}% completo",
     "useAsCover": "Usar como Capa"

@@ -14,6 +14,8 @@ import {
   SlidersHorizontal,
   ExternalLink,
   MoreVertical,
+  LayoutGrid,
+  List,
 } from "lucide-react"
 import {
   EmptyState,
@@ -31,6 +33,11 @@ import {
   SelectValue,
   SelectContent,
   SelectItem,
+  DataTable,
+  Tooltip,
+  TooltipTrigger,
+  TooltipContent,
+  TooltipProvider,
 } from "@/components/ds"
 import { useAuth } from "@/components/auth-provider"
 import { Button } from "@/components/ui/button"
@@ -83,6 +90,12 @@ export default function Collections() {
   const debouncedSearch = useDebounce(searchQuery, 300)
   const [sortBy, setSortBy] = useState<string>(() => localStorage.getItem("collections-sortBy") ?? "name")
   const [sortDir, setSortDir] = useState<string>(() => localStorage.getItem("collections-sortDir") ?? "asc")
+
+  // View mode (grid/list)
+  const [viewMode, setViewMode] = useState<"grid" | "list">(() => {
+    const saved = localStorage.getItem("collections-view-mode")
+    return saved === "list" ? "list" : "grid"
+  })
 
   // Mobile filter toggle
   const [filtersOpen, setFiltersOpen] = useState(false)
@@ -195,6 +208,12 @@ export default function Collections() {
     localStorage.setItem("collections-sortBy", newSortBy)
     localStorage.setItem("collections-sortDir", newSortDir)
     fetchCollections({ sortBy: newSortBy, sortDir: newSortDir })
+  }
+
+  function toggleViewMode() {
+    const next = viewMode === "grid" ? "list" : "grid"
+    setViewMode(next)
+    localStorage.setItem("collections-view-mode", next)
   }
 
   function openCreate() {
@@ -405,6 +424,23 @@ export default function Collections() {
                   </SelectContent>
                 </Select>
               </div>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={toggleViewMode}
+                      aria-label={viewMode === "grid" ? t("collections.viewList") : t("collections.viewGrid")}
+                    >
+                      {viewMode === "grid" ? <List className="h-4 w-4" /> : <LayoutGrid className="h-4 w-4" />}
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    {viewMode === "grid" ? t("collections.viewList") : t("collections.viewGrid")}
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
               <Button
                 onClick={openCreate}
                 className="ml-auto bg-accent text-accent-foreground hover:bg-accent/90"
@@ -452,12 +488,12 @@ export default function Collections() {
             </div>
           </div>
 
-          {/* Collection cards grid */}
+          {/* Collection cards grid / list */}
           {filteredCollections.length === 0 ? (
             <div className="mt-12 text-center text-muted-foreground">
               {t("collections.noResults")}
             </div>
-          ) : (
+          ) : viewMode === "grid" ? (
             <StaggerChildren className="mt-6 grid gap-6" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))" }}>
               {filteredCollections.map((c) => (
                 <motion.div key={c.id} variants={staggerItemVariants}>
@@ -547,6 +583,31 @@ export default function Collections() {
                 </motion.div>
               ))}
             </StaggerChildren>
+          ) : (
+            <div className="mt-6">
+              <DataTable<Collection>
+                columns={[
+                  {
+                    header: t("collections.nameLabel"),
+                    accessor: "name",
+                  },
+                  {
+                    header: t("collections.typeLabel"),
+                    accessor: "collectionTypeName",
+                  },
+                  {
+                    header: t("collections.listItems"),
+                    accessor: "itemCount",
+                  },
+                  {
+                    header: t("collections.listUpdated"),
+                    accessor: (row) => row.updatedAt ? getRelativeTime(row.updatedAt) : "—",
+                  },
+                ]}
+                data={filteredCollections}
+                onRowClick={(row) => navigate(`/collections/${row.id}`)}
+              />
+            </div>
           )}
         </>
       )}
