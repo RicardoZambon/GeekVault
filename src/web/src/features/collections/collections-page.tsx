@@ -10,17 +10,12 @@ import {
   Search,
   Upload,
   Loader2,
-  Eye,
   ArrowUpDown,
   SlidersHorizontal,
 } from "lucide-react"
 import {
   EmptyState,
   PageHeader,
-  Card,
-  CardContent,
-  CardFooter,
-  Badge,
   SkeletonRect,
   StaggerChildren,
   staggerItemVariants,
@@ -295,16 +290,13 @@ export default function Collections() {
         />
         <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {Array.from({ length: 6 }).map((_, i) => (
-            <Card key={i} variant="flat" className="overflow-hidden">
-              <SkeletonRect height={144} className="w-full rounded-none" />
-              <CardContent className="pt-4">
-                <SkeletonRect height={20} width="60%" />
-                <SkeletonRect height={14} width="30%" className="mt-2" />
-                <SkeletonRect height={14} width="90%" className="mt-3" />
-                <SkeletonRect height={14} width="75%" className="mt-1" />
-                <SkeletonRect height={12} width="20%" className="mt-3" />
-              </CardContent>
-            </Card>
+            <div key={i} className="relative overflow-hidden rounded-xl" style={{ aspectRatio: "4/3" }}>
+              <SkeletonRect height="100%" className="w-full rounded-xl" />
+              <div className="absolute inset-x-0 bottom-0 p-4">
+                <SkeletonRect height={20} width="60%" className="opacity-30" />
+                <SkeletonRect height={14} width="40%" className="mt-2 opacity-20" />
+              </div>
+            </div>
           ))}
         </div>
       </div>
@@ -435,113 +427,94 @@ export default function Collections() {
             <StaggerChildren className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {filteredCollections.map((c) => (
                 <motion.div key={c.id} variants={staggerItemVariants}>
-                  <Card className="group cursor-pointer overflow-hidden">
-                    {/* Cover image */}
+                  <div
+                    className="group relative cursor-pointer overflow-hidden rounded-xl"
+                    style={{ aspectRatio: "4/3" }}
+                    onClick={() => navigate(`/collections/${c.id}`)}
+                  >
+                    {/* Cover image or fallback */}
+                    {c.coverImage ? (
+                      <img
+                        src={c.coverImage}
+                        alt={c.name}
+                        loading="lazy"
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      <div className="flex h-full items-center justify-center bg-gradient-to-br from-primary/20 to-accent/20">
+                        <Library className="h-12 w-12 text-muted-foreground/40" />
+                      </div>
+                    )}
+
+                    {/* Gradient overlay with text */}
                     <div
-                      className="relative aspect-video bg-muted"
-                      onClick={() => navigate(`/collections/${c.id}`)}
+                      className="absolute inset-x-0 bottom-0 flex items-end p-4"
+                      style={{ background: "linear-gradient(transparent, rgba(0,0,0,0.7))" }}
                     >
-                      {c.coverImage ? (
-                        <img
-                          src={c.coverImage}
-                          alt={c.name}
-                          loading="lazy"
-                          className="h-full w-full object-cover"
-                        />
-                      ) : (
-                        <div className="flex h-full items-center justify-center bg-gradient-to-br from-primary/10 to-accent/10">
-                          <Library className="h-10 w-10 text-muted-foreground/40" />
-                        </div>
-                      )}
+                      <div className="min-w-0 flex-1">
+                        <h3 className="truncate text-lg font-semibold text-white">
+                          {c.name}
+                        </h3>
+                        <p className="text-[13px] text-white/85">
+                          {t("collections.itemCount", { count: c.itemCount })}
+                        </p>
+                      </div>
                     </div>
 
-                    {/* Card body */}
-                    <CardContent className="pt-4">
-                      <div className="flex items-start justify-between gap-2">
-                        <div
-                          className="min-w-0 flex-1 cursor-pointer"
-                          onClick={() => navigate(`/collections/${c.id}`)}
-                        >
-                          <h3 className="truncate font-display font-semibold">
-                            {c.name}
-                          </h3>
-                          <Badge variant="outline" size="sm" className="mt-1">
-                            {c.collectionTypeName}
-                          </Badge>
-                        </div>
-                        {/* Overflow menu */}
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8 shrink-0 opacity-0 transition-opacity group-hover:opacity-100 focus:opacity-100"
-                              onClick={(e) => e.stopPropagation()}
-                              aria-label={t("collections.actions")}
+                    {/* Three-dot menu */}
+                    <div
+                      className="absolute right-2 top-2"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 rounded-full bg-black/30 text-white opacity-0 backdrop-blur-sm transition-opacity hover:bg-black/50 group-hover:opacity-100 focus:opacity-100"
+                            aria-label={t("collections.actions")}
+                          >
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              width="16"
+                              height="16"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
                             >
-                              <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                width="16"
-                                height="16"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                strokeWidth="2"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                              >
-                                <circle cx="12" cy="12" r="1" />
-                                <circle cx="12" cy="5" r="1" />
-                                <circle cx="12" cy="19" r="1" />
-                              </svg>
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                openEdit(c)
-                              }}
-                            >
-                              <Pencil className="h-4 w-4" />
-                              {t("collections.edit")}
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              className="text-destructive focus:text-destructive"
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                setDeleteId(c.id)
-                              }}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                              {t("collections.delete")}
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </div>
-                      {c.description && (
-                        <p className="mt-2 line-clamp-2 text-sm text-muted-foreground">
-                          {c.description}
-                        </p>
-                      )}
-                    </CardContent>
-
-                    <CardFooter className="justify-between border-t px-6 py-3">
-                      <span className="text-xs font-medium text-muted-foreground">
-                        {t("collections.itemCount", { count: c.itemCount })}
-                      </span>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-7 text-xs"
-                        /* v8 ignore next */
-                        onClick={() => navigate(`/collections/${c.id}`)}
-                      >
-                        <Eye className="mr-1 h-3 w-3" />
-                        {t("collections.view")}
-                      </Button>
-                    </CardFooter>
-                  </Card>
+                              <circle cx="12" cy="12" r="1" />
+                              <circle cx="12" cy="5" r="1" />
+                              <circle cx="12" cy="19" r="1" />
+                            </svg>
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              openEdit(c)
+                            }}
+                          >
+                            <Pencil className="h-4 w-4" />
+                            {t("collections.edit")}
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            className="text-destructive focus:text-destructive"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              setDeleteId(c.id)
+                            }}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                            {t("collections.delete")}
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+                  </div>
                 </motion.div>
               ))}
             </StaggerChildren>

@@ -513,11 +513,10 @@ describe("Collections", () => {
     fireEvent.change(fileInput, { target: { files: null } })
   })
 
-  it("shows collection type name as badge and item count", async () => {
+  it("shows item count on cover card", async () => {
     mockFetch()
     render(<MemoryRouter><Collections /></MemoryRouter>)
     await waitFor(() => screen.getByText("Comics"))
-    expect(screen.getByText("Comic Books")).toBeInTheDocument()
     expect(screen.getByText("collections.itemCount:5")).toBeInTheDocument()
   })
 
