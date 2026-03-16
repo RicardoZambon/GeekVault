@@ -458,6 +458,50 @@ public class CollectionEndpointsTests : IClassFixture<TestFactory<CollectionEndp
     }
 
     [Fact]
+    public async Task ReorderCollections_UpdatesSortOrder()
+    {
+        var (client, typeId) = await CreateAuthenticatedClientWithTypeAsync("col-reorder@example.com");
+
+        var r1 = await client.PostAsJsonAsync("/api/collections", new { Name = "First", CollectionTypeId = typeId });
+        var c1 = await r1.Content.ReadFromJsonAsync<CollectionResult>();
+        var r2 = await client.PostAsJsonAsync("/api/collections", new { Name = "Second", CollectionTypeId = typeId });
+        var c2 = await r2.Content.ReadFromJsonAsync<CollectionResult>();
+        var r3 = await client.PostAsJsonAsync("/api/collections", new { Name = "Third", CollectionTypeId = typeId });
+        var c3 = await r3.Content.ReadFromJsonAsync<CollectionResult>();
+
+        // Reorder: Third, First, Second
+        var reorderResponse = await client.PostAsJsonAsync("/api/collections/reorder", new
+        {
+            CollectionIds = new[] { c3!.Id, c1!.Id, c2!.Id }
+        });
+        Assert.Equal(HttpStatusCode.NoContent, reorderResponse.StatusCode);
+
+        // Default sort should now return in sortOrder: Third, First, Second
+        var listResponse = await client.GetAsync("/api/collections");
+        var collections = await listResponse.Content.ReadFromJsonAsync<List<CollectionResult>>();
+
+        Assert.Equal(3, collections!.Count);
+        Assert.Equal("Third", collections[0].Name);
+        Assert.Equal("First", collections[1].Name);
+        Assert.Equal("Second", collections[2].Name);
+    }
+
+    [Fact]
+    public async Task ReorderCollections_DuplicateIds_ReturnsBadRequest()
+    {
+        var (client, typeId) = await CreateAuthenticatedClientWithTypeAsync("col-reorder-dup@example.com");
+
+        var r1 = await client.PostAsJsonAsync("/api/collections", new { Name = "Col1", CollectionTypeId = typeId });
+        var c1 = await r1.Content.ReadFromJsonAsync<CollectionResult>();
+
+        var response = await client.PostAsJsonAsync("/api/collections/reorder", new
+        {
+            CollectionIds = new[] { c1!.Id, c1.Id }
+        });
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
     public async Task Collection_RequiresAuth()
     {
         var client = _factory.CreateClient();

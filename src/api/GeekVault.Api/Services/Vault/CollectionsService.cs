@@ -154,4 +154,23 @@ public class CollectionsService : ICollectionsService
 
         return (collection.CoverImage, false, null);
     }
+
+    public async Task<(bool Success, bool NotFound, string? Error)> ReorderAsync(string userId, List<int> collectionIds)
+    {
+        if (collectionIds.Count != collectionIds.Distinct().Count())
+            return (false, false, "Duplicate collection IDs are not allowed");
+
+        var collections = await _repository.GetByIdsAndUserIdAsync(collectionIds, userId);
+        if (collections.Count != collectionIds.Count)
+            return (false, false, "Some collection IDs do not belong to this user");
+
+        var collectionsById = collections.ToDictionary(c => c.Id);
+        for (var i = 0; i < collectionIds.Count; i++)
+        {
+            collectionsById[collectionIds[i]].SortOrder = i;
+        }
+
+        await _repository.SaveChangesAsync();
+        return (true, false, null);
+    }
 }

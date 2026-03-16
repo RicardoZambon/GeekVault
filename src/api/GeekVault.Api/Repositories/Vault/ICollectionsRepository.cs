@@ -14,6 +14,7 @@ public interface ICollectionsRepository
     Task SaveChangesAsync();
     void Remove(Collection collection);
     Task<List<CollectionSummary>> GetCollectionSummariesAsync(string userId);
+    Task<List<Collection>> GetByIdsAndUserIdAsync(List<int> ids, string userId);
 }
 
 public class CollectionWithCounts

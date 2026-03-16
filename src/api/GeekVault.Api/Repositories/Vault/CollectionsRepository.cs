@@ -46,9 +46,12 @@ public class CollectionsRepository : ICollectionsRepository
             "createdat" => descending
                 ? query.OrderByDescending(x => x.Collection.CreatedAt)
                 : query.OrderBy(x => x.Collection.CreatedAt),
-            _ => descending
+            "name" => descending
                 ? query.OrderByDescending(x => x.Collection.Name)
                 : query.OrderBy(x => x.Collection.Name),
+            _ => descending
+                ? query.OrderByDescending(x => x.Collection.SortOrder).ThenByDescending(x => x.Collection.Name)
+                : query.OrderBy(x => x.Collection.SortOrder).ThenBy(x => x.Collection.Name),
         };
 
         return await query.ToListAsync();
@@ -109,6 +112,13 @@ public class CollectionsRepository : ICollectionsRepository
                     .Where(oc => _db.CatalogItems.Any(ci => ci.Id == oc.CatalogItemId && ci.CollectionId == c.Id))
                     .Sum(oc => (decimal?)oc.PurchasePrice ?? 0m)
             })
+            .ToListAsync();
+    }
+
+    public async Task<List<Collection>> GetByIdsAndUserIdAsync(List<int> ids, string userId)
+    {
+        return await _db.Collections
+            .Where(c => ids.Contains(c.Id) && c.UserId == userId)
             .ToListAsync();
     }
 }

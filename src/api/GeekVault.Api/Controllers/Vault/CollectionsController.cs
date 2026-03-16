@@ -129,6 +129,22 @@ public static class CollectionsController
         .WithName("CoverFromItem")
         .WithOpenApi();
 
+        app.MapPost("/api/collections/reorder", async (
+            ReorderCollectionsRequest request,
+            ClaimsPrincipal principal,
+            ICollectionsService service) =>
+        {
+            var userId = principal.FindFirstValue(ClaimTypes.NameIdentifier)!;
+            var (success, notFound, error) = await service.ReorderAsync(userId, request.CollectionIds);
+            if (notFound) return Results.NotFound();
+            if (error != null) return Results.BadRequest(new { error });
+
+            return Results.NoContent();
+        })
+        .RequireAuthorization()
+        .WithName("ReorderCollections")
+        .WithOpenApi();
+
         return app;
     }
 }
