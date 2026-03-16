@@ -100,7 +100,7 @@
         "Typecheck passes (dotnet build)"
       ],
       "priority": 6,
-      "passes": false,
+      "passes": true,
       "notes": "Reuse CollectionsService.UploadCoverAsync file-saving logic for the copy operation."
     },
     {

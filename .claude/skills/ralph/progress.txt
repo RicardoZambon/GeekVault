@@ -103,3 +103,22 @@
   - Owned copies endpoint: POST /api/items/{catalogItemId}/copies (requires Condition field)
   - Test record types (e.g. CollectionResult) must be updated when adding new fields to response DTOs — deserialization silently ignores extra fields but missing positional params cause issues
 ---
+
+## 2026-03-16 - US-006
+- Added POST /api/collections/{id}/cover-from-item/{itemId} endpoint that copies a catalog item's image as the collection cover
+- Injected ICatalogItemsRepository into CollectionsService to look up items by id and collection
+- Implementation: validates collection ownership + item belongs to collection + item has image, then File.Copy to new cover path
+- Sets UpdatedAt on the collection after copying
+- Returns 404 if collection not found, item not in collection, or item has no image
+- Added 3 integration tests: happy path, item-not-in-collection, item-has-no-image
+- All 139 tests pass, build succeeds, 94.54% line coverage
+- Files changed:
+  - src/api/GeekVault.Api/Services/Vault/ICollectionsService.cs
+  - src/api/GeekVault.Api/Services/Vault/CollectionsService.cs
+  - src/api/GeekVault.Api/Controllers/Vault/CollectionsController.cs
+  - src/api/GeekVault.Api.Tests/CollectionEndpointsTests.cs
+- **Learnings for future iterations:**
+  - Catalog item image upload endpoint: POST /api/collections/{collectionId}/items/{id}/image (multipart form, field name "image")
+  - CatalogItem.Image stores the relative URL (e.g. "/uploads/item-123.png") — use Path.Combine(webRootPath, image.TrimStart('/')) to get the filesystem path
+  - CollectionsService now has ICatalogItemsRepository injected — can look up items directly without going through CatalogItemsService
+---
