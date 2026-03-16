@@ -13,6 +13,8 @@
 - Catalog items endpoint: POST /api/collections/{collectionId}/items (requires Identifier field)
 - Both repositories share the same scoped DbContext — setting UpdatedAt on a Collection loaded by one repo and calling SaveChangesAsync on another repo persists all tracked changes
 - Collections reorder endpoint: POST /api/collections/reorder with `{ CollectionIds: [int] }` — default sort is now sortOrder (not name), use `?sortBy=name` for explicit alphabetical
+- SortableList gridClassName doesn't accept inline styles — use Tailwind arbitrary property for custom grid template columns
+- Frontend collections page: isCustomSort (sortBy === "sortOrder") toggles between SortableList (draggable) and StaggerChildren (animated)
 
 ---
 
@@ -311,4 +313,25 @@
   - DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem were already imported but unused in the detail page
   - For grid view context menus, use onClick stopPropagation on the wrapper div to prevent card click navigation
   - For list view DataTable actions, stopPropagation on both the trigger button and DropdownMenuItem onClick to prevent row click
+---
+
+## 2026-03-16 - US-018
+- Wrapped grid view in SortableList when in "Custom Order" sort mode (sortBy === "sortOrder")
+- Added "Custom Order" as first sort option (sortOrder:asc) in both desktop and mobile sort dropdowns
+- Changed default sort from "name" to "sortOrder" to match backend default
+- Drag handle (GripVertical) visible on hover, top-left corner with bg-black/40 backdrop
+- Reorder calls POST /api/collections/reorder with optimistic UI update and rollback on error
+- When explicit sort selected (name, updatedAt, etc.), grid uses StaggerChildren instead of SortableList — drag disabled
+- Drag-to-reorder disabled in list view (SortableList only wraps grid view)
+- Added i18n keys: collections.sort.customOrder, collections.reorderFailed to both en.json and pt.json
+- All 514 frontend tests pass, typecheck passes
+- Files changed:
+  - src/web/src/features/collections/collections-page.tsx
+  - src/web/src/i18n/locales/en.json
+  - src/web/src/i18n/locales/pt.json
+- **Learnings for future iterations:**
+  - SortableList gridClassName doesn't support inline styles — use Tailwind arbitrary property [grid-template-columns:repeat(auto-fill,minmax(320px,1fr))]
+  - isCustomSort flag (sortBy === "sortOrder") determines whether SortableList or StaggerChildren is rendered
+  - Default sort changed from "name:asc" to "sortOrder:asc" — localStorage key "collections-sortBy" stores this
+  - Touch device drag handles use max-[640px]:opacity-100 to be always visible on narrow screens
 ---
