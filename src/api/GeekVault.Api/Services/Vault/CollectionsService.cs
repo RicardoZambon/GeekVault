@@ -14,9 +14,9 @@ public class CollectionsService : ICollectionsService
         _repository = repository;
     }
 
-    public async Task<List<CollectionResponse>> GetAllAsync(string userId)
+    public async Task<List<CollectionResponse>> GetAllAsync(string userId, string? sortBy = null, string? sortDir = null)
     {
-        var results = await _repository.GetByUserIdWithCountsAsync(userId);
+        var results = await _repository.GetByUserIdWithCountsAsync(userId, sortBy, sortDir);
         return results.Select(r => new CollectionResponse(
             r.Collection.Id, r.Collection.Name, r.Collection.Description, r.Collection.CoverImage,
             r.Collection.Visibility.ToString(), r.Collection.CollectionTypeId,

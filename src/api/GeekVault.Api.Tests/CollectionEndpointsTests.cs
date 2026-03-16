@@ -205,6 +205,120 @@ public class CollectionEndpointsTests : IClassFixture<TestFactory<CollectionEndp
     }
 
     [Fact]
+    public async Task ListCollections_SortByNameAsc_ReturnsSortedByName()
+    {
+        var (client, typeId) = await CreateAuthenticatedClientWithTypeAsync("col-sort-name@example.com");
+
+        await client.PostAsJsonAsync("/api/collections", new { Name = "Zebra", CollectionTypeId = typeId });
+        await client.PostAsJsonAsync("/api/collections", new { Name = "Alpha", CollectionTypeId = typeId });
+        await client.PostAsJsonAsync("/api/collections", new { Name = "Middle", CollectionTypeId = typeId });
+
+        var response = await client.GetAsync("/api/collections?sortBy=name&sortDir=asc");
+        var collections = await response.Content.ReadFromJsonAsync<List<CollectionResult>>();
+
+        Assert.Equal(3, collections!.Count);
+        Assert.Equal("Alpha", collections[0].Name);
+        Assert.Equal("Middle", collections[1].Name);
+        Assert.Equal("Zebra", collections[2].Name);
+    }
+
+    [Fact]
+    public async Task ListCollections_SortByNameDesc_ReturnsSortedByNameDescending()
+    {
+        var (client, typeId) = await CreateAuthenticatedClientWithTypeAsync("col-sort-name-desc@example.com");
+
+        await client.PostAsJsonAsync("/api/collections", new { Name = "Zebra", CollectionTypeId = typeId });
+        await client.PostAsJsonAsync("/api/collections", new { Name = "Alpha", CollectionTypeId = typeId });
+        await client.PostAsJsonAsync("/api/collections", new { Name = "Middle", CollectionTypeId = typeId });
+
+        var response = await client.GetAsync("/api/collections?sortBy=name&sortDir=desc");
+        var collections = await response.Content.ReadFromJsonAsync<List<CollectionResult>>();
+
+        Assert.Equal(3, collections!.Count);
+        Assert.Equal("Zebra", collections[0].Name);
+        Assert.Equal("Middle", collections[1].Name);
+        Assert.Equal("Alpha", collections[2].Name);
+    }
+
+    [Fact]
+    public async Task ListCollections_SortByCreatedAt_ReturnsSortedByCreationDate()
+    {
+        var (client, typeId) = await CreateAuthenticatedClientWithTypeAsync("col-sort-created@example.com");
+
+        await client.PostAsJsonAsync("/api/collections", new { Name = "First", CollectionTypeId = typeId });
+        await client.PostAsJsonAsync("/api/collections", new { Name = "Second", CollectionTypeId = typeId });
+        await client.PostAsJsonAsync("/api/collections", new { Name = "Third", CollectionTypeId = typeId });
+
+        var response = await client.GetAsync("/api/collections?sortBy=createdAt&sortDir=desc");
+        var collections = await response.Content.ReadFromJsonAsync<List<CollectionResult>>();
+
+        Assert.Equal(3, collections!.Count);
+        Assert.Equal("Third", collections[0].Name);
+        Assert.Equal("Second", collections[1].Name);
+        Assert.Equal("First", collections[2].Name);
+    }
+
+    [Fact]
+    public async Task ListCollections_SortByUpdatedAt_ReturnsSortedByLastUpdate()
+    {
+        var (client, typeId) = await CreateAuthenticatedClientWithTypeAsync("col-sort-updated@example.com");
+
+        var r1 = await client.PostAsJsonAsync("/api/collections", new { Name = "NoUpdate", CollectionTypeId = typeId });
+        var c1 = await r1.Content.ReadFromJsonAsync<CollectionResult>();
+
+        var r2 = await client.PostAsJsonAsync("/api/collections", new { Name = "Updated", CollectionTypeId = typeId });
+        var c2 = await r2.Content.ReadFromJsonAsync<CollectionResult>();
+
+        // Update the second collection so its UpdatedAt is set
+        await client.PutAsJsonAsync($"/api/collections/{c2!.Id}", new { Name = "Updated" });
+
+        var response = await client.GetAsync("/api/collections?sortBy=updatedAt&sortDir=desc");
+        var collections = await response.Content.ReadFromJsonAsync<List<CollectionResult>>();
+
+        Assert.Equal(2, collections!.Count);
+        Assert.Equal("Updated", collections[0].Name);
+    }
+
+    [Fact]
+    public async Task ListCollections_SortByItemCount_ReturnsSortedByItemCount()
+    {
+        var (client, typeId) = await CreateAuthenticatedClientWithTypeAsync("col-sort-items@example.com");
+
+        var r1 = await client.PostAsJsonAsync("/api/collections", new { Name = "Empty", CollectionTypeId = typeId });
+        var c1 = await r1.Content.ReadFromJsonAsync<CollectionResult>();
+
+        var r2 = await client.PostAsJsonAsync("/api/collections", new { Name = "HasItems", CollectionTypeId = typeId });
+        var c2 = await r2.Content.ReadFromJsonAsync<CollectionResult>();
+
+        // Add items to the second collection
+        await client.PostAsJsonAsync($"/api/collections/{c2!.Id}/items", new { Identifier = "ITEM-1", Name = "Item1" });
+        await client.PostAsJsonAsync($"/api/collections/{c2.Id}/items", new { Identifier = "ITEM-2", Name = "Item2" });
+
+        var response = await client.GetAsync("/api/collections?sortBy=itemCount&sortDir=desc");
+        var collections = await response.Content.ReadFromJsonAsync<List<CollectionResult>>();
+
+        Assert.Equal(2, collections!.Count);
+        Assert.Equal("HasItems", collections[0].Name);
+        Assert.Equal("Empty", collections[1].Name);
+    }
+
+    [Fact]
+    public async Task ListCollections_DefaultSort_ReturnsSortedByNameAsc()
+    {
+        var (client, typeId) = await CreateAuthenticatedClientWithTypeAsync("col-sort-default@example.com");
+
+        await client.PostAsJsonAsync("/api/collections", new { Name = "Zebra", CollectionTypeId = typeId });
+        await client.PostAsJsonAsync("/api/collections", new { Name = "Alpha", CollectionTypeId = typeId });
+
+        var response = await client.GetAsync("/api/collections");
+        var collections = await response.Content.ReadFromJsonAsync<List<CollectionResult>>();
+
+        Assert.Equal(2, collections!.Count);
+        Assert.Equal("Alpha", collections[0].Name);
+        Assert.Equal("Zebra", collections[1].Name);
+    }
+
+    [Fact]
     public async Task Collection_RequiresAuth()
     {
         var client = _factory.CreateClient();

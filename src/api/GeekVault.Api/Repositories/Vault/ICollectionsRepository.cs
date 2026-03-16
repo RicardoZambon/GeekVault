@@ -5,7 +5,7 @@ namespace GeekVault.Api.Repositories.Vault;
 public interface ICollectionsRepository
 {
     Task<List<Collection>> GetByUserIdAsync(string userId);
-    Task<List<CollectionWithCounts>> GetByUserIdWithCountsAsync(string userId);
+    Task<List<CollectionWithCounts>> GetByUserIdWithCountsAsync(string userId, string? sortBy = null, string? sortDir = null);
     Task<Collection?> GetByIdAndUserIdAsync(int id, string userId);
     Task<Collection?> GetByIdAndUserIdWithTypeAsync(int id, string userId);
     Task<int> GetItemCountAsync(int collectionId);

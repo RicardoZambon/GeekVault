@@ -10,10 +10,12 @@ public static class CollectionsController
     {
         app.MapGet("/api/collections", async (
             ClaimsPrincipal principal,
-            ICollectionsService service) =>
+            ICollectionsService service,
+            string? sortBy,
+            string? sortDir) =>
         {
             var userId = principal.FindFirstValue(ClaimTypes.NameIdentifier)!;
-            var collections = await service.GetAllAsync(userId);
+            var collections = await service.GetAllAsync(userId, sortBy, sortDir);
             return Results.Ok(collections);
         })
         .RequireAuthorization()

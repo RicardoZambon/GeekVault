@@ -4,7 +4,7 @@ namespace GeekVault.Api.Services.Vault;
 
 public interface ICollectionsService
 {
-    Task<List<CollectionResponse>> GetAllAsync(string userId);
+    Task<List<CollectionResponse>> GetAllAsync(string userId, string? sortBy = null, string? sortDir = null);
     Task<CollectionResponse?> GetByIdAsync(int id, string userId);
     Task<CollectionResponse> CreateAsync(string userId, CreateCollectionRequest request);
     Task<CollectionResponse?> UpdateAsync(int id, string userId, UpdateCollectionRequest request);
