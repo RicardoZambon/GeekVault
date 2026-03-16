@@ -54,6 +54,13 @@ vi.mock("@/components/ds", async () => {
     DropdownMenuTrigger: ({ children }: any) => <>{children}</>,
     DropdownMenuContent: ({ children }: any) => <div>{children}</div>,
     DropdownMenuItem: ({ children, onClick, className }: any) => <button onClick={onClick} className={className}>{children}</button>,
+    SortableList: ({ items, renderItem, gridClassName }: any) => (
+      <div className={gridClassName}>
+        {items.map((item: any, i: number) => (
+          <div key={i}>{renderItem(item, { dragHandleProps: {}, isDragging: false })}</div>
+        ))}
+      </div>
+    ),
   }
 })
 
@@ -578,5 +585,151 @@ describe("Collections", () => {
     await waitFor(() => {
       expect(mockToast.success).toHaveBeenCalledWith("collections.deleteSuccess")
     })
+  })
+
+  it("sort dropdown triggers API call with query params", async () => {
+    const fetchUrls: string[] = []
+    vi.spyOn(global, "fetch").mockImplementation((url) => {
+      fetchUrls.push(String(url))
+      const urlStr = String(url)
+      if (urlStr.includes("/collection-types")) {
+        return Promise.resolve({ ok: true, json: () => Promise.resolve(collectionTypes) } as Response)
+      }
+      return Promise.resolve({ ok: true, json: () => Promise.resolve(collections) } as Response)
+    })
+
+    render(<MemoryRouter><Collections /></MemoryRouter>)
+    await waitFor(() => screen.getByText("Comics"))
+
+    // Find the sort select (has sortOrder:asc as default value) and change to name:asc
+    const sortSelects = screen.getAllByRole("combobox")
+    const sortSelect = sortSelects.find((el) => {
+      const options = el.querySelectorAll("option")
+      return Array.from(options).some((o) => o.getAttribute("value") === "name:asc")
+    })!
+    fireEvent.change(sortSelect, { target: { value: "name:asc" } })
+
+    await waitFor(() => {
+      const lastCollectionsFetch = fetchUrls.filter(u => u.includes("/api/collections") && !u.includes("/collection-types")).pop()
+      expect(lastCollectionsFetch).toContain("sortBy=name")
+      expect(lastCollectionsFetch).toContain("sortDir=asc")
+    })
+  })
+
+  it("sort preference persisted to localStorage", async () => {
+    mockFetch()
+    render(<MemoryRouter><Collections /></MemoryRouter>)
+    await waitFor(() => screen.getByText("Comics"))
+
+    const sortSelects = screen.getAllByRole("combobox")
+    const sortSelect = sortSelects.find((el) => {
+      const options = el.querySelectorAll("option")
+      return Array.from(options).some((o) => o.getAttribute("value") === "updatedAt:desc")
+    })!
+    fireEvent.change(sortSelect, { target: { value: "updatedAt:desc" } })
+
+    expect(localStorage.getItem("collections-sortBy")).toBe("updatedAt")
+    expect(localStorage.getItem("collections-sortDir")).toBe("desc")
+  })
+
+  it("mobile filter toggle shows and hides filters", async () => {
+    mockFetch()
+    const { container } = render(<MemoryRouter><Collections /></MemoryRouter>)
+    await waitFor(() => screen.getByText("Comics"))
+
+    // Find the filters toggle button
+    const filtersButton = screen.getByLabelText("collections.toolbar.filters")
+    expect(filtersButton).toBeInTheDocument()
+
+    // Initially collapsed (grid-rows-[0fr])
+    const filterRow = container.querySelector(".grid-rows-\\[0fr\\]")
+    expect(filterRow).toBeInTheDocument()
+
+    // Click to open
+    fireEvent.click(filtersButton)
+
+    // Now expanded (grid-rows-[1fr])
+    const expandedRow = container.querySelector(".grid-rows-\\[1fr\\]")
+    expect(expandedRow).toBeInTheDocument()
+  })
+
+  it("grid/list view toggle switches view and persists to localStorage", async () => {
+    mockFetch()
+    render(<MemoryRouter><Collections /></MemoryRouter>)
+    await waitFor(() => screen.getByText("Comics"))
+
+    // Default is grid view - toggle button shows list icon
+    const toggleButton = screen.getByLabelText("collections.viewList")
+    expect(toggleButton).toBeInTheDocument()
+
+    // Click to switch to list view
+    fireEvent.click(toggleButton)
+    expect(localStorage.getItem("collections-view-mode")).toBe("list")
+
+    // Now shows grid icon button (to switch back)
+    expect(screen.getByLabelText("collections.viewGrid")).toBeInTheDocument()
+
+    // List view renders DataTable with column headers
+    expect(screen.getByText("collections.nameLabel")).toBeInTheDocument()
+    expect(screen.getByText("collections.typeLabel")).toBeInTheDocument()
+  })
+
+  it("shows completion percentage on cover card", async () => {
+    // Ensure grid view via localStorage
+    localStorage.setItem("collections-view-mode", "grid")
+    mockFetch()
+    render(<MemoryRouter><Collections /></MemoryRouter>)
+    await waitFor(() => screen.getByText("Comics"))
+
+    // Comics has itemCount: 5 and completionPercentage: 60 — metadata includes "collections.complete" (t mock returns key)
+    const metadataEl = screen.getByText((content) => content.includes("collections.itemCount:5") && content.includes("collections.complete"))
+    expect(metadataEl).toBeInTheDocument()
+    // Cards has itemCount: 10 but completionPercentage: 0, still shows complete since itemCount > 0
+    const cardsMetadata = screen.getByText((content) => content.includes("collections.itemCount:10") && content.includes("collections.complete"))
+    expect(cardsMetadata).toBeInTheDocument()
+  })
+
+  it("filters collections by search query", async () => {
+    mockFetch()
+    render(<MemoryRouter><Collections /></MemoryRouter>)
+    await waitFor(() => screen.getByText("Comics"))
+    expect(screen.getByText("Cards")).toBeInTheDocument()
+
+    // Type in search box
+    const searchInput = screen.getByPlaceholderText("collections.searchPlaceholder")
+    fireEvent.change(searchInput, { target: { value: "Comics" } })
+
+    // Cards should be filtered out
+    expect(screen.getByText("Comics")).toBeInTheDocument()
+    expect(screen.queryByText("Cards")).not.toBeInTheDocument()
+  })
+
+  it("filters collections by type", async () => {
+    mockFetch()
+    render(<MemoryRouter><Collections /></MemoryRouter>)
+    await waitFor(() => screen.getByText("Comics"))
+
+    // Find the type filter select (has "all" as value)
+    const typeSelects = screen.getAllByRole("combobox")
+    const typeFilter = typeSelects.find((el) => {
+      const options = el.querySelectorAll("option")
+      return Array.from(options).some((o) => o.textContent?.includes("collections.allTypes"))
+    })!
+    fireEvent.change(typeFilter, { target: { value: "1" } })
+
+    // Only Comics (typeId: 1) should be visible
+    expect(screen.getByText("Comics")).toBeInTheDocument()
+    expect(screen.queryByText("Cards")).not.toBeInTheDocument()
+  })
+
+  it("shows no results message when filter matches nothing", async () => {
+    mockFetch()
+    render(<MemoryRouter><Collections /></MemoryRouter>)
+    await waitFor(() => screen.getByText("Comics"))
+
+    const searchInput = screen.getByPlaceholderText("collections.searchPlaceholder")
+    fireEvent.change(searchInput, { target: { value: "nonexistent" } })
+
+    expect(screen.getByText("collections.noResults")).toBeInTheDocument()
   })
 })
