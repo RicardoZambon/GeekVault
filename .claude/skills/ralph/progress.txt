@@ -235,3 +235,20 @@
   - Metadata line uses " · " (middle dot) as separator between parts
   - Test uses content matcher function for metadata: `screen.getByText((content) => content.includes(...))`
 ---
+
+## 2026-03-16 - US-013
+- Added hover lift: translateY(-4px) and shadow-lg via Tailwind hover:-translate-y-1 hover:shadow-lg with 200ms ease transition
+- Quick action buttons appear on hover: Open (ExternalLink), Edit (Pencil), three-dot menu (MoreVertical)
+- All quick actions have semi-transparent backdrop (bg-black/30 backdrop-blur-sm)
+- On touch devices (max-[640px]): quick actions always visible via max-[640px]:opacity-100
+- Three-dot menu provides Delete option
+- Updated tests: edit buttons now found via getAllByLabelText instead of getAllByText
+- All 514 frontend tests pass, typecheck passes
+- Files changed:
+  - src/web/src/features/collections/collections-page.tsx
+  - src/web/src/features/collections/collections-page.test.tsx
+- **Learnings for future iterations:**
+  - Quick action buttons use aria-label for accessibility — tests should use getAllByLabelText
+  - Touch device visibility uses max-[640px]:opacity-100 (always show on narrow screens)
+  - Edit is now a direct icon button, not inside dropdown — dropdown only has Delete
+---
