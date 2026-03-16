@@ -266,3 +266,22 @@
   - CSS auto-fill with minmax gives fluid responsive columns without media queries
   - Grid style applied via inline style={{ gridTemplateColumns }} since Tailwind v4 doesn't have a clean utility for auto-fill/minmax
 ---
+
+## 2026-03-16 - US-015
+- Added viewMode state ("grid" | "list") with localStorage persistence (key: collections-view-mode)
+- Toggle button in toolbar next to sort dropdown — shows List icon in grid mode, LayoutGrid icon in list mode
+- Toggle wrapped in TooltipProvider/Tooltip for hover label
+- Grid view: existing cover tile layout (default)
+- List view: DataTable component showing name, type, items, updated columns
+- List view rows are clickable (navigate to collection detail)
+- Added i18n keys: collections.listItems, collections.listUpdated to both en.json and pt.json
+- All 514 frontend tests pass, typecheck passes
+- Files changed:
+  - src/web/src/features/collections/collections-page.tsx
+  - src/web/src/i18n/locales/en.json
+  - src/web/src/i18n/locales/pt.json
+- **Learnings for future iterations:**
+  - localStorage key: collections-view-mode — values: "grid" or "list"
+  - DataTable generic type: use `DataTable<Collection>` for typed columns
+  - Tooltip requires TooltipProvider wrapper
+---
