@@ -7,6 +7,7 @@
 - Use GetByIdAndUserIdWithTypeAsync (not GetByIdAndUserIdAsync) when you need CollectionType.Name in the response
 - CollectionWithCounts DTO in ICollectionsRepository is the projected query pattern for GetAll — extend it for new fields (e.g., OwnedCount for US-005)
 - EF Core migrations: use `defaultValueSql: "GETUTCDATE()"` instead of `defaultValue` for UTC now defaults on existing rows
+- Catalog items endpoint: POST /api/collections/{collectionId}/items (requires Identifier field)
 - Both repositories share the same scoped DbContext — setting UpdatedAt on a Collection loaded by one repo and calling SaveChangesAsync on another repo persists all tracked changes
 
 ---
@@ -59,4 +60,24 @@
   - CollectionWithCounts in ICollectionsRepository is the projected query DTO — extend it for additional computed fields (OwnedCount for US-005)
   - GetByIdAndUserIdWithTypeAsync already existed and includes CollectionType — use it when CollectionType.Name is needed
   - After AddAsync+SaveChangesAsync, navigation properties aren't loaded — reload with GetByIdAndUserIdWithTypeAsync to get CollectionType.Name
+---
+
+## 2026-03-16 - US-004
+- Added server-side sort to GET /api/collections with sortBy (name | updatedAt | itemCount | createdAt) and sortDir (asc | desc) query params
+- Default sort: name ascending
+- Sorting performed in DB query via IQueryable OrderBy/OrderByDescending in the repository projected query
+- For updatedAt sort, uses coalesce (UpdatedAt ?? CreatedAt) so collections without updates sort by creation date
+- Added 6 integration tests covering each sort option and default behavior
+- All 134 tests pass, build succeeds
+- Files changed:
+  - src/api/GeekVault.Api/Controllers/Vault/CollectionsController.cs
+  - src/api/GeekVault.Api/Repositories/Vault/ICollectionsRepository.cs
+  - src/api/GeekVault.Api/Repositories/Vault/CollectionsRepository.cs
+  - src/api/GeekVault.Api/Services/Vault/ICollectionsService.cs
+  - src/api/GeekVault.Api/Services/Vault/CollectionsService.cs
+  - src/api/GeekVault.Api.Tests/CollectionEndpointsTests.cs
+- **Learnings for future iterations:**
+  - Catalog items endpoint is POST /api/collections/{collectionId}/items (not /api/catalog-items) and requires Identifier field
+  - Sort in repository: use switch expression on sortBy with ToLowerInvariant() for case-insensitive matching
+  - When filtering dotnet test by name, coverage gate may fail due to low coverage — run all tests for final validation
 ---
