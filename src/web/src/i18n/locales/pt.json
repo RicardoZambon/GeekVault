@@ -104,6 +104,7 @@
     "createSuccess": "Coleção criada com sucesso.",
     "deleteSuccess": "Coleção excluída com sucesso.",
     "sort": {
+      "customOrder": "Ordem Personalizada",
       "name": "Nome",
       "lastUpdated": "Última Atualização",
       "mostItems": "Mais Itens",
@@ -122,7 +123,8 @@
     "useAsCover": "Usar como Capa",
     "useAsCoverSuccess": "Imagem de capa atualizada com sucesso",
     "useAsCoverFailed": "Falha ao atualizar imagem de capa",
-    "itemActions": "Ações do item"
+    "itemActions": "Ações do item",
+    "reorderFailed": "Falha ao reordenar coleções"
   },
   "collectionTypes": {
     "title": "Tipos de Coleção",

@@ -16,6 +16,7 @@ import {
   MoreVertical,
   LayoutGrid,
   List,
+  GripVertical,
 } from "lucide-react"
 import {
   EmptyState,
@@ -38,6 +39,7 @@ import {
   TooltipTrigger,
   TooltipContent,
   TooltipProvider,
+  SortableList,
 } from "@/components/ds"
 import { useAuth } from "@/components/auth-provider"
 import { Button } from "@/components/ui/button"
@@ -88,7 +90,7 @@ export default function Collections() {
   const [searchQuery, setSearchQuery] = useState("")
   const [filterType, setFilterType] = useState<string>("all")
   const debouncedSearch = useDebounce(searchQuery, 300)
-  const [sortBy, setSortBy] = useState<string>(() => localStorage.getItem("collections-sortBy") ?? "name")
+  const [sortBy, setSortBy] = useState<string>(() => localStorage.getItem("collections-sortBy") ?? "sortOrder")
   const [sortDir, setSortDir] = useState<string>(() => localStorage.getItem("collections-sortDir") ?? "asc")
 
   // View mode (grid/list)
@@ -215,6 +217,26 @@ export default function Collections() {
     setViewMode(next)
     localStorage.setItem("collections-view-mode", next)
   }
+
+  const isCustomSort = sortBy === "sortOrder"
+
+  /* v8 ignore start -- DnD reorder callback */
+  async function handleReorderCollections(newOrder: Collection[]) {
+    const previous = collections
+    setCollections(newOrder)
+    try {
+      const res = await fetch("/api/collections/reorder", {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ collectionIds: newOrder.map((c) => c.id) }),
+      })
+      if (!res.ok) throw new Error("Failed to reorder")
+    } catch {
+      toast.error(t("collections.reorderFailed"))
+      setCollections(previous)
+    }
+  }
+  /* v8 ignore stop */
 
   function openCreate() {
     setEditingId(null)
@@ -417,6 +439,7 @@ export default function Collections() {
                     <SelectValue placeholder={t("collections.toolbar.sortBy")} />
                   </SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="sortOrder:asc">{t("collections.sort.customOrder")}</SelectItem>
                     <SelectItem value="name:asc">{t("collections.sort.name")}</SelectItem>
                     <SelectItem value="updatedAt:desc">{t("collections.sort.lastUpdated")}</SelectItem>
                     <SelectItem value="itemCount:desc">{t("collections.sort.mostItems")}</SelectItem>
@@ -477,7 +500,8 @@ export default function Collections() {
                       <SelectValue placeholder={t("collections.toolbar.sortBy")} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="name:asc">{t("collections.sort.name")}</SelectItem>
+                      <SelectItem value="sortOrder:asc">{t("collections.sort.customOrder")}</SelectItem>
+                    <SelectItem value="name:asc">{t("collections.sort.name")}</SelectItem>
                       <SelectItem value="updatedAt:desc">{t("collections.sort.lastUpdated")}</SelectItem>
                       <SelectItem value="itemCount:desc">{t("collections.sort.mostItems")}</SelectItem>
                       <SelectItem value="createdAt:desc">{t("collections.sort.recentlyAdded")}</SelectItem>
@@ -494,85 +518,63 @@ export default function Collections() {
               {t("collections.noResults")}
             </div>
           ) : viewMode === "grid" ? (
-            <StaggerChildren className="mt-6 grid gap-6" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))" }}>
-              {filteredCollections.map((c) => (
-                <motion.div key={c.id} variants={staggerItemVariants}>
+            /* v8 ignore start -- grid view with optional drag-to-reorder */
+            isCustomSort ? (
+              <SortableList
+                items={filteredCollections}
+                keyExtractor={(c) => c.id}
+                layout="grid"
+                gridClassName="mt-6 grid gap-6 [grid-template-columns:repeat(auto-fill,minmax(320px,1fr))]"
+                onReorder={handleReorderCollections}
+                renderItem={(c, { dragHandleProps, isDragging }) => (
                   <div
-                    className="group relative cursor-pointer overflow-hidden rounded-xl transition-all duration-200 ease-out hover:-translate-y-1 hover:shadow-lg"
+                    className={`group relative cursor-pointer overflow-hidden rounded-xl transition-all duration-200 ease-out hover:-translate-y-1 hover:shadow-lg ${isDragging ? "ring-2 ring-accent shadow-lg" : ""}`}
                     style={{ aspectRatio: "4/3" }}
                     onClick={() => navigate(`/collections/${c.id}`)}
                   >
-                    {/* Cover image or fallback */}
+                    {/* Drag handle */}
+                    <button
+                      type="button"
+                      className="absolute top-2 left-2 z-10 cursor-grab touch-none rounded bg-black/40 p-1.5 text-white opacity-0 transition-opacity group-hover:opacity-100 max-[640px]:opacity-100"
+                      onClick={(e) => e.stopPropagation()}
+                      {...dragHandleProps}
+                    >
+                      <GripVertical className="h-4 w-4" />
+                    </button>
+
                     {c.coverImage ? (
-                      <img
-                        src={c.coverImage}
-                        alt={c.name}
-                        loading="lazy"
-                        className="h-full w-full object-cover"
-                      />
+                      <img src={c.coverImage} alt={c.name} loading="lazy" className="h-full w-full object-cover" />
                     ) : (
                       <div className="flex h-full items-center justify-center bg-gradient-to-br from-primary/20 to-accent/20">
                         <Library className="h-12 w-12 text-muted-foreground/40" />
                       </div>
                     )}
 
-                    {/* Gradient overlay with text */}
-                    <div
-                      className="absolute inset-x-0 bottom-0 flex items-end p-4"
-                      style={{ background: "linear-gradient(transparent, rgba(0,0,0,0.7))" }}
-                    >
+                    <div className="absolute inset-x-0 bottom-0 flex items-end p-4" style={{ background: "linear-gradient(transparent, rgba(0,0,0,0.7))" }}>
                       <div className="min-w-0 flex-1">
-                        <h3 className="truncate text-lg font-semibold text-white">
-                          {c.name}
-                        </h3>
-                        <p className="text-[13px] text-white/85">
-                          {getMetadataLine(c)}
-                        </p>
+                        <h3 className="truncate text-lg font-semibold text-white">{c.name}</h3>
+                        <p className="text-[13px] text-white/85">{getMetadataLine(c)}</p>
                       </div>
                     </div>
 
-                    {/* Quick actions (hover overlay) */}
                     <div
                       className="absolute right-2 top-2 flex items-center gap-1 opacity-0 transition-opacity duration-200 group-hover:opacity-100 max-[640px]:opacity-100"
                       onClick={(e) => e.stopPropagation()}
                     >
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 rounded-full bg-black/30 text-white backdrop-blur-sm hover:bg-black/50"
-                        onClick={() => navigate(`/collections/${c.id}`)}
-                        aria-label={t("collections.view")}
-                      >
+                      <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full bg-black/30 text-white backdrop-blur-sm hover:bg-black/50" onClick={() => navigate(`/collections/${c.id}`)} aria-label={t("collections.view")}>
                         <ExternalLink className="h-4 w-4" />
                       </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 rounded-full bg-black/30 text-white backdrop-blur-sm hover:bg-black/50"
-                        onClick={() => openEdit(c)}
-                        aria-label={t("collections.edit")}
-                      >
+                      <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full bg-black/30 text-white backdrop-blur-sm hover:bg-black/50" onClick={() => openEdit(c)} aria-label={t("collections.edit")}>
                         <Pencil className="h-4 w-4" />
                       </Button>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 rounded-full bg-black/30 text-white backdrop-blur-sm hover:bg-black/50"
-                            aria-label={t("collections.actions")}
-                          >
+                          <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full bg-black/30 text-white backdrop-blur-sm hover:bg-black/50" aria-label={t("collections.actions")}>
                             <MoreVertical className="h-4 w-4" />
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem
-                            className="text-destructive focus:text-destructive"
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              setDeleteId(c.id)
-                            }}
-                          >
+                          <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={(e) => { e.stopPropagation(); setDeleteId(c.id) }}>
                             <Trash2 className="h-4 w-4" />
                             {t("collections.delete")}
                           </DropdownMenuItem>
@@ -580,9 +582,62 @@ export default function Collections() {
                       </DropdownMenu>
                     </div>
                   </div>
-                </motion.div>
-              ))}
-            </StaggerChildren>
+                )}
+              />
+            ) : (
+              <StaggerChildren className="mt-6 grid gap-6" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))" }}>
+                {filteredCollections.map((c) => (
+                  <motion.div key={c.id} variants={staggerItemVariants}>
+                    <div
+                      className="group relative cursor-pointer overflow-hidden rounded-xl transition-all duration-200 ease-out hover:-translate-y-1 hover:shadow-lg"
+                      style={{ aspectRatio: "4/3" }}
+                      onClick={() => navigate(`/collections/${c.id}`)}
+                    >
+                      {c.coverImage ? (
+                        <img src={c.coverImage} alt={c.name} loading="lazy" className="h-full w-full object-cover" />
+                      ) : (
+                        <div className="flex h-full items-center justify-center bg-gradient-to-br from-primary/20 to-accent/20">
+                          <Library className="h-12 w-12 text-muted-foreground/40" />
+                        </div>
+                      )}
+
+                      <div className="absolute inset-x-0 bottom-0 flex items-end p-4" style={{ background: "linear-gradient(transparent, rgba(0,0,0,0.7))" }}>
+                        <div className="min-w-0 flex-1">
+                          <h3 className="truncate text-lg font-semibold text-white">{c.name}</h3>
+                          <p className="text-[13px] text-white/85">{getMetadataLine(c)}</p>
+                        </div>
+                      </div>
+
+                      <div
+                        className="absolute right-2 top-2 flex items-center gap-1 opacity-0 transition-opacity duration-200 group-hover:opacity-100 max-[640px]:opacity-100"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full bg-black/30 text-white backdrop-blur-sm hover:bg-black/50" onClick={() => navigate(`/collections/${c.id}`)} aria-label={t("collections.view")}>
+                          <ExternalLink className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full bg-black/30 text-white backdrop-blur-sm hover:bg-black/50" onClick={() => openEdit(c)} aria-label={t("collections.edit")}>
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full bg-black/30 text-white backdrop-blur-sm hover:bg-black/50" aria-label={t("collections.actions")}>
+                              <MoreVertical className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={(e) => { e.stopPropagation(); setDeleteId(c.id) }}>
+                              <Trash2 className="h-4 w-4" />
+                              {t("collections.delete")}
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+                    </div>
+                  </motion.div>
+                ))}
+              </StaggerChildren>
+            )
+            /* v8 ignore stop */
           ) : (
             <div className="mt-6">
               <DataTable<Collection>

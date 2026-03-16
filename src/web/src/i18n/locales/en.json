@@ -104,6 +104,7 @@
     "createSuccess": "Collection created successfully.",
     "deleteSuccess": "Collection deleted successfully.",
     "sort": {
+      "customOrder": "Custom Order",
       "name": "Name",
       "lastUpdated": "Last Updated",
       "mostItems": "Most Items",
@@ -122,7 +123,8 @@
     "useAsCover": "Use as Cover",
     "useAsCoverSuccess": "Cover image updated successfully",
     "useAsCoverFailed": "Failed to update cover image",
-    "itemActions": "Item actions"
+    "itemActions": "Item actions",
+    "reorderFailed": "Failed to reorder collections"
   },
   "collectionTypes": {
     "title": "Collection Types",
