@@ -182,3 +182,19 @@
   - localStorage keys: collections-sortBy, collections-sortDir — used by sort dropdown persistence
   - fetchCollections accepts optional sort override param for immediate re-fetch when sort changes (avoids stale closure)
 ---
+
+## 2026-03-16 - US-010
+- Restructured toolbar for mobile collapsibility
+- Mobile (< sm): search full-width + Filters toggle button; tapping reveals/hides type filter + sort row with CSS grid animation
+- Desktop (>= sm): all toolbar items shown inline, no toggle
+- New Collection button always visible in both layouts
+- Animation uses CSS grid-rows-[0fr]/[1fr] transition for smooth collapse/expand
+- Added SlidersHorizontal icon from lucide-react for Filters toggle
+- All 514 frontend tests pass, typecheck passes
+- Files changed:
+  - src/web/src/features/collections/collections-page.tsx
+- **Learnings for future iterations:**
+  - CSS grid-rows-[0fr]/[1fr] with overflow-hidden is a clean way to animate height collapse without JS measurement
+  - Mobile filter selects are duplicated (desktop hidden:sm, mobile sm:hidden) to avoid complex conditional rendering — the Select mock handles both
+  - filtersOpen state controls mobile filter row visibility
+---

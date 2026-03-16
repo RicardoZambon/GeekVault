@@ -167,7 +167,7 @@
         "Verify in browser using dev-browser skill"
       ],
       "priority": 10,
-      "passes": false,
+      "passes": true,
       "notes": "Uses i18n key collections.toolbar.filters from US-008."
     },
     {
