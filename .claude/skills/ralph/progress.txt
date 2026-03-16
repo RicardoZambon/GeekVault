@@ -218,3 +218,20 @@
   - Three-dot menu uses bg-black/30 backdrop-blur-sm for readability over images
   - collectionTypeName is no longer displayed on the card (removed Badge) — only shown in list view (US-015)
 ---
+
+## 2026-03-16 - US-012
+- Added ownedCount, completionPercentage, createdAt, updatedAt to Collection interface
+- Built getRelativeTime() using Intl.RelativeTimeFormat (no date-fns dependency)
+- Built getMetadataLine() that joins: '{count} items · {percent}% complete · Updated {timeAgo}'
+- If itemCount is 0, completion % is omitted; if updatedAt is null, time is omitted
+- Metadata styled: 13px, white text, 85% opacity (text-[13px] text-white/85)
+- Updated test fixtures with new fields, updated metadata assertion to use content matcher
+- All 514 frontend tests pass, typecheck passes
+- Files changed:
+  - src/web/src/features/collections/collections-page.tsx
+  - src/web/src/features/collections/collections-page.test.tsx
+- **Learnings for future iterations:**
+  - Intl.RelativeTimeFormat used without locale param (defaults to browser locale) — matches i18n language automatically
+  - Metadata line uses " · " (middle dot) as separator between parts
+  - Test uses content matcher function for metadata: `screen.getByText((content) => content.includes(...))`
+---

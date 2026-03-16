@@ -205,7 +205,7 @@
         "Verify in browser using dev-browser skill"
       ],
       "priority": 12,
-      "passes": false,
+      "passes": true,
       "notes": "Uses CompletionPercentage from backend US-005 and UpdatedAt from US-001. Do not add date-fns — use Intl.RelativeTimeFormat."
     },
     {
