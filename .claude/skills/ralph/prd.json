@@ -131,7 +131,7 @@
         "Verify in browser using dev-browser skill"
       ],
       "priority": 8,
-      "passes": false,
+      "passes": true,
       "notes": "i18n key collections.description can remain in locale files (no breaking change) but is no longer rendered."
     },
     {

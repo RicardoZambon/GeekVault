@@ -150,3 +150,17 @@
   - ReorderCollectionsRequest uses CollectionIds (not ItemIds) — follows same pattern as ReorderItemsRequest but for collections
   - When all SortOrder values are 0 (initial state), ThenBy Name ensures alphabetical tiebreaking
 ---
+
+## 2026-03-16 - US-008
+- Removed description prop from PageHeader on collections page (both loading and main views)
+- New Collection button remains in the actions slot, right-aligned
+- Added i18n keys to both en.json and pt.json: collections.sort.{name,lastUpdated,mostItems,recentlyAdded}, collections.toolbar.{filters,sortBy}, collections.viewGrid, collections.viewList, collections.updated, collections.complete, collections.useAsCover
+- All 514 frontend tests pass, typecheck passes
+- Files changed:
+  - src/web/src/features/collections/collections-page.tsx
+  - src/web/src/i18n/locales/en.json
+  - src/web/src/i18n/locales/pt.json
+- **Learnings for future iterations:**
+  - i18n keys for collections toolbar/grid are nested under collections.sort.*, collections.toolbar.*, and flat under collections.viewGrid/viewList/updated/complete/useAsCover
+  - The collections.description key still exists in locale files (no breaking change) but is no longer rendered on the page
+---
