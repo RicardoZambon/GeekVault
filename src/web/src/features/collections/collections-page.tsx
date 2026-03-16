@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, type FormEvent } from "react"
+import { useState, useEffect, useRef, useCallback, type FormEvent } from "react"
 import { useNavigate, useSearchParams } from "react-router-dom"
 import { useTranslation } from "react-i18next"
 import { motion } from "framer-motion"
@@ -11,6 +11,7 @@ import {
   Upload,
   Loader2,
   Eye,
+  ArrowUpDown,
 } from "lucide-react"
 import {
   EmptyState,
@@ -74,10 +75,12 @@ export default function Collections() {
   const [collectionTypes, setCollectionTypes] = useState<CollectionType[]>([])
   const [loading, setLoading] = useState(true)
 
-  // Search & filter
+  // Search, filter & sort
   const [searchQuery, setSearchQuery] = useState("")
   const [filterType, setFilterType] = useState<string>("all")
   const debouncedSearch = useDebounce(searchQuery, 300)
+  const [sortBy, setSortBy] = useState<string>(() => localStorage.getItem("collections-sortBy") ?? "name")
+  const [sortDir, setSortDir] = useState<string>(() => localStorage.getItem("collections-sortDir") ?? "asc")
 
   // Dialog state
   const [dialogOpen, setDialogOpen] = useState(false)
@@ -102,9 +105,11 @@ export default function Collections() {
     "Content-Type": "application/json",
   }
 
-  async function fetchCollections() {
+  const fetchCollections = useCallback(async (sort?: { sortBy: string; sortDir: string }) => {
     try {
-      const res = await fetch("/api/collections", { headers })
+      const s = sort ?? { sortBy, sortDir }
+      const params = new URLSearchParams({ sortBy: s.sortBy, sortDir: s.sortDir })
+      const res = await fetch(`/api/collections?${params}`, { headers })
       if (!res.ok) throw new Error("Failed to fetch")
       const data = await res.json()
       setCollections(data)
@@ -113,7 +118,7 @@ export default function Collections() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [sortBy, sortDir]) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function fetchCollectionTypes() {
     try {
@@ -148,6 +153,16 @@ export default function Collections() {
       filterType === "all" || c.collectionTypeId === Number(filterType)
     return matchesSearch && matchesType
   })
+
+  function handleSortChange(value: string) {
+    // value format: "name:asc", "updatedAt:desc", "itemCount:desc", "createdAt:desc"
+    const [newSortBy, newSortDir] = value.split(":")
+    setSortBy(newSortBy)
+    setSortDir(newSortDir)
+    localStorage.setItem("collections-sortBy", newSortBy)
+    localStorage.setItem("collections-sortDir", newSortDir)
+    fetchCollections({ sortBy: newSortBy, sortDir: newSortDir })
+  }
 
   function openCreate() {
     setEditingId(null)
@@ -294,18 +309,7 @@ export default function Collections() {
 
   return (
     <div>
-      <PageHeader
-        title={t("collections.title")}
-        actions={
-          <Button
-            onClick={openCreate}
-            className="bg-accent text-accent-foreground hover:bg-accent/90"
-          >
-            <Plus className="mr-1.5 h-4 w-4" />
-            {t("collections.create")}
-          </Button>
-        }
-      />
+      <PageHeader title={t("collections.title")} />
 
       {collections.length === 0 ? (
         <EmptyState
@@ -317,9 +321,9 @@ export default function Collections() {
         />
       ) : (
         <>
-          {/* Search & Filter toolbar */}
+          {/* Toolbar: search, type filter, sort, new collection button */}
           <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center">
-            <div className="relative flex-1">
+            <div className="relative max-w-[420px] flex-1">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 value={searchQuery}
@@ -344,6 +348,25 @@ export default function Collections() {
                 ))}
               </SelectContent>
             </Select>
+            <Select value={`${sortBy}:${sortDir}`} onValueChange={handleSortChange}>
+              <SelectTrigger className="w-full sm:w-[200px]" aria-label={t("collections.toolbar.sortBy")}>
+                <ArrowUpDown className="mr-2 h-4 w-4 shrink-0 text-muted-foreground" />
+                <SelectValue placeholder={t("collections.toolbar.sortBy")} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="name:asc">{t("collections.sort.name")}</SelectItem>
+                <SelectItem value="updatedAt:desc">{t("collections.sort.lastUpdated")}</SelectItem>
+                <SelectItem value="itemCount:desc">{t("collections.sort.mostItems")}</SelectItem>
+                <SelectItem value="createdAt:desc">{t("collections.sort.recentlyAdded")}</SelectItem>
+              </SelectContent>
+            </Select>
+            <Button
+              onClick={openCreate}
+              className="ml-auto bg-accent text-accent-foreground hover:bg-accent/90"
+            >
+              <Plus className="mr-1.5 h-4 w-4" />
+              {t("collections.create")}
+            </Button>
           </div>
 
           {/* Collection cards grid */}
