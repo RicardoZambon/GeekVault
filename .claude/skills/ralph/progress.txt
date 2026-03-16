@@ -285,3 +285,11 @@
   - DataTable generic type: use `DataTable<Collection>` for typed columns
   - Tooltip requires TooltipProvider wrapper
 ---
+
+## 2026-03-16 - US-016
+- No code changes needed — skeleton loading state already implemented in US-011/US-014
+- Existing skeleton: 6 cards, same grid layout (auto-fill minmax 320px), aspect-ratio 4/3, rounded-xl, animate-pulse
+- Bottom overlay area with faint skeleton rects (opacity-30 and opacity-20) mimics text placement
+- Existing test validates: "shows loading state with skeleton elements" checks for .animate-pulse elements
+- Typecheck passes
+---
