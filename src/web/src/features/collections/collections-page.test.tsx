@@ -157,11 +157,11 @@ describe("Collections", () => {
     })
   })
 
-  it("opens menu and edit dialog", async () => {
+  it("opens edit dialog via quick action button", async () => {
     mockFetch()
     render(<MemoryRouter><Collections /></MemoryRouter>)
     await waitFor(() => screen.getByText("Comics"))
-    const editButtons = screen.getAllByText("collections.edit")
+    const editButtons = screen.getAllByLabelText("collections.edit")
     fireEvent.click(editButtons[0])
     await waitFor(() => {
       expect(screen.getByText("collections.editTitle")).toBeInTheDocument()
@@ -227,15 +227,17 @@ describe("Collections", () => {
     })
   })
 
-  it("renders dropdown menu actions for each collection", async () => {
+  it("renders quick action buttons for each collection", async () => {
     mockFetch()
     render(<MemoryRouter><Collections /></MemoryRouter>)
     await waitFor(() => screen.getByText("Comics"))
 
-    const editButtons = screen.getAllByText("collections.edit")
-    const deleteButtons = screen.getAllByText("collections.delete")
+    const editButtons = screen.getAllByLabelText("collections.edit")
+    const openButtons = screen.getAllByLabelText("collections.view")
+    const menuButtons = screen.getAllByLabelText("collections.actions")
     expect(editButtons).toHaveLength(2)
-    expect(deleteButtons).toHaveLength(2)
+    expect(openButtons).toHaveLength(2)
+    expect(menuButtons).toHaveLength(2)
   })
 
   it("renders action buttons for each collection card", async () => {
@@ -416,7 +418,7 @@ describe("Collections", () => {
     render(<MemoryRouter><Collections /></MemoryRouter>)
     await waitFor(() => screen.getByText("Comics"))
 
-    const editButtons = screen.getAllByText("collections.edit")
+    const editButtons = screen.getAllByLabelText("collections.edit")
     fireEvent.click(editButtons[0])
     await waitFor(() => screen.getByText("collections.editTitle"))
 

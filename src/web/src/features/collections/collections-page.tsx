@@ -12,6 +12,8 @@ import {
   Loader2,
   ArrowUpDown,
   SlidersHorizontal,
+  ExternalLink,
+  MoreVertical,
 } from "lucide-react"
 import {
   EmptyState,
@@ -460,7 +462,7 @@ export default function Collections() {
               {filteredCollections.map((c) => (
                 <motion.div key={c.id} variants={staggerItemVariants}>
                   <div
-                    className="group relative cursor-pointer overflow-hidden rounded-xl"
+                    className="group relative cursor-pointer overflow-hidden rounded-xl transition-all duration-200 ease-out hover:-translate-y-1 hover:shadow-lg"
                     style={{ aspectRatio: "4/3" }}
                     onClick={() => navigate(`/collections/${c.id}`)}
                   >
@@ -493,46 +495,41 @@ export default function Collections() {
                       </div>
                     </div>
 
-                    {/* Three-dot menu */}
+                    {/* Quick actions (hover overlay) */}
                     <div
-                      className="absolute right-2 top-2"
+                      className="absolute right-2 top-2 flex items-center gap-1 opacity-0 transition-opacity duration-200 group-hover:opacity-100 max-[640px]:opacity-100"
                       onClick={(e) => e.stopPropagation()}
                     >
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 rounded-full bg-black/30 text-white backdrop-blur-sm hover:bg-black/50"
+                        onClick={() => navigate(`/collections/${c.id}`)}
+                        aria-label={t("collections.view")}
+                      >
+                        <ExternalLink className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 rounded-full bg-black/30 text-white backdrop-blur-sm hover:bg-black/50"
+                        onClick={() => openEdit(c)}
+                        aria-label={t("collections.edit")}
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="h-8 w-8 rounded-full bg-black/30 text-white opacity-0 backdrop-blur-sm transition-opacity hover:bg-black/50 group-hover:opacity-100 focus:opacity-100"
+                            className="h-8 w-8 rounded-full bg-black/30 text-white backdrop-blur-sm hover:bg-black/50"
                             aria-label={t("collections.actions")}
                           >
-                            <svg
-                              xmlns="http://www.w3.org/2000/svg"
-                              width="16"
-                              height="16"
-                              viewBox="0 0 24 24"
-                              fill="none"
-                              stroke="currentColor"
-                              strokeWidth="2"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                            >
-                              <circle cx="12" cy="12" r="1" />
-                              <circle cx="12" cy="5" r="1" />
-                              <circle cx="12" cy="19" r="1" />
-                            </svg>
+                            <MoreVertical className="h-4 w-4" />
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              openEdit(c)
-                            }}
-                          >
-                            <Pencil className="h-4 w-4" />
-                            {t("collections.edit")}
-                          </DropdownMenuItem>
                           <DropdownMenuItem
                             className="text-destructive focus:text-destructive"
                             onClick={(e) => {
