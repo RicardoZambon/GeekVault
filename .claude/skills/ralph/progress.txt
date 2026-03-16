@@ -335,3 +335,25 @@
   - Default sort changed from "name:asc" to "sortOrder:asc" — localStorage key "collections-sortBy" stores this
   - Touch device drag handles use max-[640px]:opacity-100 to be always visible on narrow screens
 ---
+
+## 2026-03-16 - US-019
+- Added SortableList mock to DS mock (required since default sort is now "sortOrder" which renders SortableList)
+- Added 8 new tests covering:
+  - Sort dropdown triggering API call with query params
+  - Sort preference persisted to localStorage
+  - Mobile filter toggle (Filters button shows/hides filter row)
+  - Grid/list view toggle and localStorage persistence
+  - Completion percentage display on cover card metadata
+  - Search filtering by collection name
+  - Type filter filtering by collection type
+  - No results message when filter matches nothing
+- All 28 existing tests continue to pass (no changes needed)
+- Total: 522 frontend tests pass, typecheck passes
+- Files changed:
+  - src/web/src/features/collections/collections-page.test.tsx
+- **Learnings for future iterations:**
+  - SortableList must be mocked in DS mock for collections-page tests since default sort is "sortOrder" (renders SortableList instead of StaggerChildren)
+  - The t() mock only handles `count` interpolation — other vars like `percent`, `timeAgo` return the bare key string
+  - localStorage state persists between tests — set it explicitly in beforeEach or in individual tests to avoid state leakage
+  - CSS class selectors with brackets need escaping in querySelector: `.grid-rows-\\[0fr\\]`
+---
