@@ -82,7 +82,7 @@
         "Typecheck passes (dotnet build)"
       ],
       "priority": 5,
-      "passes": false,
+      "passes": true,
       "notes": "Add OwnedCopies.Count() subquery to the existing projected query from US-003."
     },
     {

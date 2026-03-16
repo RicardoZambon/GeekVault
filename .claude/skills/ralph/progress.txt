@@ -5,7 +5,10 @@
 - Existing patterns to follow: CatalogItemsService.ReorderAsync for reorder logic, SetsService for completion % calculation
 - CollectionResponse is a positional record — all constructor call sites are in CollectionsService only (now includes CollectionTypeName)
 - Use GetByIdAndUserIdWithTypeAsync (not GetByIdAndUserIdAsync) when you need CollectionType.Name in the response
-- CollectionWithCounts DTO in ICollectionsRepository is the projected query pattern for GetAll — extend it for new fields (e.g., OwnedCount for US-005)
+- CollectionWithCounts DTO in ICollectionsRepository is the projected query pattern for GetAll — extend it for new fields (includes ItemCount + OwnedCount)
+- OwnedCopies count subquery pattern: `_db.OwnedCopies.Count(oc => _db.CatalogItems.Any(ci => ci.Id == oc.CatalogItemId && ci.CollectionId == c.Id))`
+- Owned copies endpoint: POST /api/items/{catalogItemId}/copies (requires Condition field)
+- CollectionResponse now includes OwnedCount + CompletionPercentage — all constructor call sites updated in CollectionsService
 - EF Core migrations: use `defaultValueSql: "GETUTCDATE()"` instead of `defaultValue` for UTC now defaults on existing rows
 - Catalog items endpoint: POST /api/collections/{collectionId}/items (requires Identifier field)
 - Both repositories share the same scoped DbContext — setting UpdatedAt on a Collection loaded by one repo and calling SaveChangesAsync on another repo persists all tracked changes
@@ -80,4 +83,23 @@
   - Catalog items endpoint is POST /api/collections/{collectionId}/items (not /api/catalog-items) and requires Identifier field
   - Sort in repository: use switch expression on sortBy with ToLowerInvariant() for case-insensitive matching
   - When filtering dotnet test by name, coverage gate may fail due to low coverage — run all tests for final validation
+---
+
+## 2026-03-16 - US-005
+- Added OwnedCount (int) and CompletionPercentage (double, 0-100) to CollectionResponse DTO
+- Extended CollectionWithCounts with OwnedCount field, added OwnedCopies.Count() subquery to projected query in GetByUserIdWithCountsAsync
+- Added GetOwnedCountAsync to ICollectionsRepository for single-collection lookups (GetByIdAsync, UpdateAsync)
+- CompletionPercentage calculated as Math.Round((double)ownedCount / itemCount * 100, 1), 0 when itemCount is 0
+- Added 2 integration tests: GetCollection_ReturnsCompletionPercentage, ListCollections_ReturnsCompletionPercentage
+- All 136 tests pass, build succeeds
+- Files changed:
+  - src/api/GeekVault.Api/DTOs/Vault/CollectionDtos.cs
+  - src/api/GeekVault.Api/Repositories/Vault/ICollectionsRepository.cs
+  - src/api/GeekVault.Api/Repositories/Vault/CollectionsRepository.cs
+  - src/api/GeekVault.Api/Services/Vault/CollectionsService.cs
+  - src/api/GeekVault.Api.Tests/CollectionEndpointsTests.cs
+- **Learnings for future iterations:**
+  - OwnedCopies count subquery: `_db.OwnedCopies.Count(oc => _db.CatalogItems.Any(ci => ci.Id == oc.CatalogItemId && ci.CollectionId == c.Id))` — same pattern used in GetCollectionSummariesAsync
+  - Owned copies endpoint: POST /api/items/{catalogItemId}/copies (requires Condition field)
+  - Test record types (e.g. CollectionResult) must be updated when adding new fields to response DTOs — deserialization silently ignores extra fields but missing positional params cause issues
 ---
