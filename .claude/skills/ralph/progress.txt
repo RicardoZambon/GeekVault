@@ -293,3 +293,22 @@
 - Existing test validates: "shows loading state with skeleton elements" checks for .animate-pulse elements
 - Typecheck passes
 ---
+
+## 2026-03-16 - US-017
+- Added "Use as Cover" option to catalog item context menu on collection detail page
+- Grid view: three-dot DropdownMenu appears on hover (top-right) for items with images, contains "Use as Cover" option
+- List view: three-dot menu added as actions column in DataTable for items with images
+- Clicking calls POST /api/collections/{id}/cover-from-item/{itemId} (handleUseAsCover already existed)
+- Shows success/failure toast; collection cover updates immediately via fetchCollection()
+- Added i18n keys: collections.useAsCoverSuccess, collections.useAsCoverFailed, collections.itemActions to both en.json and pt.json
+- All 514 frontend tests pass, typecheck passes
+- Files changed:
+  - src/web/src/features/collections/collection-detail-page.tsx
+  - src/web/src/i18n/locales/en.json
+  - src/web/src/i18n/locales/pt.json
+- **Learnings for future iterations:**
+  - handleUseAsCover function was already implemented in the page (from earlier iteration planning) — just needed UI wiring
+  - DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem were already imported but unused in the detail page
+  - For grid view context menus, use onClick stopPropagation on the wrapper div to prevent card click navigation
+  - For list view DataTable actions, stopPropagation on both the trigger button and DropdownMenuItem onClick to prevent row click
+---
