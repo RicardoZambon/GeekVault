@@ -188,7 +188,7 @@
         "Verify in browser using dev-browser skill"
       ],
       "priority": 11,
-      "passes": false,
+      "passes": true,
       "notes": "Metadata line content depends on US-012. For now show '{count} items'."
     },
     {

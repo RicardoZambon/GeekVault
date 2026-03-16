@@ -198,3 +198,23 @@
   - Mobile filter selects are duplicated (desktop hidden:sm, mobile sm:hidden) to avoid complex conditional rendering — the Select mock handles both
   - filtersOpen state controls mobile filter row visibility
 ---
+
+## 2026-03-16 - US-011
+- Replaced old Card/CardContent/CardFooter/Badge markup with Netflix-style cover card
+- Cover card: aspect-ratio 4/3, rounded-xl, overflow hidden, full-bleed cover image with object-cover
+- Gradient overlay at bottom: linear-gradient(transparent, rgba(0,0,0,0.7)) with collection name (18px semibold white) and metadata (13px white/85%)
+- Fallback: gradient placeholder with Library icon when no cover image
+- Entire card clickable, navigates to /collections/{id}
+- Three-dot menu in top-right corner, visible on hover with backdrop blur
+- Removed: Card, CardContent, CardFooter, Badge, Eye imports (no longer needed)
+- Updated loading skeleton to match new 4/3 aspect ratio card shape
+- Updated test: removed "Comic Books" badge assertion (type badge removed from card)
+- All 514 frontend tests pass, typecheck passes
+- Files changed:
+  - src/web/src/features/collections/collections-page.tsx
+  - src/web/src/features/collections/collections-page.test.tsx
+- **Learnings for future iterations:**
+  - Cover card uses inline style for aspect-ratio 4/3 and gradient background
+  - Three-dot menu uses bg-black/30 backdrop-blur-sm for readability over images
+  - collectionTypeName is no longer displayed on the card (removed Badge) — only shown in list view (US-015)
+---
