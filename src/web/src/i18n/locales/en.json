@@ -102,7 +102,22 @@
     "dropCoverHere": "Drop an image here or click to browse",
     "saveSuccess": "Collection saved successfully.",
     "createSuccess": "Collection created successfully.",
-    "deleteSuccess": "Collection deleted successfully."
+    "deleteSuccess": "Collection deleted successfully.",
+    "sort": {
+      "name": "Name",
+      "lastUpdated": "Last Updated",
+      "mostItems": "Most Items",
+      "recentlyAdded": "Recently Added"
+    },
+    "toolbar": {
+      "filters": "Filters",
+      "sortBy": "Sort by"
+    },
+    "viewGrid": "Grid view",
+    "viewList": "List view",
+    "updated": "Updated {{timeAgo}}",
+    "complete": "{{percent}}% complete",
+    "useAsCover": "Use as Cover"
   },
   "collectionTypes": {
     "title": "Collection Types",

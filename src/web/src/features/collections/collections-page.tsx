@@ -273,7 +273,6 @@ export default function Collections() {
       <div>
         <PageHeader
           title={t("collections.title")}
-          description={t("collections.description")}
         />
         <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {Array.from({ length: 6 }).map((_, i) => (
@@ -297,7 +296,6 @@ export default function Collections() {
     <div>
       <PageHeader
         title={t("collections.title")}
-        description={t("collections.description")}
         actions={
           <Button
             onClick={openCreate}
