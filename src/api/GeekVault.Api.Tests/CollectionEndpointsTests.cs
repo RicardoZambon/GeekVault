@@ -68,8 +68,11 @@ public class CollectionEndpointsTests : IClassFixture<TestFactory<CollectionEndp
         Assert.Equal("My Cards", col.Name);
         Assert.Equal("Public", col.Visibility);
         Assert.Equal(typeId, col.CollectionTypeId);
+        Assert.Equal("Test Type", col.CollectionTypeName);
         Assert.Equal(0, col.ItemCount);
         Assert.True(col.Id > 0);
+        Assert.True(col.CreatedAt > DateTime.MinValue);
+        Assert.Null(col.UpdatedAt);
     }
 
     [Fact]
@@ -133,6 +136,7 @@ public class CollectionEndpointsTests : IClassFixture<TestFactory<CollectionEndp
         Assert.Equal("Updated", col!.Name);
         Assert.Equal("Updated description", col.Description);
         Assert.Equal("Public", col.Visibility);
+        Assert.NotNull(col.UpdatedAt);
     }
 
     [Fact]
@@ -303,19 +307,31 @@ public class CollectionEndpointsTests : IClassFixture<TestFactory<CollectionEndp
     }
 
     [Fact]
-    public async Task ListCollections_DefaultSort_ReturnsSortedByNameAsc()
+    public async Task ListCollections_DefaultSort_ReturnsSortedBySortOrder()
     {
         var (client, typeId) = await CreateAuthenticatedClientWithTypeAsync("col-sort-default@example.com");
 
-        await client.PostAsJsonAsync("/api/collections", new { Name = "Zebra", CollectionTypeId = typeId });
-        await client.PostAsJsonAsync("/api/collections", new { Name = "Alpha", CollectionTypeId = typeId });
+        var r1 = await client.PostAsJsonAsync("/api/collections", new { Name = "Alpha", CollectionTypeId = typeId });
+        var c1 = await r1.Content.ReadFromJsonAsync<CollectionResult>();
+        var r2 = await client.PostAsJsonAsync("/api/collections", new { Name = "Beta", CollectionTypeId = typeId });
+        var c2 = await r2.Content.ReadFromJsonAsync<CollectionResult>();
+        var r3 = await client.PostAsJsonAsync("/api/collections", new { Name = "Gamma", CollectionTypeId = typeId });
+        var c3 = await r3.Content.ReadFromJsonAsync<CollectionResult>();
 
+        // Reorder all 3 in reverse-alphabetical order: Gamma, Beta, Alpha
+        await client.PostAsJsonAsync("/api/collections/reorder", new
+        {
+            CollectionIds = new[] { c3!.Id, c2!.Id, c1!.Id }
+        });
+
+        // Default sort (no sortBy) should return by sortOrder, NOT alphabetical
         var response = await client.GetAsync("/api/collections");
         var collections = await response.Content.ReadFromJsonAsync<List<CollectionResult>>();
 
-        Assert.Equal(2, collections!.Count);
-        Assert.Equal("Alpha", collections[0].Name);
-        Assert.Equal("Zebra", collections[1].Name);
+        Assert.Equal(3, collections!.Count);
+        Assert.Equal("Gamma", collections[0].Name);
+        Assert.Equal("Beta", collections[1].Name);
+        Assert.Equal("Alpha", collections[2].Name);
     }
 
     [Fact]
@@ -511,7 +527,7 @@ public class CollectionEndpointsTests : IClassFixture<TestFactory<CollectionEndp
 
     private record AuthResult(string Token, string UserId, string Email, string? DisplayName);
     private record CollectionTypeResult(int Id, string Name, string? Description, string? Icon);
-    private record CollectionResult(int Id, string Name, string? Description, string? CoverImage, string Visibility, int CollectionTypeId, int ItemCount, int OwnedCount, double CompletionPercentage);
+    private record CollectionResult(int Id, string Name, string? Description, string? CoverImage, string Visibility, int CollectionTypeId, string CollectionTypeName, int ItemCount, int OwnedCount, double CompletionPercentage, DateTime CreatedAt, DateTime? UpdatedAt);
     private record CatalogItemResult(int Id, string Name, string? Identifier);
     private record CoverResult(string CoverUrl);
 }
