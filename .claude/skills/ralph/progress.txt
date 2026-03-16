@@ -252,3 +252,17 @@
   - Touch device visibility uses max-[640px]:opacity-100 (always show on narrow screens)
   - Edit is now a direct icon button, not inside dropdown — dropdown only has Delete
 ---
+
+## 2026-03-16 - US-014
+- Changed grid from fixed breakpoint columns (sm:grid-cols-2 lg:grid-cols-3) to CSS auto-fill: repeat(auto-fill, minmax(320px, 1fr))
+- Gap increased from gap-4 to gap-6 (24px)
+- Applied same grid style to loading skeleton section
+- Stagger animation preserved (StaggerChildren wrapper unchanged)
+- Effectively shows ~3 cols desktop, ~2 tablet, 1 mobile without explicit breakpoints
+- All 514 frontend tests pass, typecheck passes
+- Files changed:
+  - src/web/src/features/collections/collections-page.tsx
+- **Learnings for future iterations:**
+  - CSS auto-fill with minmax gives fluid responsive columns without media queries
+  - Grid style applied via inline style={{ gridTemplateColumns }} since Tailwind v4 doesn't have a clean utility for auto-fill/minmax
+---
