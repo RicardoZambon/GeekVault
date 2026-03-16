@@ -20,7 +20,8 @@ public class CollectionsService : ICollectionsService
         return results.Select(r => new CollectionResponse(
             r.Collection.Id, r.Collection.Name, r.Collection.Description, r.Collection.CoverImage,
             r.Collection.Visibility.ToString(), r.Collection.CollectionTypeId,
-            r.Collection.CollectionType.Name, r.ItemCount,
+            r.Collection.CollectionType.Name, r.ItemCount, r.OwnedCount,
+            r.ItemCount > 0 ? Math.Round((double)r.OwnedCount / r.ItemCount * 100, 1) : 0,
             r.Collection.CreatedAt, r.Collection.UpdatedAt)).ToList();
     }
 
@@ -30,8 +31,10 @@ public class CollectionsService : ICollectionsService
         if (c == null) return null;
 
         var itemCount = await _repository.GetItemCountAsync(c.Id);
+        var ownedCount = await _repository.GetOwnedCountAsync(c.Id);
+        var completionPct = itemCount > 0 ? Math.Round((double)ownedCount / itemCount * 100, 1) : 0;
         return new CollectionResponse(c.Id, c.Name, c.Description, c.CoverImage,
-            c.Visibility.ToString(), c.CollectionTypeId, c.CollectionType.Name, itemCount, c.CreatedAt, c.UpdatedAt);
+            c.Visibility.ToString(), c.CollectionTypeId, c.CollectionType.Name, itemCount, ownedCount, completionPct, c.CreatedAt, c.UpdatedAt);
     }
 
     public async Task<CollectionResponse> CreateAsync(string userId, CreateCollectionRequest request)
@@ -54,7 +57,7 @@ public class CollectionsService : ICollectionsService
 
         var created = await _repository.GetByIdAndUserIdWithTypeAsync(collection.Id, userId);
         return new CollectionResponse(created!.Id, created.Name, created.Description, created.CoverImage,
-            created.Visibility.ToString(), created.CollectionTypeId, created.CollectionType.Name, 0, created.CreatedAt, created.UpdatedAt);
+            created.Visibility.ToString(), created.CollectionTypeId, created.CollectionType.Name, 0, 0, 0, created.CreatedAt, created.UpdatedAt);
     }
 
     public async Task<CollectionResponse?> UpdateAsync(int id, string userId, UpdateCollectionRequest request)
@@ -71,9 +74,11 @@ public class CollectionsService : ICollectionsService
         await _repository.SaveChangesAsync();
 
         var itemCount = await _repository.GetItemCountAsync(collection.Id);
+        var ownedCount = await _repository.GetOwnedCountAsync(collection.Id);
+        var completionPct = itemCount > 0 ? Math.Round((double)ownedCount / itemCount * 100, 1) : 0;
         return new CollectionResponse(collection.Id, collection.Name, collection.Description,
             collection.CoverImage, collection.Visibility.ToString(), collection.CollectionTypeId,
-            collection.CollectionType.Name, itemCount,
+            collection.CollectionType.Name, itemCount, ownedCount, completionPct,
             collection.CreatedAt, collection.UpdatedAt);
     }
 

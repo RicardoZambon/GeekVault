@@ -9,6 +9,7 @@ public interface ICollectionsRepository
     Task<Collection?> GetByIdAndUserIdAsync(int id, string userId);
     Task<Collection?> GetByIdAndUserIdWithTypeAsync(int id, string userId);
     Task<int> GetItemCountAsync(int collectionId);
+    Task<int> GetOwnedCountAsync(int collectionId);
     Task AddAsync(Collection collection);
     Task SaveChangesAsync();
     void Remove(Collection collection);
@@ -19,6 +20,7 @@ public class CollectionWithCounts
 {
     public Collection Collection { get; set; } = null!;
     public int ItemCount { get; set; }
+    public int OwnedCount { get; set; }
 }
 
 public class CollectionSummary

@@ -319,6 +319,67 @@ public class CollectionEndpointsTests : IClassFixture<TestFactory<CollectionEndp
     }
 
     [Fact]
+    public async Task GetCollection_ReturnsCompletionPercentage()
+    {
+        var (client, typeId) = await CreateAuthenticatedClientWithTypeAsync("col-completion@example.com");
+
+        var createResponse = await client.PostAsJsonAsync("/api/collections", new
+        {
+            Name = "Completion Test",
+            CollectionTypeId = typeId
+        });
+        var created = await createResponse.Content.ReadFromJsonAsync<CollectionResult>();
+
+        // New collection should have 0 items, 0 owned, 0% completion
+        Assert.Equal(0, created!.ItemCount);
+        Assert.Equal(0, created.OwnedCount);
+        Assert.Equal(0, created.CompletionPercentage);
+
+        // Add 2 catalog items
+        var item1Resp = await client.PostAsJsonAsync($"/api/collections/{created.Id}/items", new { Identifier = "COMP-1", Name = "Item1" });
+        var item1 = await item1Resp.Content.ReadFromJsonAsync<CatalogItemResult>();
+        await client.PostAsJsonAsync($"/api/collections/{created.Id}/items", new { Identifier = "COMP-2", Name = "Item2" });
+
+        // Add 1 owned copy for item1
+        await client.PostAsJsonAsync($"/api/items/{item1!.Id}/copies", new { Condition = "Mint" });
+
+        // Get collection — should show 2 items, 1 owned, 50% completion
+        var response = await client.GetAsync($"/api/collections/{created.Id}");
+        var col = await response.Content.ReadFromJsonAsync<CollectionResult>();
+        Assert.Equal(2, col!.ItemCount);
+        Assert.Equal(1, col.OwnedCount);
+        Assert.Equal(50, col.CompletionPercentage);
+    }
+
+    [Fact]
+    public async Task ListCollections_ReturnsCompletionPercentage()
+    {
+        var (client, typeId) = await CreateAuthenticatedClientWithTypeAsync("col-completion-list@example.com");
+
+        var createResponse = await client.PostAsJsonAsync("/api/collections", new
+        {
+            Name = "Completion List Test",
+            CollectionTypeId = typeId
+        });
+        var created = await createResponse.Content.ReadFromJsonAsync<CollectionResult>();
+
+        // Add 3 items, own 1
+        var item1Resp = await client.PostAsJsonAsync($"/api/collections/{created!.Id}/items", new { Identifier = "CL-1", Name = "Item1" });
+        var item1 = await item1Resp.Content.ReadFromJsonAsync<CatalogItemResult>();
+        await client.PostAsJsonAsync($"/api/collections/{created.Id}/items", new { Identifier = "CL-2", Name = "Item2" });
+        await client.PostAsJsonAsync($"/api/collections/{created.Id}/items", new { Identifier = "CL-3", Name = "Item3" });
+
+        await client.PostAsJsonAsync($"/api/items/{item1!.Id}/copies", new { Condition = "Mint" });
+
+        var response = await client.GetAsync("/api/collections");
+        var collections = await response.Content.ReadFromJsonAsync<List<CollectionResult>>();
+        var col = collections!.First(c => c.Name == "Completion List Test");
+        Assert.Equal(3, col.ItemCount);
+        Assert.Equal(1, col.OwnedCount);
+        Assert.Equal(33.3, col.CompletionPercentage);
+    }
+
+    [Fact]
     public async Task Collection_RequiresAuth()
     {
         var client = _factory.CreateClient();
@@ -328,6 +389,7 @@ public class CollectionEndpointsTests : IClassFixture<TestFactory<CollectionEndp
 
     private record AuthResult(string Token, string UserId, string Email, string? DisplayName);
     private record CollectionTypeResult(int Id, string Name, string? Description, string? Icon);
-    private record CollectionResult(int Id, string Name, string? Description, string? CoverImage, string Visibility, int CollectionTypeId, int ItemCount);
+    private record CollectionResult(int Id, string Name, string? Description, string? CoverImage, string Visibility, int CollectionTypeId, int ItemCount, int OwnedCount, double CompletionPercentage);
+    private record CatalogItemResult(int Id, string Name, string? Identifier);
     private record CoverResult(string CoverUrl);
 }

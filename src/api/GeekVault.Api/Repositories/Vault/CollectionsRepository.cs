@@ -29,7 +29,8 @@ public class CollectionsRepository : ICollectionsRepository
             .Select(c => new CollectionWithCounts
             {
                 Collection = c,
-                ItemCount = _db.CatalogItems.Count(ci => ci.CollectionId == c.Id)
+                ItemCount = _db.CatalogItems.Count(ci => ci.CollectionId == c.Id),
+                OwnedCount = _db.OwnedCopies.Count(oc => _db.CatalogItems.Any(ci => ci.Id == oc.CatalogItemId && ci.CollectionId == c.Id))
             });
 
         var descending = string.Equals(sortDir, "desc", StringComparison.OrdinalIgnoreCase);
@@ -68,6 +69,11 @@ public class CollectionsRepository : ICollectionsRepository
     public async Task<int> GetItemCountAsync(int collectionId)
     {
         return await _db.CatalogItems.CountAsync(ci => ci.CollectionId == collectionId);
+    }
+
+    public async Task<int> GetOwnedCountAsync(int collectionId)
+    {
+        return await _db.OwnedCopies.CountAsync(oc => _db.CatalogItems.Any(ci => ci.Id == oc.CatalogItemId && ci.CollectionId == collectionId));
     }
 
     public Task AddAsync(Collection collection)
