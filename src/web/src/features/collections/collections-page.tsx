@@ -322,7 +322,7 @@ export default function Collections() {
         <PageHeader
           title={t("collections.title")}
         />
-        <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="mt-6 grid gap-6" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))" }}>
           {Array.from({ length: 6 }).map((_, i) => (
             <div key={i} className="relative overflow-hidden rounded-xl" style={{ aspectRatio: "4/3" }}>
               <SkeletonRect height="100%" className="w-full rounded-xl" />
@@ -458,7 +458,7 @@ export default function Collections() {
               {t("collections.noResults")}
             </div>
           ) : (
-            <StaggerChildren className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <StaggerChildren className="mt-6 grid gap-6" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))" }}>
               {filteredCollections.map((c) => (
                 <motion.div key={c.id} variants={staggerItemVariants}>
                   <div
