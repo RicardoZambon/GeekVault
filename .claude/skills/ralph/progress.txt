@@ -164,3 +164,21 @@
   - i18n keys for collections toolbar/grid are nested under collections.sort.*, collections.toolbar.*, and flat under collections.viewGrid/viewList/updated/complete/useAsCover
   - The collections.description key still exists in locale files (no breaking change) but is no longer rendered on the page
 ---
+
+## 2026-03-16 - US-009
+- Built unified toolbar with search (max-width 420px), type filter dropdown, sort dropdown, and New Collection button (right-aligned via ml-auto)
+- Search preserves existing debounced behavior
+- Type filter: All Types (default) + all collection types from API
+- Sort dropdown: Name (asc), Last Updated (desc), Most Items (desc), Recently Added (desc) — triggers server-side sort via API query params
+- Sort preference (sortBy + sortDir) persisted to localStorage (keys: collections-sortBy, collections-sortDir) and restored on page load
+- Default sort: name ascending
+- Moved New Collection button from header actions slot into toolbar
+- fetchCollections now passes sortBy/sortDir query params to GET /api/collections
+- All 514 frontend tests pass, typecheck passes
+- Files changed:
+  - src/web/src/features/collections/collections-page.tsx
+- **Learnings for future iterations:**
+  - Sort dropdown value uses composite format "sortBy:sortDir" (e.g. "name:asc") to encode both sort field and direction in a single Select value
+  - localStorage keys: collections-sortBy, collections-sortDir — used by sort dropdown persistence
+  - fetchCollections accepts optional sort override param for immediate re-fetch when sort changes (avoids stale closure)
+---

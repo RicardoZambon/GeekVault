@@ -151,7 +151,7 @@
         "Verify in browser using dev-browser skill"
       ],
       "priority": 9,
-      "passes": false,
+      "passes": true,
       "notes": "Uses i18n keys from US-008. Sort calls GET /api/collections?sortBy=X&sortDir=Y from US-004."
     },
     {
