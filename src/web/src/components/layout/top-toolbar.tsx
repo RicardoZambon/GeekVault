@@ -47,14 +47,15 @@ export function TopToolbar() {
 
   return (
     <div className="hidden h-[72px] items-center border-b border-border px-6 md:flex">
-      {/* Search trigger */}
+      {/* Search trigger — full input on desktop, icon-only on tablet */}
       <button
         onClick={openCommandPalette}
-        className="flex h-9 w-[280px] items-center gap-2 rounded-lg border border-input bg-muted/50 px-3 text-sm text-muted-foreground transition-colors hover:bg-muted"
+        className="flex h-9 w-9 items-center justify-center rounded-lg border border-input bg-muted/50 text-sm text-muted-foreground transition-colors hover:bg-muted lg:w-[280px] lg:gap-2 lg:px-3"
+        aria-label={t("toolbar.search")}
       >
         <Search className="h-4 w-4 shrink-0" />
-        <span className="flex-1 text-left">{t("toolbar.search")}</span>
-        <kbd className="pointer-events-none hidden h-5 select-none items-center gap-0.5 rounded border border-border bg-background px-1.5 font-mono text-[10px] font-medium text-muted-foreground sm:inline-flex">
+        <span className="hidden flex-1 text-left lg:inline">{t("toolbar.search")}</span>
+        <kbd className="pointer-events-none hidden h-5 select-none items-center gap-0.5 rounded border border-border bg-background px-1.5 font-mono text-[10px] font-medium text-muted-foreground lg:inline-flex">
           {isMac ? "⌘" : "Ctrl+"}K
         </kbd>
       </button>
