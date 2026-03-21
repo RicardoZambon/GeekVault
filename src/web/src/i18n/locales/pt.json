@@ -343,7 +343,9 @@
     "acquisitionSource": "Origem",
     "notes": "Notas",
     "updateSuccess": "Item atualizado com sucesso",
-    "deleteSuccess": "Item excluído com sucesso"
+    "deleteSuccess": "Item excluído com sucesso",
+    "partOf": "Parte de:",
+    "setItems": "itens"
   },
   "ownedCopy": {
     "add": "Adicionar Cópia",

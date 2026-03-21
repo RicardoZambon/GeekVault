@@ -99,6 +99,27 @@ interface Collection {
   collectionTypeId: number
 }
 
+interface SetItem {
+  id: number
+  setId: number
+  catalogItemId: number | null
+  name: string
+  sortOrder: number
+}
+
+interface SetSummary {
+  id: number
+  collectionId: number
+  name: string
+  expectedItemCount: number
+  completedCount: number | null
+  completionPercentage: number | null
+}
+
+interface SetDetail extends SetSummary {
+  items: SetItem[]
+}
+
 export default function CatalogItemDetail() {
   const { id: collectionId, itemId } = useParams()
   const { t } = useTranslation()
@@ -109,6 +130,7 @@ export default function CatalogItemDetail() {
   const [collection, setCollection] = useState<Collection | null>(null)
   const [copies, setCopies] = useState<OwnedCopy[]>([])
   const [collectionType, setCollectionType] = useState<CollectionTypeDetail | null>(null)
+  const [itemSets, setItemSets] = useState<SetDetail[]>([])
   const [loading, setLoading] = useState(true)
 
   // Edit dialog
@@ -187,6 +209,31 @@ export default function CatalogItemDetail() {
     }
   }, [token]) // eslint-disable-line react-hooks/exhaustive-deps
 
+  const fetchItemSets = useCallback(async (catalogItemId: number) => {
+    try {
+      const res = await fetch(`/api/collections/${collectionId}/sets`, { headers })
+      if (!res.ok) return
+      const sets: SetSummary[] = await res.json()
+      if (sets.length === 0) return
+
+      // Fetch details for each set in parallel to check item membership
+      const details = await Promise.all(
+        sets.map(async (s) => {
+          const r = await fetch(`/api/collections/${collectionId}/sets/${s.id}`, { headers })
+          if (!r.ok) return null
+          return r.json() as Promise<SetDetail>
+        })
+      )
+
+      const matching = details.filter(
+        (d): d is SetDetail => d !== null && d.items?.some((si) => si.catalogItemId === catalogItemId)
+      )
+      setItemSets(matching)
+    } catch {
+      // non-critical
+    }
+  }, [collectionId, token]) // eslint-disable-line react-hooks/exhaustive-deps
+
   useEffect(() => {
     async function load() {
       setLoading(true)
@@ -202,7 +249,7 @@ export default function CatalogItemDetail() {
         } catch {
           // non-critical
         }
-        await fetchCopies()
+        await Promise.all([fetchCopies(), fetchItemSets(fetchedItem.id)])
       }
       setLoading(false)
     }
@@ -438,6 +485,13 @@ export default function CatalogItemDetail() {
     }
   }
 
+  function getCompletionColor(pct: number | null): string {
+    if (pct == null) return "text-muted-foreground"
+    if (pct >= 100) return "text-green-500"
+    if (pct >= 50) return "text-accent"
+    return "text-muted-foreground"
+  }
+
   /* v8 ignore start -- custom field type rendering branches */
   function renderCustomFieldValue(field: CustomFieldDefinition | undefined, value: string) {
     if (!field) return <span className="text-sm text-foreground">{value}</span>
@@ -564,7 +618,7 @@ export default function CatalogItemDetail() {
                   <img
                     src={item.image}
                     alt={item.name}
-                    className="h-full w-full object-cover"
+                    className="h-full w-full object-cover transition-transform duration-[400ms] ease-out hover:scale-[1.03]"
                     loading="lazy"
                   />
                 ) : (
@@ -678,6 +732,39 @@ export default function CatalogItemDetail() {
               </div>
             </CardContent>
           </Card>
+        )}
+
+        {/* Set membership indicator */}
+        {itemSets.length > 0 && (
+          <div className="space-y-2">
+            {itemSets.map((set) => (
+              <div
+                key={set.id}
+                className="flex items-center justify-between rounded-lg border border-border bg-muted/50 px-4 py-3 hover:bg-muted hover:border-accent/30 transition-colors cursor-pointer"
+                tabIndex={0}
+                role="link"
+                onClick={() => navigate(`/collections/${collectionId}?tab=sets&setId=${set.id}`)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault()
+                    navigate(`/collections/${collectionId}?tab=sets&setId=${set.id}`)
+                  }
+                }}
+              >
+                <div className="flex items-center gap-3">
+                  <Box className="h-5 w-5 text-accent" />
+                  <span className="text-sm">
+                    {t("itemDetail.partOf")}{" "}
+                    <span className="font-medium">{set.name}</span>
+                  </span>
+                  <span className={`text-sm ${getCompletionColor(set.completionPercentage)}`}>
+                    ({set.completedCount ?? 0}/{set.expectedItemCount} {t("itemDetail.setItems")})
+                  </span>
+                </div>
+                <ChevronRight className="h-4 w-4 text-muted-foreground" />
+              </div>
+            ))}
+          </div>
         )}
 
         {/* Owned copies */}

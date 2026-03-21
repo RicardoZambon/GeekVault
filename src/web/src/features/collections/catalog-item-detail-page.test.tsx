@@ -81,11 +81,31 @@ describe("CatalogItemDetail", () => {
     vi.clearAllMocks()
   })
 
-  function mockFetch(withCopies = true) {
+  const setsListEmpty: never[] = []
+  const setWithItem = {
+    id: 10,
+    collectionId: 1,
+    name: "Complete Saga Set",
+    expectedItemCount: 20,
+    completedCount: 12,
+    completionPercentage: 60,
+    items: [
+      { id: 100, setId: 10, catalogItemId: 1, name: "Spider-Man #1", sortOrder: 1 },
+      { id: 101, setId: 10, catalogItemId: 2, name: "Spider-Man #2", sortOrder: 2 },
+    ],
+  }
+
+  function mockFetch(withCopies = true, withSets = false) {
     vi.spyOn(global, "fetch").mockImplementation((url) => {
       const urlStr = String(url)
       if (urlStr.includes("/copies")) {
         return Promise.resolve({ ok: true, json: () => Promise.resolve(withCopies ? copies : []) } as Response)
+      }
+      if (urlStr.match(/\/sets\/\d+$/)) {
+        return Promise.resolve({ ok: true, json: () => Promise.resolve(setWithItem) } as Response)
+      }
+      if (urlStr.includes("/sets")) {
+        return Promise.resolve({ ok: true, json: () => Promise.resolve(withSets ? [{ id: 10, collectionId: 1, name: "Complete Saga Set", expectedItemCount: 20, completedCount: 12, completionPercentage: 60 }] : setsListEmpty) } as Response)
       }
       if (urlStr.includes("/collection-types/")) {
         return Promise.resolve({ ok: true, json: () => Promise.resolve(collectionType) } as Response)
@@ -1299,6 +1319,50 @@ describe("CatalogItemDetail", () => {
     await waitFor(() => {
       expect(fetchCalls.some(c => c.url.includes("/images") && c.method === "POST")).toBe(true)
     })
+  })
+
+  it("shows image hover zoom classes", async () => {
+    mockFetch()
+    renderWithRoute()
+    await waitFor(() => screen.getByAltText("Spider-Man #1"))
+    const img = screen.getByAltText("Spider-Man #1")
+    expect(img.className).toContain("hover:scale-[1.03]")
+    expect(img.className).toContain("transition-transform")
+  })
+
+  it("shows set membership indicator when item belongs to sets", async () => {
+    mockFetch(true, true)
+    renderWithRoute()
+    await waitFor(() => {
+      expect(screen.getByText("Complete Saga Set")).toBeInTheDocument()
+    })
+    expect(screen.getByText("itemDetail.partOf")).toBeInTheDocument()
+    expect(screen.getByText(/12\/20/)).toBeInTheDocument()
+  })
+
+  it("does not show set membership when item has no sets", async () => {
+    mockFetch()
+    renderWithRoute()
+    await waitFor(() => screen.getAllByText("Spider-Man #1")[0])
+    expect(screen.queryByText("itemDetail.partOf")).not.toBeInTheDocument()
+  })
+
+  it("navigates to set on click", async () => {
+    mockFetch(true, true)
+    renderWithRoute()
+    await waitFor(() => screen.getByText("Complete Saga Set"))
+    const setRow = screen.getByText("Complete Saga Set").closest("[role='link']")!
+    fireEvent.click(setRow)
+    expect(mockNavigate).toHaveBeenCalledWith("/collections/1?tab=sets&setId=10")
+  })
+
+  it("navigates to set on Enter key", async () => {
+    mockFetch(true, true)
+    renderWithRoute()
+    await waitFor(() => screen.getByText("Complete Saga Set"))
+    const setRow = screen.getByText("Complete Saga Set").closest("[role='link']")!
+    fireEvent.keyDown(setRow, { key: "Enter" })
+    expect(mockNavigate).toHaveBeenCalledWith("/collections/1?tab=sets&setId=10")
   })
 
   it("handles copy image upload failure branch", async () => {

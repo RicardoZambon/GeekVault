@@ -343,7 +343,9 @@
     "acquisitionSource": "Source",
     "notes": "Notes",
     "updateSuccess": "Item updated successfully",
-    "deleteSuccess": "Item deleted successfully"
+    "deleteSuccess": "Item deleted successfully",
+    "partOf": "Part of:",
+    "setItems": "items"
   },
   "ownedCopy": {
     "add": "Add Copy",
