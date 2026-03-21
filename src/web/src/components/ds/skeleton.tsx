@@ -11,7 +11,7 @@ const SkeletonRect = React.forwardRef<HTMLDivElement, SkeletonRectProps>(
     return (
       <div
         ref={ref}
-        className={cn("animate-pulse rounded-md bg-muted", className)}
+        className={cn("skeleton-pulse rounded-md bg-muted", className)}
         style={{ width, height, ...style }}
         {...props}
       />
@@ -29,7 +29,7 @@ const SkeletonCircle = React.forwardRef<HTMLDivElement, SkeletonCircleProps>(
     return (
       <div
         ref={ref}
-        className={cn("animate-pulse rounded-full bg-muted", className)}
+        className={cn("skeleton-pulse rounded-full bg-muted", className)}
         style={{ width: size, height: size, ...style }}
         {...props}
       />
@@ -50,7 +50,7 @@ const SkeletonText = React.forwardRef<HTMLDivElement, SkeletonTextProps>(
         {Array.from({ length: lines }).map((_, i) => (
           <div
             key={i}
-            className="animate-pulse rounded-md bg-muted h-4"
+            className="skeleton-pulse rounded-md bg-muted h-4"
             style={{
               width: i === lines - 1 ? "75%" : (width ?? "100%"),
             }}

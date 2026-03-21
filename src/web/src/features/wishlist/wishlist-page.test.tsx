@@ -86,7 +86,7 @@ describe("Wishlist", () => {
   it("shows loading skeleton", () => {
     vi.spyOn(global, "fetch").mockReturnValue(new Promise(() => {}))
     render(<MemoryRouter><Wishlist /></MemoryRouter>)
-    expect(document.querySelector(".animate-pulse")).toBeInTheDocument()
+    expect(document.querySelector(".skeleton-pulse")).toBeInTheDocument()
   })
 
   it("renders wishlist items grouped by collection", async () => {

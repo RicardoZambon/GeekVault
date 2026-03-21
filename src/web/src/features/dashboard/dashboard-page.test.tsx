@@ -159,8 +159,8 @@ describe("Dashboard", () => {
   it("shows loading state with skeleton elements", () => {
     vi.spyOn(global, "fetch").mockReturnValue(new Promise(() => {}))
     const { container } = render(<MemoryRouter><Dashboard /></MemoryRouter>)
-    // Loading state renders SkeletonRect components which have animate-pulse class
-    const skeletons = container.querySelectorAll(".animate-pulse")
+    // Loading state renders SkeletonRect components which have skeleton-pulse class
+    const skeletons = container.querySelectorAll(".skeleton-pulse")
     expect(skeletons.length).toBeGreaterThan(0)
   })
 

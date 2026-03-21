@@ -78,6 +78,19 @@
 }
 
 :root {
+  /* Duration tokens */
+  --duration-instant: 50ms;
+  --duration-fast: 150ms;
+  --duration-normal: 250ms;
+  --duration-slow: 400ms;
+  --duration-deliberate: 600ms;
+
+  /* Easing curves */
+  --ease-standard: cubic-bezier(0.25, 0.1, 0.25, 1.0);
+  --ease-enter: cubic-bezier(0.0, 0.0, 0.2, 1.0);
+  --ease-exit: cubic-bezier(0.4, 0.0, 1.0, 1.0);
+  --ease-emphasized: cubic-bezier(0.2, 0.0, 0.0, 1.0);
+
   /* Warm Obsidian palette — stone scale + amber accent */
   --background: #FAFAF7;
   --foreground: #1C1917;
@@ -206,5 +219,34 @@
   }
   .dark ::selection {
     background: rgba(245, 158, 11, 0.25);
+  }
+}
+
+@keyframes skeleton-pulse {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 1; }
+}
+
+.skeleton-pulse {
+  animation: skeleton-pulse 1.5s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 50ms !important;
+    animation-duration: 50ms !important;
+    animation-iteration-count: 1 !important;
+  }
+
+  .skeleton-pulse {
+    animation: none;
+    opacity: 0.7;
+  }
+
+  /* Preserve spinners */
+  .spinner {
+    animation: spin 0.75s linear infinite !important;
   }
 }

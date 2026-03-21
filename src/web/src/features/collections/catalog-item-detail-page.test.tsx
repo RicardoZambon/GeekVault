@@ -114,7 +114,7 @@ describe("CatalogItemDetail", () => {
   it("shows loading state with skeletons", () => {
     vi.spyOn(global, "fetch").mockReturnValue(new Promise(() => {}))
     renderWithRoute()
-    expect(document.querySelector(".animate-pulse")).toBeInTheDocument()
+    expect(document.querySelector(".skeleton-pulse")).toBeInTheDocument()
   })
 
   it("renders item details", async () => {

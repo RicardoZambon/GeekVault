@@ -98,7 +98,7 @@ describe("CollectionTypes", () => {
   it("shows loading state with skeleton elements", () => {
     vi.spyOn(global, "fetch").mockReturnValue(new Promise(() => {}))
     const { container } = render(<MemoryRouter><CollectionTypes /></MemoryRouter>)
-    const pulseElements = container.querySelectorAll(".animate-pulse")
+    const pulseElements = container.querySelectorAll(".skeleton-pulse")
     expect(pulseElements.length).toBeGreaterThan(0)
   })
 

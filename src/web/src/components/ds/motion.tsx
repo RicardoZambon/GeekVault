@@ -15,6 +15,32 @@ function getVariants(variants: Variants): Variants {
   return prefersReducedMotion ? noopVariants : variants
 }
 
+// ---------- Motion Tokens ----------
+
+export const springs = {
+  default: { type: "spring" as const, stiffness: 500, damping: 30, mass: 1 },
+  gentle: { type: "spring" as const, stiffness: 300, damping: 28, mass: 1 },
+  bouncy: { type: "spring" as const, stiffness: 400, damping: 15, mass: 0.8 },
+  stiff: { type: "spring" as const, stiffness: 700, damping: 35, mass: 0.5 },
+} as const
+
+export const durations = {
+  instant: 0.05,
+  fast: 0.15,
+  normal: 0.25,
+  slow: 0.4,
+  deliberate: 0.6,
+} as const
+
+export const easings = {
+  standard: [0.25, 0.1, 0.25, 1.0] as const,
+  enter: [0.0, 0.0, 0.2, 1.0] as const,
+  exit: [0.4, 0.0, 1.0, 1.0] as const,
+  emphasized: [0.2, 0.0, 0.0, 1.0] as const,
+} as const
+
+export { getVariants, prefersReducedMotion }
+
 // ---------- PageTransition ----------
 
 export interface PageTransitionProps extends HTMLMotionProps<"div"> {
@@ -35,7 +61,7 @@ const PageTransition = React.forwardRef<HTMLDivElement, PageTransitionProps>(
       animate="animate"
       exit="exit"
       variants={pageVariants}
-      transition={{ duration: 0.25, ease: "easeOut" }}
+      transition={{ duration: durations.normal, ease: [...easings.enter] }}
       className={cn(className)}
       {...props}
     >
@@ -65,7 +91,7 @@ const FadeIn = React.forwardRef<HTMLDivElement, FadeInProps>(
         initial="initial"
         animate="animate"
         variants={variants}
-        transition={{ duration: 0.3, delay, ease: "easeOut" }}
+        transition={{ duration: durations.normal, delay, ease: [...easings.standard] }}
         className={cn(className)}
         {...props}
       >
@@ -88,7 +114,7 @@ export const staggerItemVariants: Variants = prefersReducedMotion
   ? { initial: {}, animate: {} }
   : {
       initial: { opacity: 0, y: 16 },
-      animate: { opacity: 1, y: 0, transition: { duration: 0.25, ease: "easeOut" } },
+      animate: { opacity: 1, y: 0, transition: { duration: durations.normal, ease: [...easings.enter] } },
     }
 
 const StaggerChildren = React.forwardRef<HTMLDivElement, StaggerChildrenProps>(
@@ -140,7 +166,7 @@ const ScaleIn = React.forwardRef<HTMLDivElement, ScaleInProps>(
       animate="animate"
       exit="exit"
       variants={scaleVariants}
-      transition={{ duration: 0.2, ease: "easeOut" }}
+      transition={{ duration: durations.fast, ease: [...easings.standard] }}
       className={cn(className)}
       {...props}
     >

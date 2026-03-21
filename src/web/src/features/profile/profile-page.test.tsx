@@ -62,7 +62,7 @@ describe("Profile", () => {
   it("shows loading state with skeletons", () => {
     vi.spyOn(global, "fetch").mockReturnValue(new Promise(() => {}))
     render(<MemoryRouter><Profile /></MemoryRouter>)
-    expect(document.querySelector(".animate-pulse")).toBeInTheDocument()
+    expect(document.querySelector(".skeleton-pulse")).toBeInTheDocument()
   })
 
   it("renders profile form after loading", async () => {

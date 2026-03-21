@@ -199,9 +199,9 @@ describe("PageHeader", () => {
 // ─── Skeleton ────────────────────────────────────────────────────────────────
 
 describe("Skeleton", () => {
-  it("SkeletonRect renders with animate-pulse class", () => {
+  it("SkeletonRect renders with skeleton-pulse class", () => {
     render(<SkeletonRect data-testid="rect" />)
-    expect(screen.getByTestId("rect")).toHaveClass("animate-pulse")
+    expect(screen.getByTestId("rect")).toHaveClass("skeleton-pulse")
   })
 
   it("SkeletonRect applies width and height styles", () => {
@@ -223,13 +223,13 @@ describe("Skeleton", () => {
 
   it("SkeletonText renders correct number of lines", () => {
     const { container } = render(<SkeletonText lines={5} />)
-    const lines = container.querySelectorAll(".animate-pulse")
+    const lines = container.querySelectorAll(".skeleton-pulse")
     expect(lines).toHaveLength(5)
   })
 
   it("SkeletonText defaults to 3 lines", () => {
     const { container } = render(<SkeletonText />)
-    const lines = container.querySelectorAll(".animate-pulse")
+    const lines = container.querySelectorAll(".skeleton-pulse")
     expect(lines).toHaveLength(3)
   })
 })
