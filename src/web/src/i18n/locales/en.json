@@ -25,7 +25,14 @@
       "settings": "Settings",
       "help": "Help",
       "profile": "Profile",
-      "logout": "Logout"
+      "logout": "Logout",
+      "language": "Language",
+      "themeLabel": "Theme",
+      "theme": {
+        "light": "Light",
+        "dark": "Dark",
+        "system": "System"
+      }
     }
   },
   "toolbar": {

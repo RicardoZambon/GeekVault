@@ -25,7 +25,14 @@
       "settings": "Configurações",
       "help": "Ajuda",
       "profile": "Perfil",
-      "logout": "Sair"
+      "logout": "Sair",
+      "language": "Idioma",
+      "themeLabel": "Tema",
+      "theme": {
+        "light": "Claro",
+        "dark": "Escuro",
+        "system": "Sistema"
+      }
     }
   },
   "toolbar": {
