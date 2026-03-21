@@ -59,7 +59,7 @@
         "Document appended to tasks/design-tokens.md under 'Typography', 'Spacing', 'Border Radius', and 'Elevation' sections"
       ],
       "priority": 3,
-      "passes": false,
+      "passes": true,
       "notes": "These tokens will be used by every component and page. Be precise with values — implementation should be copy-paste from this spec."
     },
     {

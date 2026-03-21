@@ -333,3 +333,336 @@ The defining characteristic of this palette is its **consistent warm undertone**
 This creates an immediately recognizable feel: the app radiates warmth whether in light or dark mode. Users subconsciously associate this warmth with the physical pleasure of handling collectibles — the amber glow of display case lighting, the rich tone of wood shelving, the patina of well-loved objects.
 
 The amber accent reinforces this: it's not arbitrary, it's the color of light itself — warm, inviting, guiding the eye to what matters.
+
+---
+
+## Typography
+
+### Font Pairing
+
+| Role | Font | Family | Source |
+|------|------|--------|--------|
+| **Display** (headings, brand) | Plus Jakarta Sans | Geometric sans-serif | `@fontsource/plus-jakarta-sans` / [Google Fonts](https://fonts.google.com/specimen/Plus+Jakarta+Sans) |
+| **Body** (UI text, paragraphs) | Inter | Humanist sans-serif | `@fontsource/inter` (already installed) |
+
+**CSS custom properties** (matching existing structure in `index.css`):
+
+```css
+--font-display: "Plus Jakarta Sans", sans-serif;
+--font-body: "Inter", sans-serif;
+```
+
+**Why this pairing**:
+- **Plus Jakarta Sans** replaces Nunito as the display font. Nunito's rounded terminals feel too playful for the premium "Warm Obsidian" direction. Plus Jakarta Sans is a warm geometric sans with subtle softness in its curves — it reads as refined and modern while maintaining the approachable warmth the palette demands. Its wide weight range (200–800) gives excellent flexibility for headings, stats, and brand elements.
+- **Inter** stays as the body font. It's the gold standard for UI typography: excellent legibility at small sizes, true italics, tabular figures for data tables, and superb hinting. Its neutral warmth pairs naturally with Plus Jakarta Sans without competing.
+
+**Installation**: Replace `@fontsource/nunito` with `@fontsource/plus-jakarta-sans` in `package.json`. Update the `@import` in `index.css` accordingly.
+
+---
+
+### Type Scale
+
+Base unit: `1rem = 16px`. All sizes use `rem` for accessibility (respects user font-size preferences).
+
+#### Display Sizes (Plus Jakarta Sans — headings, hero numbers, stats)
+
+| Token | Size | Weight | Line Height | Letter Spacing | Usage |
+|-------|------|--------|-------------|----------------|-------|
+| `display-xl` | `3rem` (48px) | 700 | 1.1 | `-0.025em` | Hero stats, large numbers on dashboard |
+| `display-lg` | `2.25rem` (36px) | 700 | 1.15 | `-0.02em` | Page titles (Dashboard, Collections) |
+
+#### Heading Sizes (Plus Jakarta Sans — section headings, card titles)
+
+| Token | Size | Weight | Line Height | Letter Spacing | Usage |
+|-------|------|--------|-------------|----------------|-------|
+| `h1` | `1.875rem` (30px) | 700 | 1.2 | `-0.015em` | Primary section headings |
+| `h2` | `1.5rem` (24px) | 600 | 1.25 | `-0.01em` | Card headers, dialog titles |
+| `h3` | `1.25rem` (20px) | 600 | 1.3 | `-0.005em` | Sub-section headings, sidebar group labels |
+| `h4` | `1.125rem` (18px) | 600 | 1.35 | `0` | Smaller headings, list group titles |
+
+#### Body Sizes (Inter — UI text, paragraphs, form labels)
+
+| Token | Size | Weight | Line Height | Letter Spacing | Usage |
+|-------|------|--------|-------------|----------------|-------|
+| `body-lg` | `1.125rem` (18px) | 400 | 1.6 | `0` | Long-form descriptions, empty state messages |
+| `body-base` | `1rem` (16px) | 400 | 1.5 | `0` | Default body text, form inputs, table cells |
+| `body-sm` | `0.875rem` (14px) | 400 | 1.5 | `0` | Secondary text, metadata, breadcrumbs, sidebar items |
+
+#### Utility Sizes (Inter — small labels, metadata)
+
+| Token | Size | Weight | Line Height | Letter Spacing | Usage |
+|-------|------|--------|-------------|----------------|-------|
+| `caption` | `0.75rem` (12px) | 400 | 1.5 | `0.01em` | Timestamps, help text, badge labels, chart axis labels |
+| `overline` | `0.6875rem` (11px) | 600 | 1.5 | `0.08em` | Section overlines, table column headers, uppercase labels |
+
+#### Weight Scale
+
+| Token | Value | Usage |
+|-------|-------|-------|
+| `regular` | 400 | Body text, descriptions |
+| `medium` | 500 | Emphasized body text, active nav items, form labels |
+| `semibold` | 600 | Headings h2–h4, button text, badge labels |
+| `bold` | 700 | Display sizes, h1, stat numbers, strong emphasis |
+
+#### Typography Rules
+
+1. **Display font** (`--font-display`) is used ONLY for: display-xl, display-lg, h1, h2, h3, h4, stat numbers, and brand elements (logo text, sidebar app name)
+2. **Body font** (`--font-body`) is used for everything else: body text, form inputs, buttons, labels, captions, navigation items, table cells
+3. **Negative letter-spacing** on display/heading sizes tightens large text for a premium feel. Never apply negative tracking to body-sm or smaller.
+4. **Tabular figures**: Use `font-variant-numeric: tabular-nums` on all numeric data (prices, dates, counts, table columns) to ensure alignment. Inter supports this natively.
+5. **Overline text**: Always uppercase with wide letter-spacing (`0.08em`). Used sparingly for section labels and column headers.
+6. **Line height**: Display/heading sizes use tight line heights (1.1–1.35) for visual density. Body sizes use relaxed line heights (1.5–1.6) for readability.
+
+---
+
+## Spacing
+
+### Base Unit and Scale
+
+Base unit: **4px** (`0.25rem`). All spacing derives from this base using consistent multipliers.
+
+| Token | Value (rem) | Value (px) | Multiplier | Usage examples |
+|-------|-------------|------------|------------|----------------|
+| `--space-0.5` | `0.125rem` | 2px | ×0.5 | Icon-to-text gap inside badges |
+| `--space-1` | `0.25rem` | 4px | ×1 | Tight internal padding, gap between inline items |
+| `--space-1.5` | `0.375rem` | 6px | ×1.5 | Small badge padding, compact list item gap |
+| `--space-2` | `0.5rem` | 8px | ×2 | Button inline padding, input padding-y, icon spacing |
+| `--space-3` | `0.75rem` | 12px | ×3 | Card content padding (compact), form field gap |
+| `--space-4` | `1rem` | 16px | ×4 | **Standard spacing** — card padding, section gap within a component |
+| `--space-5` | `1.25rem` | 20px | ×5 | Comfortable card padding, dialog content padding |
+| `--space-6` | `1.5rem` | 24px | ×6 | Section spacing within a page, form section gap |
+| `--space-8` | `2rem` | 32px | ×8 | Page section spacing, card grid gap |
+| `--space-10` | `2.5rem` | 40px | ×10 | Large section spacing, page top/bottom padding |
+| `--space-12` | `3rem` | 48px | ×12 | Major section dividers, page header bottom margin |
+| `--space-16` | `4rem` | 64px | ×16 | Hero section padding, large vertical rhythm |
+| `--space-20` | `5rem` | 80px | ×20 | Page-level vertical padding on desktop |
+| `--space-24` | `6rem` | 96px | ×24 | Maximum section spacing, banner heights |
+
+### Spacing Usage Guidelines
+
+| Context | Token | Notes |
+|---------|-------|-------|
+| **Button padding** | `--space-2` (y) / `--space-4` (x) | Comfortable touch targets |
+| **Input padding** | `--space-2` (y) / `--space-3` (x) | Matches button height visually |
+| **Card padding** | `--space-4` to `--space-5` | Use `--space-4` for compact cards, `--space-5` for detail cards |
+| **Card grid gap** | `--space-4` to `--space-6` | `--space-4` for dense grids, `--space-6` for gallery-style |
+| **Form field gap** | `--space-3` | Space between label and input: `--space-1.5` |
+| **Page padding (x)** | `--space-4` (mobile) / `--space-6` (tablet) / `--space-8` (desktop) | Responsive horizontal inset |
+| **Page padding (y)** | `--space-6` (mobile) / `--space-8` (desktop) | Top/bottom content padding |
+| **Section gap** | `--space-8` to `--space-12` | Between major page sections (stats → charts → table) |
+| **Sidebar item padding** | `--space-2` (y) / `--space-3` (x) | Compact but touchable |
+| **Sidebar section gap** | `--space-6` | Between nav groups |
+| **Dialog content padding** | `--space-5` to `--space-6` | Generous breathing room |
+| **Table cell padding** | `--space-2` (y) / `--space-4` (x) | Comfortable data scanning |
+
+### Spacing Principles
+
+1. **Use the scale** — avoid arbitrary pixel values. If `--space-4` is too small and `--space-6` is too large, use `--space-5`, not `1.1rem`.
+2. **Vertical rhythm**: page content should use consistent vertical spacing between sections. Prefer `--space-8` as the default section gap.
+3. **Responsive scaling**: spacing generally stays the same or increases slightly on larger screens (never decreases). The main responsive shifts are page padding and grid gaps.
+4. **Component internal spacing** should be tighter than the spacing between components. A card's internal padding (`--space-4`) should be less than the gap between cards (`--space-6`).
+
+---
+
+## Border Radius
+
+### Radius Token Scale
+
+| Token | Value | px equivalent | Usage |
+|-------|-------|---------------|-------|
+| `--radius-none` | `0` | 0px | No rounding — used for attached/flush elements |
+| `--radius-sm` | `0.375rem` | 6px | Badges, tags, small inline elements, tooltips |
+| `--radius-md` | `0.5rem` | 8px | Buttons, inputs, dropdowns, small cards |
+| `--radius-lg` | `0.75rem` | 12px | **Standard cards**, dialogs, popovers, command palette |
+| `--radius-xl` | `1rem` | 16px | Large cards, image containers, modal windows |
+| `--radius-2xl` | `1.5rem` | 24px | Hero banners, featured collection cards, large image frames |
+| `--radius-full` | `9999px` | — | Avatars, pills, circular icon buttons, toggle switches |
+
+### Radius Usage Guidelines
+
+| Element | Token | Notes |
+|---------|-------|-------|
+| **Buttons** | `--radius-md` | All button variants (primary, secondary, outline, ghost) |
+| **Inputs, selects, textareas** | `--radius-md` | Matches buttons for consistent form appearance |
+| **Cards** | `--radius-lg` | Standard content cards, stat cards, collection cards |
+| **Dialogs / Modals** | `--radius-lg` | Dialog container |
+| **Popovers / Dropdowns** | `--radius-lg` | Dropdown menus, command palette, date pickers |
+| **Badges / Tags** | `--radius-sm` | Small inline elements |
+| **Avatars** | `--radius-full` | Always circular |
+| **Image thumbnails** | `--radius-md` to `--radius-lg` | Depends on context — md in tables, lg in grids |
+| **Collection cover images** | `--radius-xl` | Prominent image containers |
+| **Toast notifications** | `--radius-lg` | Matches card radius |
+| **Sidebar nav items** | `--radius-md` | Active/hover background shape |
+| **Progress bars** | `--radius-full` | Rounded capsule shape |
+| **Switches / Toggles** | `--radius-full` | Rounded pill shape |
+
+### CSS Custom Properties (updated from current)
+
+The current `index.css` defines: `--radius-sm`, `--radius-md`, `--radius-lg`, `--radius-xl`, `--radius-full`. Changes:
+
+```css
+/* In @theme inline block */
+--radius-none: 0;
+--radius-sm: 0.375rem;    /* 6px  — unchanged */
+--radius-md: 0.5rem;       /* 8px  — was 0.625rem (10px), tightened for precision */
+--radius-lg: 0.75rem;      /* 12px — was 1rem (16px), brought down one step */
+--radius-xl: 1rem;         /* 16px — was calc(var(--radius) + 4px), now explicit */
+--radius-2xl: 1.5rem;      /* 24px — NEW */
+--radius-full: 9999px;     /* unchanged */
+```
+
+The `--radius` base variable is no longer needed — each token is now explicit. Remove `--radius: 0.625rem` from `:root`.
+
+### Radius Principles
+
+1. **Consistency over variety** — most UI elements use `--radius-md` or `--radius-lg`. Use the larger values sparingly for emphasis.
+2. **Nested rounding**: when an element with radius contains a child with radius, the child's radius should be smaller. E.g., a `--radius-lg` card contains `--radius-md` buttons.
+3. **The warm premium feel** comes from moderate rounding (8–12px on most elements) — not too sharp (clinical), not too round (playful).
+
+---
+
+## Elevation (Shadows)
+
+### Shadow Token Scale
+
+Shadows differ between light and dark modes. Light mode uses subtle warm-tinted shadows. Dark mode uses more opaque shadows (since subtle shadows vanish on dark surfaces) and relies more on borders for depth cues.
+
+#### Light Mode Shadows
+
+| Token | CSS Value | Usage |
+|-------|-----------|-------|
+| `--shadow-sm` | `0 1px 2px 0 rgba(28, 25, 23, 0.05)` | Subtle lift — inputs, small cards, buttons |
+| `--shadow-md` | `0 4px 6px -1px rgba(28, 25, 23, 0.07), 0 2px 4px -2px rgba(28, 25, 23, 0.05)` | Standard cards, dropdowns, popovers |
+| `--shadow-lg` | `0 10px 15px -3px rgba(28, 25, 23, 0.08), 0 4px 6px -4px rgba(28, 25, 23, 0.04)` | Modals, dialogs, floating elements |
+| `--shadow-xl` | `0 20px 25px -5px rgba(28, 25, 23, 0.10), 0 8px 10px -6px rgba(28, 25, 23, 0.05)` | Command palette, drag-and-drop lifted items |
+
+#### Dark Mode Shadows
+
+| Token | CSS Value | Usage |
+|-------|-----------|-------|
+| `--shadow-sm` | `0 1px 2px 0 rgba(0, 0, 0, 0.30)` | Subtle lift — relies on border for primary depth |
+| `--shadow-md` | `0 4px 6px -1px rgba(0, 0, 0, 0.40), 0 2px 4px -2px rgba(0, 0, 0, 0.30)` | Cards (combined with border for clarity) |
+| `--shadow-lg` | `0 10px 15px -3px rgba(0, 0, 0, 0.50), 0 4px 6px -4px rgba(0, 0, 0, 0.35)` | Modals, dialogs |
+| `--shadow-xl` | `0 20px 25px -5px rgba(0, 0, 0, 0.60), 0 8px 10px -6px rgba(0, 0, 0, 0.40)` | Command palette, drag state |
+
+### CSS Custom Properties
+
+These are NEW tokens — the current codebase has no shadow tokens.
+
+```css
+/* In :root */
+--shadow-sm: 0 1px 2px 0 rgba(28, 25, 23, 0.05);
+--shadow-md: 0 4px 6px -1px rgba(28, 25, 23, 0.07), 0 2px 4px -2px rgba(28, 25, 23, 0.05);
+--shadow-lg: 0 10px 15px -3px rgba(28, 25, 23, 0.08), 0 4px 6px -4px rgba(28, 25, 23, 0.04);
+--shadow-xl: 0 20px 25px -5px rgba(28, 25, 23, 0.10), 0 8px 10px -6px rgba(28, 25, 23, 0.05);
+
+/* In .dark */
+--shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.30);
+--shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.40), 0 2px 4px -2px rgba(0, 0, 0, 0.30);
+--shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.50), 0 4px 6px -4px rgba(0, 0, 0, 0.35);
+--shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.60), 0 8px 10px -6px rgba(0, 0, 0, 0.40);
+```
+
+To expose as Tailwind utilities, add to `@theme inline`:
+```css
+--shadow-sm: var(--shadow-sm);
+--shadow-md: var(--shadow-md);
+--shadow-lg: var(--shadow-lg);
+--shadow-xl: var(--shadow-xl);
+```
+
+### Shadow Usage Guidelines
+
+| Element | Token | Additional in dark mode |
+|---------|-------|------------------------|
+| **Inputs (resting)** | `--shadow-sm` | + `--border` for visibility |
+| **Cards (resting)** | `--shadow-sm` | + `--border` as primary depth cue |
+| **Cards (hover)** | `--shadow-md` | Transition: 200ms ease |
+| **Dropdowns / Popovers** | `--shadow-md` | + `--border` |
+| **Dialogs / Modals** | `--shadow-lg` | + `--border` |
+| **Command palette** | `--shadow-xl` | + `--border` |
+| **Drag-and-drop (lifted)** | `--shadow-xl` | Combined with scale(1.02) transform |
+| **Toast notifications** | `--shadow-md` | + `--border` |
+| **Sidebar** | none (uses border-right) | Uses `--sidebar-border` |
+
+### Elevation Principles
+
+1. **Light mode**: shadows are the primary depth cue. Use warm-tinted shadows (`rgba(28, 25, 23, ...)` — stone-900 base) instead of pure black.
+2. **Dark mode**: borders are the primary depth cue, with shadows as reinforcement. Always pair `--shadow-*` with a visible `--border` in dark mode.
+3. **Hover elevation**: cards and interactive surfaces gain one shadow level on hover (sm → md, md → lg). Use `transition: box-shadow 200ms ease` for smooth transitions.
+4. **No shadows on flat elements**: navigation items, table rows, and inline elements should never have shadows. Use background color changes for their hover states.
+5. **Shadow + radius pairing**: shadows should always match the element's border-radius to avoid visual artifacts.
+
+---
+
+## Complete CSS Custom Property Reference
+
+Summary of all tokens defined in this document, showing the property names to be used in `index.css`:
+
+### `@theme inline` Block (Tailwind Integration)
+
+```css
+@theme inline {
+  /* Colors — already defined in Color Palette section */
+  /* ... (--color-background, --color-foreground, etc.) ... */
+
+  /* Typography */
+  --font-display: "Plus Jakarta Sans", sans-serif;
+  --font-body: "Inter", sans-serif;
+
+  /* Border Radius */
+  --radius-none: 0;
+  --radius-sm: 0.375rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 1rem;
+  --radius-2xl: 1.5rem;
+  --radius-full: 9999px;
+
+  /* Spacing */
+  --space-0.5: 0.125rem;
+  --space-1: 0.25rem;
+  --space-1.5: 0.375rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --space-10: 2.5rem;
+  --space-12: 3rem;
+  --space-16: 4rem;
+  --space-20: 5rem;
+  --space-24: 6rem;
+}
+```
+
+### `:root` Block (Light Mode)
+
+```css
+:root {
+  /* Colors — see Color Palette section */
+  /* ... */
+
+  /* Shadows */
+  --shadow-sm: 0 1px 2px 0 rgba(28, 25, 23, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(28, 25, 23, 0.07), 0 2px 4px -2px rgba(28, 25, 23, 0.05);
+  --shadow-lg: 0 10px 15px -3px rgba(28, 25, 23, 0.08), 0 4px 6px -4px rgba(28, 25, 23, 0.04);
+  --shadow-xl: 0 20px 25px -5px rgba(28, 25, 23, 0.10), 0 8px 10px -6px rgba(28, 25, 23, 0.05);
+}
+```
+
+### `.dark` Block (Dark Mode)
+
+```css
+.dark {
+  /* Colors — see Color Palette section */
+  /* ... */
+
+  /* Shadows */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.30);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.40), 0 2px 4px -2px rgba(0, 0, 0, 0.30);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.50), 0 4px 6px -4px rgba(0, 0, 0, 0.35);
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.60), 0 8px 10px -6px rgba(0, 0, 0, 0.40);
+}
+```

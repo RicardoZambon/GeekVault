@@ -16,6 +16,13 @@
 - New palette uses Tailwind "stone" scale (warm grays) — all neutrals must be stone, not slate/zinc/gray
 - Amber accent: #D97706 (light) / #F59E0B (dark) — always brighter on dark backgrounds
 - New semantic tokens: `--warning` and `--info` (not in current codebase, will need adding)
+- Display font changing from Nunito → Plus Jakarta Sans (warmer geometric, more premium)
+- Body font remains Inter — proven for UI, has tabular figures
+- Shadow tokens are NEW — current codebase has zero shadow custom properties
+- Dark mode shadows use `rgba(0,0,0,...)` at higher opacity; light mode uses warm-tinted `rgba(28,25,23,...)`
+- Border radius scale tightened: --radius-md now 8px (was 10px), --radius-lg now 12px (was 16px)
+- `--radius` base variable being removed — all radius tokens are now explicit values
+- Spacing scale adds --space-0.5, --space-1.5, --space-16, --space-20, --space-24 (new tokens)
 
 ---
 
@@ -51,4 +58,22 @@
   - Chart colors need separate light/dark values — brighter variants for dark mode backgrounds
   - Warning token (#E89B2D / #FBBF24) is new — current codebase lacks it, will need adding
   - Info token (#2563EB / #3B82F6) is new — current codebase also lacks it
+---
+
+## 2026-03-21 - US-003
+- Defined typography, spacing, border-radius, and elevation tokens
+- Appended Typography, Spacing, Border Radius, Elevation, and CSS Property Reference sections to `tasks/design-tokens.md`
+- Font pairing: Plus Jakarta Sans (display) + Inter (body) — replaces Nunito + Inter
+- Full type scale: display-xl/lg, h1-h4, body-lg/base/sm, caption, overline with exact size/weight/line-height/letter-spacing
+- Spacing: 4px base, 15 tokens from 2px (--space-0.5) to 96px (--space-24)
+- Border radius: 7 tokens from none to full, tightened --radius-md (10px→8px) and --radius-lg (16px→12px)
+- Shadows: 4 levels (sm/md/lg/xl) with warm-tinted light mode and high-opacity dark mode variants
+- Complete CSS custom property reference for implementation copy-paste
+- **Learnings for future iterations:**
+  - Plus Jakarta Sans available via `@fontsource/plus-jakarta-sans` — same install pattern as existing fonts
+  - Shadow tokens need to be in both `:root` and `.dark` blocks (mode-specific), while radius/spacing go in `@theme inline` (mode-independent)
+  - Tailwind CSS v4 shadow integration: define `--shadow-*` in `:root`/`.dark`, then reference via `--shadow-*` in `@theme inline`
+  - `--radius` base variable (currently 0.625rem) used by `--radius-xl` calc — removing it requires making all radius tokens explicit
+  - Current spacing tokens only go up to --space-12; page-level layout needs --space-16/20/24 for generous breathing room
+  - Use `font-variant-numeric: tabular-nums` on numeric data columns — Inter supports this natively
 ---
