@@ -22,7 +22,9 @@ vi.mock("react-i18next", () => ({
 }))
 
 vi.mock("framer-motion", () => ({
-  motion: { div: ({ children, ...props }: any) => <div {...props}>{children}</div> },
+  motion: {
+    div: ({ children, whileHover, whileTap, variants, initial, animate, exit, ...props }: any) => <div {...props}>{children}</div>,
+  },
   AnimatePresence: ({ children }: any) => <>{children}</>,
   useSpring: (val: number) => ({ get: () => val }),
   useTransform: (_: any, __: any, range: number[]) => ({ get: () => range[0] }),
@@ -57,7 +59,7 @@ vi.mock("@/components/ds", async () => {
     SortableList: ({ items, renderItem, gridClassName }: any) => (
       <div className={gridClassName}>
         {items.map((item: any, i: number) => (
-          <div key={i}>{renderItem(item, { dragHandleProps: {}, isDragging: false })}</div>
+          <div key={i}>{renderItem(item, { dragHandleProps: {}, isDragging: false }, i)}</div>
         ))}
       </div>
     ),
@@ -731,5 +733,37 @@ describe("Collections", () => {
     fireEvent.change(searchInput, { target: { value: "nonexistent" } })
 
     expect(screen.getByText("collections.noResults")).toBeInTheDocument()
+  })
+
+  it("renders collection type badge on grid cards", async () => {
+    mockFetch()
+    const { container } = render(<MemoryRouter><Collections /></MemoryRouter>)
+    await waitFor(() => screen.getByText("Comics"))
+
+    // Type badges are uppercase pill elements with tracking-[0.05em]
+    const badges = container.querySelectorAll("[class*='uppercase'][class*='tracking']")
+    expect(badges.length).toBe(2)
+    // Text content exists (may also appear in filter selects, so use getAllByText)
+    expect(screen.getAllByText("Comic Books").length).toBeGreaterThanOrEqual(1)
+    expect(screen.getAllByText("Trading Cards").length).toBeGreaterThanOrEqual(1)
+  })
+
+  it("uses warm gradient fallbacks for collections without cover images", async () => {
+    mockFetch()
+    const { container } = render(<MemoryRouter><Collections /></MemoryRouter>)
+    await waitFor(() => screen.getByText("Comics"))
+
+    // Comics has no cover image — should have a gradient fallback div
+    const gradientDivs = container.querySelectorAll("[style*='linear-gradient']")
+    expect(gradientDivs.length).toBeGreaterThan(0)
+  })
+
+  it("applies responsive grid classes to card container", async () => {
+    mockFetch()
+    const { container } = render(<MemoryRouter><Collections /></MemoryRouter>)
+    await waitFor(() => screen.getByText("Comics"))
+
+    const grid = container.querySelector(".grid-cols-1.md\\:grid-cols-2.xl\\:grid-cols-3")
+    expect(grid).toBeInTheDocument()
   })
 })

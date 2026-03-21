@@ -22,7 +22,7 @@ import { cn } from "@/lib/utils"
 
 export interface SortableListProps<T> {
   items: T[]
-  renderItem: (item: T, options: { dragHandleProps: Record<string, unknown>; isDragging: boolean }) => React.ReactNode
+  renderItem: (item: T, options: { dragHandleProps: Record<string, unknown>; isDragging: boolean }, index?: number) => React.ReactNode
   onReorder: (newOrder: T[]) => void
   keyExtractor: (item: T) => string | number
   layout?: "vertical" | "grid"
@@ -132,11 +132,11 @@ function SortableListInner<T>(
             className
           )}
         >
-          {items.map((item) => {
+          {items.map((item, index) => {
             const key = keyExtractor(item)
             return (
               <SortableItem key={key} id={key}>
-                {(options) => renderItem(item, options)}
+                {(options) => renderItem(item, options, index)}
               </SortableItem>
             )
           })}

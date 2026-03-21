@@ -24,6 +24,7 @@ import {
   SkeletonRect,
   StaggerChildren,
   staggerItemVariants,
+  springs,
   toast,
   DropdownMenu,
   DropdownMenuTrigger,
@@ -220,6 +221,13 @@ export default function Collections() {
 
   const isCustomSort = sortBy === "sortOrder"
 
+  const WARM_GRADIENTS = [
+    "linear-gradient(135deg, hsl(var(--accent)/0.20), hsl(var(--chart-3)/0.10))",
+    "linear-gradient(135deg, hsl(var(--chart-2)/0.15), hsl(var(--chart-5)/0.10))",
+    "linear-gradient(135deg, hsl(var(--chart-4)/0.15), hsl(var(--chart-7)/0.10))",
+    "linear-gradient(135deg, hsl(var(--chart-6)/0.15), hsl(var(--accent)/0.08))",
+  ]
+
   /* v8 ignore start -- DnD reorder callback */
   async function handleReorderCollections(newOrder: Collection[]) {
     const previous = collections
@@ -363,11 +371,11 @@ export default function Collections() {
         <PageHeader
           title={t("collections.title")}
         />
-        <div className="mt-6 grid gap-6" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))" }}>
+        <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-6 xl:grid-cols-3">
           {Array.from({ length: 6 }).map((_, i) => (
-            <div key={i} className="relative overflow-hidden rounded-xl" style={{ aspectRatio: "4/3" }}>
-              <SkeletonRect height="100%" className="w-full rounded-xl" />
-              <div className="absolute inset-x-0 bottom-0 p-4">
+            <div key={i} className="relative overflow-hidden rounded-[var(--radius-xl)] border border-border" style={{ aspectRatio: "4/3" }}>
+              <SkeletonRect height="100%" className="w-full rounded-[var(--radius-xl)]" />
+              <div className="absolute inset-x-0 bottom-0 px-5 pb-5">
                 <SkeletonRect height={20} width="60%" className="opacity-30" />
                 <SkeletonRect height={14} width="40%" className="mt-2 opacity-20" />
               </div>
@@ -524,18 +532,18 @@ export default function Collections() {
                 items={filteredCollections}
                 keyExtractor={(c) => c.id}
                 layout="grid"
-                gridClassName="mt-6 grid gap-6 [grid-template-columns:repeat(auto-fill,minmax(320px,1fr))]"
+                gridClassName="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-6 xl:grid-cols-3"
                 onReorder={handleReorderCollections}
-                renderItem={(c, { dragHandleProps, isDragging }) => (
+                renderItem={(c, { dragHandleProps, isDragging }, idx) => (
                   <div
-                    className={`group relative cursor-pointer overflow-hidden rounded-xl transition-all duration-200 ease-out hover:-translate-y-1 hover:shadow-lg ${isDragging ? "ring-2 ring-accent shadow-lg" : ""}`}
+                    className={`group relative cursor-pointer overflow-hidden rounded-[var(--radius-xl)] border border-border shadow-[var(--shadow-sm)] transition-all duration-200 ease-out hover:-translate-y-1 hover:border-[hsl(var(--accent)/0.20)] hover:shadow-[var(--shadow-lg)] ${isDragging ? "scale-[1.02] ring-2 ring-accent shadow-[var(--shadow-xl)] opacity-100" : ""}`}
                     style={{ aspectRatio: "4/3" }}
                     onClick={() => navigate(`/collections/${c.id}`)}
                   >
                     {/* Drag handle */}
                     <button
                       type="button"
-                      className="absolute top-2 left-2 z-10 cursor-grab touch-none rounded bg-black/40 p-1.5 text-white opacity-0 transition-opacity group-hover:opacity-100 max-[640px]:opacity-100"
+                      className="absolute left-3 top-3 z-10 cursor-grab touch-none rounded-[var(--radius-md)] bg-black/40 p-1 text-white opacity-0 backdrop-blur-sm transition-opacity group-hover:opacity-100 max-sm:opacity-100"
                       onClick={(e) => e.stopPropagation()}
                       {...dragHandleProps}
                     >
@@ -543,22 +551,31 @@ export default function Collections() {
                     </button>
 
                     {c.coverImage ? (
-                      <img src={c.coverImage} alt={c.name} loading="lazy" className="h-full w-full object-cover" />
+                      <img src={c.coverImage} alt={c.name} loading="lazy" className="h-full w-full object-cover transition-transform duration-[400ms] group-hover:scale-[1.03]" />
                     ) : (
-                      <div className="flex h-full items-center justify-center bg-gradient-to-br from-primary/20 to-accent/20">
+                      <div className="flex h-full items-center justify-center" style={{ background: WARM_GRADIENTS[(idx ?? 0) % 4] }}>
                         <Library className="h-12 w-12 text-muted-foreground/40" />
                       </div>
                     )}
 
-                    <div className="absolute inset-x-0 bottom-0 flex items-end p-4" style={{ background: "linear-gradient(transparent, rgba(0,0,0,0.7))" }}>
+                    {/* Collection type badge — shifted right when drag handle visible */}
+                    {c.collectionTypeName && (
+                      <span className="absolute left-12 top-3 rounded-full bg-black/40 px-2 py-0.5 text-[12px] font-medium uppercase tracking-[0.05em] text-white backdrop-blur-sm">
+                        {c.collectionTypeName}
+                      </span>
+                    )}
+
+                    {/* Metadata overlay */}
+                    <div className="absolute inset-x-0 bottom-0 flex items-end px-5 pb-5 pt-10" style={{ background: "linear-gradient(transparent, rgba(0,0,0,0.75))" }}>
                       <div className="min-w-0 flex-1">
-                        <h3 className="truncate text-lg font-semibold text-white">{c.name}</h3>
-                        <p className="text-[13px] text-white/85">{getMetadataLine(c)}</p>
+                        <h3 className="truncate font-display text-[20px] font-semibold text-white">{c.name}</h3>
+                        <p className="text-[14px] text-white/85">{getMetadataLine(c)}</p>
                       </div>
                     </div>
 
+                    {/* Action buttons */}
                     <div
-                      className="absolute right-2 top-2 flex items-center gap-1 opacity-0 transition-opacity duration-200 group-hover:opacity-100 max-[640px]:opacity-100"
+                      className="absolute right-3 top-3 flex items-center gap-1 opacity-0 transition-opacity duration-200 group-hover:opacity-100 max-sm:opacity-100"
                       onClick={(e) => e.stopPropagation()}
                     >
                       <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full bg-black/30 text-white backdrop-blur-sm hover:bg-black/50" onClick={() => navigate(`/collections/${c.id}`)} aria-label={t("collections.view")}>
@@ -585,53 +602,64 @@ export default function Collections() {
                 )}
               />
             ) : (
-              <StaggerChildren className="mt-6 grid gap-6" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))" }}>
-                {filteredCollections.map((c) => (
-                  <motion.div key={c.id} variants={staggerItemVariants}>
+              <StaggerChildren className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-6 xl:grid-cols-3">
+                {filteredCollections.map((c, idx) => (
+                  <motion.div
+                    key={c.id}
+                    variants={staggerItemVariants}
+                    whileHover={{ y: -4, transition: { ...springs.default } }}
+                    whileTap={{ y: -2, scale: 0.99, transition: { ...springs.stiff } }}
+                    className="group relative cursor-pointer overflow-hidden rounded-[var(--radius-xl)] border border-border shadow-[var(--shadow-sm)] transition-shadow duration-200 hover:border-[hsl(var(--accent)/0.20)] hover:shadow-[var(--shadow-lg)]"
+                    style={{ aspectRatio: "4/3" }}
+                    onClick={() => navigate(`/collections/${c.id}`)}
+                  >
+                    {c.coverImage ? (
+                      <img src={c.coverImage} alt={c.name} loading="lazy" className="h-full w-full object-cover transition-transform duration-[400ms] group-hover:scale-[1.03]" />
+                    ) : (
+                      <div className="flex h-full items-center justify-center" style={{ background: WARM_GRADIENTS[idx % 4] }}>
+                        <Library className="h-12 w-12 text-muted-foreground/40" />
+                      </div>
+                    )}
+
+                    {/* Collection type badge */}
+                    {c.collectionTypeName && (
+                      <span className="absolute left-3 top-3 rounded-full bg-black/40 px-2 py-0.5 text-[12px] font-medium uppercase tracking-[0.05em] text-white backdrop-blur-sm">
+                        {c.collectionTypeName}
+                      </span>
+                    )}
+
+                    {/* Metadata overlay */}
+                    <div className="absolute inset-x-0 bottom-0 flex items-end px-5 pb-5 pt-10" style={{ background: "linear-gradient(transparent, rgba(0,0,0,0.75))" }}>
+                      <div className="min-w-0 flex-1">
+                        <h3 className="truncate font-display text-[20px] font-semibold text-white">{c.name}</h3>
+                        <p className="text-[14px] text-white/85">{getMetadataLine(c)}</p>
+                      </div>
+                    </div>
+
+                    {/* Action buttons */}
                     <div
-                      className="group relative cursor-pointer overflow-hidden rounded-xl transition-all duration-200 ease-out hover:-translate-y-1 hover:shadow-lg"
-                      style={{ aspectRatio: "4/3" }}
-                      onClick={() => navigate(`/collections/${c.id}`)}
+                      className="absolute right-3 top-3 flex items-center gap-1 opacity-0 transition-opacity duration-200 group-hover:opacity-100 max-sm:opacity-100"
+                      onClick={(e) => e.stopPropagation()}
                     >
-                      {c.coverImage ? (
-                        <img src={c.coverImage} alt={c.name} loading="lazy" className="h-full w-full object-cover" />
-                      ) : (
-                        <div className="flex h-full items-center justify-center bg-gradient-to-br from-primary/20 to-accent/20">
-                          <Library className="h-12 w-12 text-muted-foreground/40" />
-                        </div>
-                      )}
-
-                      <div className="absolute inset-x-0 bottom-0 flex items-end p-4" style={{ background: "linear-gradient(transparent, rgba(0,0,0,0.7))" }}>
-                        <div className="min-w-0 flex-1">
-                          <h3 className="truncate text-lg font-semibold text-white">{c.name}</h3>
-                          <p className="text-[13px] text-white/85">{getMetadataLine(c)}</p>
-                        </div>
-                      </div>
-
-                      <div
-                        className="absolute right-2 top-2 flex items-center gap-1 opacity-0 transition-opacity duration-200 group-hover:opacity-100 max-[640px]:opacity-100"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full bg-black/30 text-white backdrop-blur-sm hover:bg-black/50" onClick={() => navigate(`/collections/${c.id}`)} aria-label={t("collections.view")}>
-                          <ExternalLink className="h-4 w-4" />
-                        </Button>
-                        <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full bg-black/30 text-white backdrop-blur-sm hover:bg-black/50" onClick={() => openEdit(c)} aria-label={t("collections.edit")}>
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full bg-black/30 text-white backdrop-blur-sm hover:bg-black/50" aria-label={t("collections.actions")}>
-                              <MoreVertical className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={(e) => { e.stopPropagation(); setDeleteId(c.id) }}>
-                              <Trash2 className="h-4 w-4" />
-                              {t("collections.delete")}
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </div>
+                      <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full bg-black/30 text-white backdrop-blur-sm hover:bg-black/50" onClick={() => navigate(`/collections/${c.id}`)} aria-label={t("collections.view")}>
+                        <ExternalLink className="h-4 w-4" />
+                      </Button>
+                      <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full bg-black/30 text-white backdrop-blur-sm hover:bg-black/50" onClick={() => openEdit(c)} aria-label={t("collections.edit")}>
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full bg-black/30 text-white backdrop-blur-sm hover:bg-black/50" aria-label={t("collections.actions")}>
+                            <MoreVertical className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={(e) => { e.stopPropagation(); setDeleteId(c.id) }}>
+                            <Trash2 className="h-4 w-4" />
+                            {t("collections.delete")}
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </div>
                   </motion.div>
                 ))}
