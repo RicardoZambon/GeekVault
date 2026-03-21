@@ -915,3 +915,767 @@ Each toggle follows the same Switch layout as Security toggles:
 - **i18n**: All labels, placeholders, help text, toast messages, and dialog content need keys in both `en.json` and `pt.json`
 - **Accessibility**: All form fields must have proper `label` elements with `htmlFor`, toggle switches need `aria-checked`, destructive dialogs need focus trap, delete confirmation input needs `aria-describedby` linking to the warning text
 - **No new design tokens**: Both pages use existing Warm Obsidian palette, badge variants, and data table patterns. No new CSS custom properties needed.
+
+---
+
+## Analytics Dashboard
+
+### Design Philosophy
+
+The analytics dashboard is the admin's **bird's-eye view** — it answers "how is the platform doing?" at a glance. It mirrors the user dashboard's visual language (stat cards, chart cards, warm palette) but surfaces platform-wide metrics instead of personal collection data. This creates a sense of continuity: admin tools feel like a natural extension of the main app, not a foreign control panel.
+
+**Key aesthetic decisions:**
+- **Stat cards match the user dashboard** — same `StatCard` component, same amber icon containers, same hover behavior. Admins are also collectors; the visual language should feel familiar.
+- **Charts use the same `--chart-*` token palette** — consistent with the user dashboard's recharts styling. No separate admin chart colors.
+- **Growth charts use line + bar** — line for trends over time (user signups), bar for discrete counts (collections created). Different chart types for different data shapes.
+- **Usage tables are lightweight** — no full DataTable overhead for 5-row summary tables. Simple styled `<table>` elements with the same typography and row patterns.
+- **Time range selector is a segmented button group** — not a dropdown. Admins toggle between ranges frequently; visible options reduce click count.
+- **Section structure flows top-to-bottom**: stats → growth charts → usage breakdown — mirroring the user dashboard's stats → charts → summaries → table flow.
+
+---
+
+### Overall Page Layout
+
+```
+┌──────────────────────────────────────────────────────────────┐
+│  Page Header                                                  │
+│  "Analytics" — h1 typography                                  │
+│  "Platform metrics and usage insights"                        │
+│  [7d] [30d] [90d] [All time]  ← Time range selector          │
+│  gap: --space-8 (32px)                                        │
+├──────────────────────────────────────────────────────────────┤
+│  Stats Row (4 cards)                                          │
+│  ┌──────┐ ┌──────┐ ┌──────┐ ┌──────┐                        │
+│  │Users │ │Active│ │Collns│ │Items │                          │
+│  └──────┘ └──────┘ └──────┘ └──────┘                        │
+│  gap: --space-8 (32px)                                        │
+├──────────────────────────────────────────────────────────────┤
+│  Growth Charts Section (2-column grid)                        │
+│  ┌─────────────────┐ ┌─────────────────┐                     │
+│  │  Line: User      │ │  Bar: Collections│                    │
+│  │  Signups         │ │  Created          │                    │
+│  └─────────────────┘ └─────────────────┘                     │
+│  gap: --space-8 (32px)                                        │
+├──────────────────────────────────────────────────────────────┤
+│  Usage Breakdown (3-column grid)                              │
+│  ┌──────────┐ ┌──────────┐ ┌──────────┐                     │
+│  │ Most      │ │ Largest   │ │ Popular   │                    │
+│  │ Active    │ │ Collns    │ │ Types     │                    │
+│  │ Users     │ │           │ │ (bar)     │                    │
+│  └──────────┘ └──────────┘ └──────────┘                     │
+└──────────────────────────────────────────────────────────────┘
+```
+
+- **Section spacing**: `--space-8` (32px) between all major sections
+- **Page container**: Uses the standard admin content area (padding `px-6 py-6` desktop, `px-4 py-6` tablet, `px-4 py-4` mobile)
+- **No max-width constraint** — analytics benefits from horizontal space for charts and tables
+
+---
+
+### Page Header with Time Range Selector
+
+#### Header Content
+
+- **Title**: "Analytics" — `h1` typography (30px, Plus Jakarta Sans, weight 700, letter-spacing -0.02em)
+- **Subtitle**: "Platform metrics and usage insights" — `body-lg` (18px, Inter, weight 400), `--muted-foreground`
+- **Layout**: `flex items-start justify-between flex-wrap gap-4` — title+subtitle left, time range right
+
+#### Time Range Selector
+
+A segmented button group positioned to the right of the page title.
+
+- **Options**: "7d", "30d", "90d", "All time"
+- **Container**: `inline-flex`, `--radius-lg` (12px), `border border-border`, `bg-muted`, `p-1` (4px padding inside)
+- **Each button**: `px-3 py-1.5`, `--radius-md` (8px), `text-xs font-medium`
+  - **Default**: `text-muted-foreground`, no background, `hover:text-foreground`
+  - **Active**: `bg-card text-foreground`, `--shadow-sm`, `border border-border/50` — elevated pill within the track
+- **Transition**: Active pill slides between positions — `transition-all duration-150` on background/shadow
+- **Default selection**: "30d" (most useful timeframe for platform health)
+
+#### Responsive Behavior
+
+- **Desktop**: Title left, time range right, same row
+- **Tablet**: Same as desktop
+- **Mobile**: Title full width, time range full width below — `flex-col`, time range `self-start`
+
+#### i18n Keys
+
+- `admin.analytics.title`: "Analytics"
+- `admin.analytics.subtitle`: "Platform metrics and usage insights"
+- `admin.analytics.range.7d`: "7d"
+- `admin.analytics.range.30d`: "30d"
+- `admin.analytics.range.90d`: "90d"
+- `admin.analytics.range.all`: "All time"
+
+---
+
+### Platform Stats Row
+
+Uses the same `StatCard` component as the user dashboard — same visual treatment, different metrics.
+
+#### Metrics (4 cards)
+
+| Position | Metric | Icon (Lucide) | Format | i18n Key |
+|----------|--------|---------------|--------|----------|
+| 1 | Total Users | `Users` | Integer with AnimatedNumber | `admin.analytics.totalUsers` |
+| 2 | Active Users (30d) | `UserCheck` | Integer with AnimatedNumber | `admin.analytics.activeUsers` |
+| 3 | Total Collections | `Library` | Integer with AnimatedNumber | `admin.analytics.totalCollections` |
+| 4 | Total Items | `Package` | Integer with AnimatedNumber | `admin.analytics.totalItems` |
+
+#### Card Design
+
+Identical to user dashboard stat cards:
+
+- **Container**: `--radius-lg` (12px), `--border` border, `--card` background, `--shadow-sm`
+- **Padding**: `--space-5` (20px) all sides
+- **Layout**: Horizontal — icon left, text right
+- **Icon container**: 40×40px, `--radius-md` (8px), `--accent/10` background (subtle amber tint), icon in `--accent` color, 20px icon size
+- **Label**: `body-sm` (14px, Inter, weight 400), `--muted-foreground`
+- **Value**: `h2` (24px, Plus Jakarta Sans, weight 600), `--foreground`, `tabular-nums`
+- **Hover**: `y: -2px`, shadow → `--shadow-md`, border → `--accent/10`, `springDefault` transition
+
+#### Active Users Note
+
+The "Active Users (30d)" metric always shows the 30-day window regardless of the time range selector — it's a rolling metric, not a filtered one. A small "30d" pill in `caption` typography and `--muted-foreground` appears next to the label to clarify this.
+
+#### Grid Layout
+
+- **Desktop (≥1024px)**: `grid-cols-4`, gap `--space-4` (16px) — all 4 in one row
+- **Tablet (768px–1023px)**: `grid-cols-2`, gap `--space-4` — 2×2 grid
+- **Mobile (<768px)**: `grid-cols-2`, gap `--space-3` (12px) — 2×2 grid
+
+#### Animation
+
+- Container: `StaggerChildren` with 60ms stagger
+- Each card: `scale` entrance (opacity 0→1, scale 0.95→1, 200ms)
+
+---
+
+### Growth Charts Section
+
+Two chart cards showing temporal trends. These respond to the time range selector — data and axis labels adjust to the selected window.
+
+#### Layout
+
+- **Desktop**: `grid-cols-2`, gap `--space-6` (24px)
+- **Tablet**: `grid-cols-2`, gap `--space-4` (16px)
+- **Mobile**: `grid-cols-1`, gap `--space-4` — charts stack vertically
+
+#### Chart Card Container
+
+Same card treatment as user dashboard charts:
+
+- **Container**: `--radius-lg`, `--border`, `--card` background, `--shadow-sm`
+- **Card header**: `h3` title (20px, Plus Jakarta Sans, weight 600), padding `--space-5` top/sides, `--space-3` bottom
+- **Card content**: padding `--space-5` sides, `--space-4` bottom
+- **Chart area height**: 256px (h-64)
+
+#### Line Chart — "User Signups"
+
+- **Chart type**: `LineChart` from recharts with `Line` component
+- **Line styling**: `stroke={hsl(var(--chart-1))}` (amber), `strokeWidth={2}`, `dot={false}` for clean line, `activeDot={{ r: 4, fill: hsl(var(--chart-1)), stroke: hsl(var(--card)), strokeWidth: 2 }}` — amber dot with card-colored ring on hover
+- **Area fill**: `AreaChart` with `Area` instead of pure `LineChart` — `fill={hsl(var(--chart-1))}`, `fillOpacity={0.08}` for subtle amber gradient under the line. Adds visual weight without clutter.
+- **CartesianGrid**: `strokeDasharray="3 3"`, stroke `hsl(var(--border))` — theme-aware
+- **XAxis**: Date labels in `caption` typography (12px), fill `hsl(var(--muted-foreground))`, tick format varies by range:
+  - 7d: Day names ("Mon", "Tue", ...)
+  - 30d: "Mar 1", "Mar 8", "Mar 15", "Mar 22" (weekly)
+  - 90d: "Jan", "Feb", "Mar" (monthly)
+  - All time: "2025 Q3", "2025 Q4", "2026 Q1" (quarterly)
+- **YAxis**: `allowDecimals={false}`, `caption` typography, fill `hsl(var(--muted-foreground))`, hide axis line
+- **Tooltip**: Custom styled — `--card` bg, `--border` border, `--radius-md`, `--shadow-md`, `--space-2 --space-3` padding. Shows date + signup count.
+- **Empty state**: Dashed horizontal line at y=0 with muted message "No signup data for this period" centered
+
+#### Bar Chart — "Collections Created"
+
+- **Chart type**: `BarChart` from recharts with `Bar` component
+- **Bar styling**: `fill={hsl(var(--chart-2))}` (blue — deliberately different from the amber line chart for visual distinction), `radius={[6, 6, 0, 0]}` (rounded top corners matching `--radius-sm`)
+- **CartesianGrid**: Same as line chart
+- **XAxis**: Same date formatting as line chart (responds to time range selector)
+- **YAxis**: Same as line chart — `allowDecimals={false}`, hide axis line
+- **Tooltip**: Same custom tooltip style. Shows date + collection count.
+- **Bar hover**: Active bar shifts to `fill={hsl(var(--chart-2))}` with increased opacity — subtle brightening effect
+- **Empty state**: Same pattern as line chart — "No collection data for this period"
+
+#### Animation
+
+- Chart cards enter together with `slideUp` entrance (opacity 0→1, y 16→0, 250ms)
+- Charts use recharts `isAnimationActive` with 800ms duration for initial data render
+
+#### i18n Keys
+
+- `admin.analytics.userSignups`: "User Signups"
+- `admin.analytics.collectionsCreated`: "Collections Created"
+
+---
+
+### Usage Breakdown Section
+
+Three cards showing ranked data: top users, largest collections, and popular collection types. These provide actionable insights — who's most engaged, what's growing, and what categories dominate.
+
+#### Layout
+
+- **Desktop (≥1024px)**: `grid-cols-3`, gap `--space-6` (24px)
+- **Tablet (768px–1023px)**: `grid-cols-2` — first row: Most Active Users + Largest Collections, second row: Popular Types spans `col-span-2`
+- **Mobile (<768px)**: `grid-cols-1`, gap `--space-4` — all three stack
+
+#### Card Container (shared)
+
+- **Container**: `--radius-lg`, `--border`, `--card` background, `--shadow-sm`
+- **Card header**: `h3` title (20px, Plus Jakarta Sans, weight 600), padding `--space-5` top/sides, `--space-3` bottom, `border-b border-border`
+- **Card content**: padding `--space-0` (table/chart fills to edges, with internal padding per row)
+
+---
+
+#### Most Active Users Table
+
+A compact 5-row summary table — no pagination, no filtering. This is a snapshot, not a management tool.
+
+**Column definitions:**
+
+| Column | Cell Content | Width |
+|--------|-------------|-------|
+| Rank | `#1`, `#2`, etc. — `caption` (12px), `--muted-foreground` | 32px fixed |
+| User | Avatar (24×24, `--radius-full`) + Display Name (`body-sm`, weight 500) | flex-1 |
+| Activity | Action count (`body-sm`, weight 600, `--foreground`, `tabular-nums`) | 64px fixed, right-aligned |
+
+**Row specifications:**
+
+- **Row height**: 48px
+- **Row padding**: `px-5 py-0` (aligns with card header padding)
+- **Row separator**: `border-b border-border/50` (lighter than table header border)
+- **Last row**: No bottom border
+- **Row hover**: `--foreground/4` background
+- **Row click**: Navigates to `/admin/users` with that user selected (opens user detail sheet)
+
+**Rank styling:**
+
+- `#1`: `--accent` color (amber) + `font-medium` — gold medal treatment
+- `#2`: `--muted-foreground` with `font-medium`
+- `#3–#5`: `--muted-foreground` with `font-normal`
+
+**User cell layout:**
+
+```
+┌───────────────────────────┐
+│ ┌──┐  Display Name        │
+│ │AV│                      │
+│ └──┘                      │
+└───────────────────────────┘
+```
+
+- Avatar: 24×24px, `--radius-full`
+- Avatar fallback: Initials, `text-[10px] font-medium` on `bg-muted`
+- Gap between avatar and name: `--space-2` (8px)
+
+**Activity metric**: Total actions (logins + creates + edits + deletes) within the selected time range. Displayed as integer count.
+
+**Empty state**: "No user activity in this period" — `body-sm`, `--muted-foreground`, centered in card content area, `py-8`
+
+#### i18n Key
+
+- `admin.analytics.mostActiveUsers`: "Most Active Users"
+- `admin.analytics.activity`: "Activity"
+
+---
+
+#### Largest Collections Table
+
+Same compact 5-row table pattern as Most Active Users.
+
+**Column definitions:**
+
+| Column | Cell Content | Width |
+|--------|-------------|-------|
+| Rank | `#1`, `#2`, etc. — same styling as active users | 32px fixed |
+| Collection | Collection name (`body-sm`, weight 500) + Owner name (`caption`, `--muted-foreground`) stacked | flex-1 |
+| Items | Item count (`body-sm`, weight 600, `--foreground`, `tabular-nums`) | 56px fixed, right-aligned |
+
+**Row specifications**: Identical to Most Active Users table (48px height, same padding, same hover, same separators).
+
+**Collection cell layout:**
+
+```
+┌───────────────────────────┐
+│  Collection Name           │
+│  by Owner Name             │
+└───────────────────────────┘
+```
+
+- Name: `body-sm` (14px), weight 500, `--foreground`, single line truncate
+- Owner: `caption` (12px), weight 400, `--muted-foreground`, "by {name}" format
+- Stack gap: `--space-0.5` (2px)
+
+**Rank styling**: Same amber #1 treatment as active users.
+
+**Row click**: Navigates to the collection page (if accessible to admin).
+
+**Empty state**: "No collections yet" — same treatment as active users empty state.
+
+#### i18n Keys
+
+- `admin.analytics.largestCollections`: "Largest Collections"
+- `admin.analytics.items`: "Items"
+- `admin.analytics.byOwner`: "by {{name}}"
+
+---
+
+#### Popular Collection Types — Horizontal Bar Chart
+
+Instead of a third table, this card uses a horizontal bar chart for visual variety. Bars are ranked by collection count, providing instant visual comparison.
+
+**Chart type**: `BarChart` from recharts with `layout="vertical"`
+
+**Visual specifications:**
+
+- **Bar**: `fill={hsl(var(--chart-1))}` (amber), `radius={[0, 4, 4, 0]}` (rounded right corners)
+- **Bar height**: `barSize={20}` — compact bars with generous spacing
+- **YAxis** (category axis, left side): Type name in `body-sm` (14px), fill `hsl(var(--foreground))`, weight 400, `width={120}`, `type="category"`, `dataKey="name"`
+- **XAxis** (value axis, bottom): `allowDecimals={false}`, `caption` typography, fill `hsl(var(--muted-foreground))`, hide axis line
+- **CartesianGrid**: Vertical lines only — `vertical={true} horizontal={false}`, `strokeDasharray="3 3"`, stroke `hsl(var(--border))`
+- **Tooltip**: Same custom tooltip style. Shows type name + count + percentage of total.
+- **Chart area height**: Fits content — `height={max(200, types.length * 40 + 40)}`, min 200px, grows with data
+- **Content padding**: `--space-5` sides, `--space-4` bottom (matches other chart cards)
+- **Bar label**: Count value displayed at the end of each bar — `body-sm`, `--foreground`, weight 500, `tabular-nums`, offset `8px` right of bar end
+- **Max items**: Show top 5 collection types. If fewer than 5 exist, show all.
+
+**Bar hover**: Individual bar shifts to `fill={hsl(var(--accent))}` — same warm glow effect as user dashboard bar chart.
+
+**Empty state**: "No collection types defined yet" — `body-sm`, `--muted-foreground`, centered, `py-8`
+
+#### i18n Keys
+
+- `admin.analytics.popularTypes`: "Popular Collection Types"
+- `admin.analytics.collections`: "Collections"
+
+---
+
+### Analytics — Loading State
+
+- **Page header + time range**: Show immediately (static content)
+- **Stat cards**: 4 skeleton cards matching stat card dimensions — `h-[100px]`, `--radius-lg`, pulse animation
+- **Growth charts**: 2 skeleton cards matching chart card dimensions — `h-[340px]` (header + chart area), `--radius-lg`, pulse animation
+- **Usage breakdown**: 3 skeleton cards — `h-[300px]`, `--radius-lg`, pulse animation
+- **Stagger**: All skeleton sections use `StaggerChildren` entrance with 60ms stagger
+
+---
+
+### Analytics — Empty State
+
+When the platform is brand new with zero data (no users beyond the admin, no collections):
+
+- **Stats row**: Shows all zeros with AnimatedNumber (animate from 0 to 0 still triggers the counter entrance)
+- **Charts**: Show empty states within their cards — the dashed-line/message pattern described in each chart section
+- **Usage tables**: Show their individual empty states
+- **No page-level empty state** — each section handles its own emptiness. The stats row with zeros still provides context ("there is a platform, it just has no data yet")
+
+---
+
+### Analytics — Responsive Summary
+
+| Breakpoint | Layout Changes |
+|------------|---------------|
+| Desktop (≥1024px) | 4-col stats, 2-col charts, 3-col usage breakdown, time range right-aligned with title |
+| Tablet (768–1023px) | 2-col stats (2×2), 2-col charts, 2-col usage (types spans 2), time range right-aligned |
+| Mobile (<768px) | 2-col stats (2×2), charts stack, usage stacks, time range below title, tables scroll horizontally if needed |
+
+---
+
+## Audit Log
+
+### Design Philosophy
+
+The audit log is the admin's **accountability trail** — it answers "who did what, and when?" Every action that modifies platform state should be traceable here. The design prioritizes scannability and density: admins reviewing audit logs need to process many entries quickly, scanning for patterns, anomalies, or specific events.
+
+**Key aesthetic decisions:**
+- **Dense data table as the hero** — audit logs are inherently tabular; no cards, no grid
+- **Timestamp is the leftmost column** — time is the primary axis of investigation. Admins scan chronologically.
+- **User column shows avatar + name** — visual anchoring, same pattern as User Management table
+- **Action verb uses color-coded badges** — Create (green), Update (blue), Delete (red), Login (muted) — instant visual classification without reading text
+- **Alternating row backgrounds disabled** — borders between rows are cleaner for dense data. Alternating bg competes with action badge colors.
+- **Inline detail expansion** — clicking a row reveals a detail panel below it (accordion-style), avoiding the overhead of a modal or side sheet for a read-only view
+- **Filters above the table** — action type, user, and date range filters reduce the dataset before scanning
+- **CSV export** — audit data has compliance value; admins need to extract it for external review
+
+---
+
+### Overall Page Layout
+
+```
+┌──────────────────────────────────────────────────────────────┐
+│  Page Header                                                  │
+│  "Audit Log" — h1 typography                                  │
+│  "Track all actions performed on the platform"                │
+│  gap: --space-6 (24px)                                        │
+├──────────────────────────────────────────────────────────────┤
+│  ┌──────────────────────────────────────────────────────┐    │
+│  │  Filter Bar                                           │    │
+│  │  🔍 [Search...]  [Action ▼]  [User ▼]  [Date range]  │    │
+│  │                                          [Export CSV]  │    │
+│  ├──────────────────────────────────────────────────────┤    │
+│  │  Data Table                                           │    │
+│  │  Timestamp │ User │ Action │ Target │ Details          │    │
+│  │  ...       │ ...  │ ...    │ ...    │ ...              │    │
+│  │  ▼ Expanded detail row                                │    │
+│  │  ...       │ ...  │ ...    │ ...    │ ...              │    │
+│  ├──────────────────────────────────────────────────────┤    │
+│  │  Pagination                                           │    │
+│  │  Showing 1-20 of 1,234 entries    ‹ 1 2 3 … 62 ›    │    │
+│  └──────────────────────────────────────────────────────┘    │
+└──────────────────────────────────────────────────────────────┘
+```
+
+- **Table + filters + pagination are inside a single card** — same container pattern as User Management
+- **No max-width constraint** — audit logs benefit from horizontal space
+
+---
+
+### Page Header
+
+- **Title**: "Audit Log" — `h1` typography (30px, Plus Jakarta Sans, weight 700, letter-spacing -0.02em)
+- **Subtitle**: "Track all actions performed on the platform" — `body-lg` (18px, Inter, weight 400), `--muted-foreground`
+- **Gap below header**: `--space-6` (24px) before the table card
+
+#### i18n Keys
+
+- `admin.auditLog.title`: "Audit Log"
+- `admin.auditLog.subtitle`: "Track all actions performed on the platform"
+
+---
+
+### Filter Bar
+
+Position: Top of the table card, separated from table by `border-b border-border`.
+
+#### Layout
+
+```
+┌──────────────────────────────────────────────────────────────────┐
+│ 🔍 [Search entries...     ]  [Action ▼] [User ▼] [Date range 📅] │
+│                                                    [Export CSV ↓] │
+└──────────────────────────────────────────────────────────────────┘
+```
+
+- **Container**: `flex items-center gap-3 flex-wrap`, `py-4 px-4`
+- **Search + filters**: `flex-1 flex items-center gap-3 flex-wrap`
+- **Export button**: `ml-auto`, does not wrap with filters
+
+#### Search Input
+
+- **Icon**: `Search` (Lucide), 16×16px, `--muted-foreground`, `absolute left-3`
+- **Input**: `pl-9 h-9`, `--radius-md`, `border border-input`, placeholder "Search entries..."
+- **Width**: `flex-1 min-w-[200px] max-w-[300px]`
+- **Behavior**: Full-text search across all log entry fields (user name, action, target entity, details), debounced 300ms with `useDebounce`
+- **Clear**: `X` icon when input has value, clears on click
+
+#### Action Type Filter
+
+- **Component**: `Select` from `components/ds/select.tsx`
+- **Options**: "All actions" (default), "Create", "Update", "Delete", "Login", "Logout", "Export", "Import", "Settings Change"
+- **Width**: `w-[150px]`
+- **Behavior**: Filters by action type. Combinable with all other filters.
+
+#### User Filter
+
+- **Component**: `Select` with search (combobox variant) from `components/ds/select.tsx`
+- **Options**: "All users" (default) + list of all users (avatar + display name as option label)
+- **Width**: `w-[180px]`
+- **Behavior**: Filters log entries by the acting user. Search within the dropdown filters the user list.
+
+#### Date Range Picker
+
+- **Component**: Custom date range — two `Input` fields (type="date") or a date range picker component
+- **Layout**: `flex items-center gap-1.5` — "From" input + "–" separator + "To" input
+- **Each input**: `h-9 w-[130px]`, `--radius-md`, `border border-input`
+- **Calendar icon**: `Calendar` (Lucide), 14×14px, `absolute right-3`, `--muted-foreground`
+- **Behavior**: Filters entries within the date range (inclusive). Both dates optional — if only "from" is set, shows entries from that date onward. If only "to", shows up to that date.
+- **Clear**: If either date is set, a small `X` appears on the container to clear both dates
+
+#### Export CSV Button
+
+- **Component**: `Button` with `outline` variant
+- **Content**: `Download` icon (Lucide, 16×16px) + "Export CSV" text
+- **Size**: `h-9`, `text-sm`
+- **Placement**: Right-aligned, separated from filters by `ml-auto`
+- **Loading state**: Icon switches to `Loader2` with `animate-spin`, text changes to "Exporting...", button disabled
+- **On click**: Triggers CSV download of currently filtered entries (all pages, not just current page)
+- **Filename format**: `geekvault-audit-log-{YYYY-MM-DD}.csv`
+- **Success feedback**: Toast "Audit log exported" (success variant)
+
+#### Responsive Behavior
+
+- **Desktop**: All filters + export in single row
+- **Tablet**: Search + action + user on first row, date range + export on second row
+- **Mobile**: Search full width, each filter full width stacked, export full width at bottom
+
+#### i18n Keys
+
+- `admin.auditLog.search`: "Search entries..."
+- `admin.auditLog.allActions`: "All actions"
+- `admin.auditLog.allUsers`: "All users"
+- `admin.auditLog.from`: "From"
+- `admin.auditLog.to`: "To"
+- `admin.auditLog.exportCsv`: "Export CSV"
+- `admin.auditLog.exporting`: "Exporting..."
+- `admin.auditLog.exportSuccess`: "Audit log exported"
+
+---
+
+### Audit Log — Data Table
+
+Uses the existing `DataTable` component with audit-specific column configuration.
+
+#### Table Container
+
+Same card treatment as User Management table:
+
+- **Background**: `--card`
+- **Border radius**: `--radius-lg` (12px)
+- **Border**: `1px solid --border`
+- **Overflow**: `overflow-hidden` on container, `overflow-x-auto` on table wrapper
+
+#### Columns
+
+| Column | Header | Cell Content | Width | Responsive |
+|--------|--------|-------------|-------|------------|
+| Timestamp | `overline` | Date + time (see format below) | 160px fixed | Always visible (truncates to date-only on mobile) |
+| User | `overline` | Avatar (24×24) + Display Name (`body-sm`, weight 500) | flex-1, min 140px | Always visible |
+| Action | `overline` | Color-coded badge (see badge spec) | 100px fixed | Always visible |
+| Target | `overline` | Entity type + name (`body-sm`) | flex-1, min 140px | Hidden on mobile |
+| Details | `overline` | Summary text (`body-sm`, `--muted-foreground`) | flex-2, min 180px | Hidden on mobile, hidden on tablet |
+
+#### Row Specifications
+
+- **Row height**: Minimum 48px
+- **Row separator**: `1px --border` between rows
+- **Row hover**: `--foreground/4` background overlay
+- **Row click**: Expands/collapses inline detail panel (accordion behavior)
+- **Row cursor**: `cursor-pointer`
+- **Expand indicator**: Small `ChevronDown` icon (12×12px, `--muted-foreground`), `absolute right-4`, rotates 180° when expanded — `transition-transform duration-150`
+
+#### Timestamp Column
+
+- **Format**: Two-line display
+  - **Date**: `body-sm` (14px), weight 400, `--foreground` — "Mar 21, 2026"
+  - **Time**: `caption` (12px), weight 400, `--muted-foreground` — "14:32:15"
+- **Stack gap**: `--space-0.5` (2px)
+- **Mobile**: Single line — "Mar 21, 14:32" in `body-sm`
+
+#### User Column
+
+Same avatar + name pattern as User Management, but smaller:
+
+- **Avatar**: 24×24px, `--radius-full`
+- **Avatar fallback**: Initials, `text-[10px]`
+- **Name**: `body-sm` (14px), weight 500
+- **Gap**: `--space-2` (8px)
+- **System actions** (no user): Show `Bot` icon (Lucide, 24×24px, `--muted-foreground/50`) + "System" label in `--muted-foreground`
+
+#### Action Badge Design
+
+Action badges use the `Badge` component with semantic color variants:
+
+| Action | Label | Background (light) | Text (light) | Background (dark) | Text (dark) |
+|--------|-------|-------------------|--------------|-------------------|-------------|
+| Create | "Create" | `--success/10` | `--success` (#16A34A) | `--success/15` | `--success` (#22C55E) |
+| Update | "Update" | `--info/10` | `--info` (#2563EB) | `--info/15` | `--info` (#3B82F6) |
+| Delete | "Delete" | `--destructive/10` | `--destructive` (#DC2626) | `--destructive/15` | `--destructive` (#EF4444) |
+| Login | "Login" | `--muted` | `--muted-foreground` | `--muted` | `--muted-foreground` |
+| Logout | "Logout" | `--muted` | `--muted-foreground` | `--muted` | `--muted-foreground` |
+| Export | "Export" | `--accent/10` | `--accent` | `--accent/15` | `--accent` |
+| Import | "Import" | `--accent/10` | `--accent` | `--accent/15` | `--accent` |
+| Settings | "Settings" | `--warning/10` | `--warning` | `--warning/15` | `--warning` |
+
+- **Size**: `text-xs`, `px-2 py-0.5`, `--radius-full`
+- **Font weight**: 500
+- **Rationale**: CRUD actions get semantic colors (green/blue/red) for instant visual pattern recognition. Auth actions (login/logout) are intentionally muted — they're high-volume, low-signal. Import/export use amber accent — they're significant platform actions. Settings changes use warning color — they affect platform behavior.
+
+#### Target Column
+
+- **Content**: Entity type prefix + entity name
+  - Format: "Collection: My Comics", "User: john@example.com", "Settings: Security", "CatalogItem: Batman #1"
+  - Entity type in `caption` (12px), `--muted-foreground`, uppercase
+  - Entity name in `body-sm` (14px), weight 400, `--foreground`
+- **Layout**: Stacked — type above, name below, gap `--space-0.5`
+- **Truncation**: Name truncates with ellipsis if too long — `text-overflow: ellipsis`, `overflow: hidden`, `white-space: nowrap`
+
+#### Details Summary Column
+
+- **Content**: Brief human-readable summary of the action
+  - Examples: "Changed role from User to Admin", "Deleted 3 items", "Updated password policy", "Logged in from 192.168.1.1"
+- **Typography**: `body-sm` (14px), `--muted-foreground`
+- **Truncation**: Single line, truncates with ellipsis
+
+---
+
+### Inline Detail Expansion
+
+Clicking a row reveals a detail panel below it — accordion-style, pushes subsequent rows down.
+
+#### Expansion Animation
+
+- **Enter**: Height from 0 → auto, opacity 0 → 1, 200ms, ease-enter curve
+- **Exit**: Height auto → 0, opacity 1 → 0, 150ms, ease-exit curve
+- **Implementation**: Framer Motion `AnimatePresence` with `initial={{ height: 0, opacity: 0 }}` `animate={{ height: "auto", opacity: 1 }}`
+
+#### Detail Panel Layout
+
+```
+┌──────────────────────────────────────────────────────────────┐
+│  ┌────────────────────────────────────────────────────────┐  │
+│  │  Full Event Details                                     │  │
+│  │                                                         │  │
+│  │  Timestamp    March 21, 2026 at 14:32:15 UTC           │  │
+│  │  User         Ralph Largo (ralph@example.com)           │  │
+│  │  Action       Update                                    │  │
+│  │  Target       Collection: My Comics Collection          │  │
+│  │  IP Address   192.168.1.100                             │  │
+│  │  User Agent   Chrome 122 / macOS                        │  │
+│  │                                                         │  │
+│  │  Changes                                                │  │
+│  │  ┌──────────────────────────────────────────────────┐  │  │
+│  │  │  Field        Before           After              │  │  │
+│  │  │  name         "Old Name"       "New Name"         │  │  │
+│  │  │  description  "Old desc..."    "New desc..."      │  │  │
+│  │  └──────────────────────────────────────────────────┘  │  │
+│  └────────────────────────────────────────────────────────┘  │
+└──────────────────────────────────────────────────────────────┘
+```
+
+#### Detail Panel Styling
+
+- **Container**: `bg-muted/30`, `border-t border-border`, `px-6 py-5`
+- **Inset from table edges**: `mx-4` for visual indentation from the parent row
+- **Title**: "Full Event Details" — `body-sm` (14px), weight 600, `--foreground`, `mb-4`
+
+#### Metadata Section
+
+Key-value pairs in a two-column layout:
+
+- **Layout**: `grid grid-cols-[120px_1fr] gap-y-2 gap-x-4`
+- **Label**: `body-sm`, `--muted-foreground`
+- **Value**: `body-sm`, weight 400, `--foreground`
+- **Timestamp**: Full format — "March 21, 2026 at 14:32:15 UTC"
+- **User**: Display name + email in parentheses
+- **IP Address**: Raw IP — `font-mono text-sm` for readability
+- **User Agent**: Parsed to human-readable — "Chrome 122 / macOS" (parse from full UA string)
+
+#### Changes Section (conditional)
+
+Only shown for Create, Update, and Delete actions where change data is available.
+
+- **Section label**: "Changes" — `body-sm`, weight 600, `--foreground`, `mt-4 mb-2`
+- **Table**: Compact mini-table within the detail panel
+  - **Container**: `--radius-md`, `border border-border`, `overflow-hidden`
+  - **Header row**: `bg-muted`, `px-3 py-2`, columns: "Field", "Before", "After" — `caption` typography, weight 600
+  - **Data rows**: `px-3 py-2`, `border-t border-border/50`
+    - Field name: `body-sm`, `--foreground`, `font-mono` (code-like for field names)
+    - Before value: `body-sm`, `--muted-foreground`, `line-through` decoration for updates (struck-through old value)
+    - After value: `body-sm`, `--foreground`, `font-medium`
+  - **Create actions**: "Before" column shows "—" (em-dash), "After" shows the new value
+  - **Delete actions**: "Before" shows the deleted value, "After" shows "—"
+  - **Long values**: Truncate to 80 characters with "..." — full value visible via title attribute
+
+#### Mobile Detail Panel
+
+On mobile, the detail panel also shows columns hidden from the main table:
+- Target entity (hidden from table on mobile)
+- Details summary (hidden from table on mobile and tablet)
+- All metadata + changes section as above
+
+---
+
+### Audit Log — Pagination
+
+Same pagination pattern as User Management — reuse the same component.
+
+#### Layout
+
+```
+┌──────────────────────────────────────────────────────────────────┐
+│  Showing 1-20 of 1,234 entries        ‹ 1 2 3 … 62 ›  20 per page │
+└──────────────────────────────────────────────────────────────────┘
+```
+
+- **Container**: `flex items-center justify-between`, `px-4 py-3`, `border-t border-border`
+- **Summary**: `body-sm`, `--muted-foreground`, "Showing {start}-{end} of {total} entries"
+- **Page controls**: Same as User Management — `h-8 w-8` buttons, current page filled, ellipsis for many pages
+- **Page size select**: Options 10, 20, 50 — default 20
+- **Pagination**: **Server-side** for audit logs (unlike user management) — audit logs can be massive. API must support `page` and `pageSize` query parameters.
+
+#### Responsive Behavior
+
+- **Desktop**: Full layout
+- **Tablet**: Same as desktop
+- **Mobile**: Summary hidden, controls centered, page size hidden (fixed at 20)
+
+#### i18n Keys
+
+- `admin.auditLog.showing`: "Showing {{start}}-{{end}} of {{total}} entries"
+- `admin.auditLog.perPage`: "per page"
+
+---
+
+### Audit Log — Search
+
+The search input in the filter bar provides full-text search across all log fields:
+
+- **Indexed fields**: User display name, user email, action type, target entity type, target entity name, details summary
+- **Behavior**: Server-side search (audit logs are too large for client-side filtering). Debounced 300ms before sending API request.
+- **Results**: Table updates to show only matching entries. Pagination resets to page 1 on new search.
+- **Highlight**: No text highlighting in results (adds complexity for minimal value in a log view). The matching is sufficient context.
+
+---
+
+### Audit Log — Empty State
+
+When the audit log has zero entries:
+
+- **Icon**: `ScrollText` (Lucide), 48×48px, `--muted-foreground/50`
+- **Message**: "No audit log entries yet" — `h4` typography
+- **Submessage**: "Actions will be recorded here as users interact with the platform." — `body-sm`, `--muted-foreground`
+- **No CTA** — audit logs are passive records
+
+### Audit Log — No Results State
+
+When search/filter returns empty:
+
+- **Icon**: `Search` (Lucide), 48×48px, `--muted-foreground/50`
+- **Message**: "No entries match your filters" — `h4` typography
+- **Submessage**: "Try adjusting your search, filters, or date range." — `body-sm`, `--muted-foreground`
+- **Action**: "Clear filters" text button (`ghost` variant)
+
+---
+
+### Audit Log — Loading State
+
+- **Filter bar**: Shows immediately (static content, inputs are interactive but search triggers loading)
+- **Table**: Show `loadingRows={10}` via DataTable's built-in skeleton, matching column widths
+- **Pagination**: Skeleton bar `h-10 w-full --radius-md`
+
+---
+
+### Audit Log — Responsive Summary
+
+| Breakpoint | Layout Changes |
+|------------|---------------|
+| Desktop (≥1024px) | All columns visible, filters in one row, inline detail expansion, full pagination |
+| Tablet (768–1023px) | "Details" column hidden, date range wraps to second filter row, detail expansion shows details field |
+| Mobile (<768px) | "Target" and "Details" columns hidden, timestamp shows compact format, filters stack vertically, detail expansion shows all hidden fields, export button full width, pagination simplified |
+
+---
+
+### Implementation Notes
+
+- **Component location**: `src/web/src/features/admin/admin-analytics-page.tsx` and `src/web/src/features/admin/admin-audit-log-page.tsx`
+- **Shared sub-components**: `src/web/src/features/admin/components/` — consider `TimeRangeSelector`, `UsageTable`, `AuditDetailPanel`, `ActionBadge`
+- **Chart reuse**: Analytics charts use the same recharts patterns and custom tooltip component as the user dashboard charts. Extract the tooltip into a shared component in `components/ds/` if not already done.
+- **StatCard reuse**: Analytics stat cards use the existing `StatCard` component from `components/ds/stat-card.tsx` — no new component needed
+- **DataTable reuse**: Audit log uses `DataTable` from `components/ds/data-table.tsx` with expandable row support
+- **Expandable rows**: May need to extend `DataTable` with an `expandedRow` render prop or implement expansion at the page level with `AnimatePresence`
+- **Badge reuse**: Action badges use the existing `Badge` component with additional semantic color variants
+- **Time range state**: Use URL search params (`?range=30d`) so that the selected range persists across navigation and can be bookmarked
+- **CSV export**: Client-side generation using a library like `papaparse` or manual CSV string building. Fetch all filtered entries (not just current page) before generating.
+- **Server-side pagination**: Audit log API must support `page`, `pageSize`, `search`, `action`, `userId`, `fromDate`, `toDate` query parameters
+- **i18n**: All labels, headers, badge text, filter options, toast messages, empty states need keys in both `en.json` and `pt.json`
+- **Accessibility**: Table rows with expansion need `aria-expanded`, expand icon needs `aria-label`, filters need proper labels, export button announces download via `aria-live` region
+- **No new design tokens**: Both pages use existing Warm Obsidian palette, chart tokens, badge patterns, and data table patterns. The time range selector uses existing token colors (`--muted`, `--card`, `--border`). No new CSS custom properties needed.

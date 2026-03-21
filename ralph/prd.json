@@ -353,7 +353,7 @@
         "Document appended to tasks/design-admin.md under 'Analytics Dashboard' and 'Audit Log' sections"
       ],
       "priority": 17,
-      "passes": false,
+      "passes": true,
       "notes": "Analytics charts should use the same recharts color palette defined in design-tokens.md."
     },
     {
