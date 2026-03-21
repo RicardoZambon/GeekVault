@@ -5,6 +5,7 @@ function Toaster() {
     <SonnerToaster
       position="bottom-right"
       duration={4000}
+      className="!z-[100]"
       toastOptions={{
         classNames: {
           toast:

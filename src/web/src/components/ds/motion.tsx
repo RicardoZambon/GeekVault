@@ -49,8 +49,16 @@ export interface PageTransitionProps extends HTMLMotionProps<"div"> {
 
 const pageVariants = getVariants({
   initial: { opacity: 0, y: 12 },
-  animate: { opacity: 1, y: 0 },
-  exit: { opacity: 0, y: -8 },
+  animate: {
+    opacity: 1,
+    y: 0,
+    transition: springs.gentle,
+  },
+  exit: {
+    opacity: 0,
+    y: -8,
+    transition: { duration: durations.fast, ease: [...easings.exit] },
+  },
 })
 
 const PageTransition = React.forwardRef<HTMLDivElement, PageTransitionProps>(
@@ -61,7 +69,6 @@ const PageTransition = React.forwardRef<HTMLDivElement, PageTransitionProps>(
       animate="animate"
       exit="exit"
       variants={pageVariants}
-      transition={{ duration: durations.normal, ease: [...easings.enter] }}
       className={cn(className)}
       {...props}
     >

@@ -60,6 +60,19 @@ describe("AppLayout", () => {
     expect(screen.getByTestId("animated-outlet")).toBeInTheDocument()
   })
 
+  it("applies responsive padding to main content area", () => {
+    render(
+      <MemoryRouter>
+        <AppLayout />
+      </MemoryRouter>
+    )
+    const main = screen.getByRole("main")
+    expect(main.className).toContain("px-4")
+    expect(main.className).toContain("py-4")
+    expect(main.className).toContain("md:py-6")
+    expect(main.className).toContain("lg:px-6")
+  })
+
   it("renders command palette", () => {
     render(
       <MemoryRouter>
