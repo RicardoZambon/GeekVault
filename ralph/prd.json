@@ -106,7 +106,7 @@
         "Document saved to tasks/design-layout.md under 'App Shell & Navigation' section"
       ],
       "priority": 5,
-      "passes": false,
+      "passes": true,
       "notes": "The frontend-design skill decides the paradigm — don't assume sidebar. Consider what works best for a collectibles management app specifically."
     },
     {

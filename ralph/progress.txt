@@ -98,3 +98,25 @@
   - Skeleton pulse should NOT use Tailwind's `animate-pulse` — it doesn't respect `prefers-reduced-motion` (noted in audit)
   - Toast animations (sonner) may need custom configuration to match the motion system — sonner has its own animation props
 ---
+
+## 2026-03-21 - US-005
+- Designed app shell and navigation layout with full paradigm evaluation
+- Evaluated 4 layout paradigms (sidebar, top-nav, bottom-nav, hybrid) — selected persistent sidebar + slim top toolbar
+- Defined desktop (260px/72px sidebar + 72px toolbar), tablet (auto-collapsed sidebar), and mobile (hamburger → sheet) layouts
+- Specified navigation hierarchy with 4 groups: Overview, Collections, Account, Admin (conditional)
+- Defined all 5 nav item states (default, hover, active, focus-visible, disabled) for expanded, collapsed, and mobile modes
+- Designed breadcrumb alternative: sidebar active highlight + page-level back links + command palette recents
+- Specified collapse/expand behavior: edge toggle, keyboard shortcut ([), localStorage persistence, 250ms transition with text fade timing
+- Designed user menu: trigger from sidebar bottom + toolbar avatar, dropdown with profile/settings/theme/language/logout
+- Specified top toolbar (search trigger, action buttons) and mobile header (hamburger, brand, quick actions)
+- Documented responsive breakpoint summary and z-index layer map
+- Files created: `tasks/design-layout.md`
+- **Learnings for future iterations:**
+  - Sidebar width tokens: 260px expanded, 72px collapsed — use these exact values in implementation
+  - Mobile sheet width: 75vw max 288px — matches current implementation
+  - Edge toggle button uses group-hover pattern: `group/sidebar` on aside, `group-hover/sidebar:opacity-100` on button
+  - Nav item min-height 44px meets WCAG 2.5.8 target size requirement — don't reduce this
+  - Breadcrumbs were deliberately excluded — use back links on detail pages instead (Linear/Notion pattern)
+  - User menu placement differs by context: side="top" from sidebar, side="bottom" from toolbar
+  - Theme toggle stays open after toggling (users may want multiple settings changes) — don't auto-close
+---
