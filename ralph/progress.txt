@@ -32,6 +32,11 @@
 - Command palette recent items use `sessionStorage` key `"geekvault-recent-pages"` — resets per session
 - Page section spacing: `--space-8` (32px) desktop, `--space-6` (24px) mobile — consistent across all pages
 - Chart fills must use `hsl(var(--chart-N))` syntax, never hardcoded hex — automatic dark mode support
+- Admin analytics reuses StatCard, DataTable, Badge, chart tooltip from user-facing components — no admin-specific UI primitives
+- Segmented button groups (time range selector) use `bg-muted` track with `bg-card` active pill + `--shadow-sm` elevation
+- Audit log action badges: CRUD=semantic colors, auth=muted, import/export=accent, settings=warning — consistent classification system
+- Inline row expansion (accordion) for detail views in tables — use AnimatePresence with height 0→auto animation
+- Server-side pagination for potentially large datasets (audit logs); client-side for small bounded datasets (user management)
 - Collection cards with onClick on divs need `tabIndex={0}` + `role="link"` + `onKeyDown` for keyboard access
 - design-pages.md is the central file for all page-level designs — append new page sections to it
 - Grid cards on collections page use `--radius-xl` (16px) for gallery feel — other pages use `--radius-lg` (12px)
@@ -376,4 +381,22 @@
   - Settings page uses narrow max-w-3xl layout — settings forms should be focused, not stretched
   - Toggle switch layout: label+help stacked left, switch right, `flex items-start justify-between gap-4`
   - Feature flag toggles separated by `border-b` dividers — creates visual rhythm in long toggle lists
+---
+
+## 2026-03-21 - US-017
+- Designed admin analytics dashboard and audit log pages
+- Files changed: `tasks/design-admin.md`, `ralph/prd.json`
+- **Analytics dashboard** includes: platform stats row (4 cards reusing StatCard), time range selector (segmented button group — 7d/30d/90d/all), growth charts (line chart for user signups using --chart-1 amber, bar chart for collections created using --chart-2 blue), usage breakdown (3-column: most active users table, largest collections table, popular collection types horizontal bar chart)
+- **Audit log** includes: filter bar (search, action type, user, date range, CSV export), data table with color-coded action badges (create=green, update=blue, delete=red, login=muted, settings=warning), inline accordion-style detail expansion with changes diff table, server-side pagination
+- **Learnings for future iterations:**
+  - Analytics stat cards intentionally use 4 cards (not 5 like user dashboard) — fits a 4-column grid cleanly without orphans
+  - Time range selector uses segmented button group (not dropdown) — admins toggle frequently, visible options reduce clicks
+  - Growth charts deliberately use different colors (amber line vs blue bar) for instant visual distinction between the two chart types
+  - Usage breakdown uses horizontal bar chart for collection types (not a third table) — adds visual variety and makes relative sizes instantly scannable
+  - Audit log uses server-side pagination (unlike user management which is client-side) — audit logs can grow very large
+  - Action badge color scheme: CRUD → semantic (green/blue/red), auth → muted (high-volume, low-signal), import/export → accent (amber), settings → warning
+  - Inline detail expansion (accordion) chosen over modal/sheet for audit logs — keeps admin in list context for quick scanning
+  - Changes section in detail panel uses `line-through` on "Before" values and `font-mono` on field names — creates visual diff feel
+  - CSV export downloads ALL filtered entries (not just current page) — compliance requirement for audit data
+  - Time range state stored in URL search params (`?range=30d`) for bookmarkability
 ---
