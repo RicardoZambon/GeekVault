@@ -306,7 +306,7 @@
         "Document saved to tasks/design-admin.md under 'Admin Layout & Navigation' section (create the file)"
       ],
       "priority": 15,
-      "passes": false,
+      "passes": true,
       "notes": "Admin should feel professional and efficient, not flashy."
     },
     {

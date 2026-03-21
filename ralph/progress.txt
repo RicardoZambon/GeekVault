@@ -65,6 +65,11 @@
 - Auth floating shapes: pure CSS `@keyframes float` with 20s duration and staggered `animation-delay` — no JS needed
 - Auth layout: decorative panel hidden below lg breakpoint — replaced by compact brand header above form
 - Disabled/read-only inputs: `opacity-60` + lock icon positioned absolutely in input wrapper
+- Admin uses sidebar context switch pattern: `navGroups` vs `adminNavGroups` based on `pathname.startsWith("/admin")`
+- Admin nav swap transition: AnimatePresence + fast fade (100ms) on nav group container — not instant swap
+- Admin differentiation uses 3 signals: sidebar badge, toolbar pill badge, mobile header text — no color shift
+- Admin routes: `/admin` → redirect to `/admin/users`, silent redirect for non-admins (no toast)
+- Admin pages in `src/web/src/features/admin/` with `components/` subfolder
 
 ---
 
@@ -323,4 +328,24 @@
   - Read-only inputs should use `opacity-60` + `Lock` icon positioned absolutely — clear visual signal that field is not editable
   - Profile card-per-section pattern is new — current implementation is a flat form. Each section becomes its own `Card` component
   - Auth layout `lg:` breakpoint (not `md:`) for decorative panel — tablets get form-only view since the panel needs width to look good
+---
+
+## 2026-03-21 - US-015
+- Designed admin layout and navigation with full paradigm evaluation
+- Created `tasks/design-admin.md` with "Admin Layout & Navigation" section
+- Evaluated 3 layout approaches: shared shell with admin nav section, completely separate admin layout, shared shell with sidebar context switch — selected sidebar context switch (Option C)
+- Sections: Layout Approach Evaluation, Selected Approach with Rationale, Admin Sidebar Visual Design (expanded/collapsed/mobile), Admin Navigation Items (4 items in 2 groups), Visual Differentiation Strategy (3 signals: sidebar badge, toolbar pill, active route), Back-to-App Navigation (sidebar link, keyboard, mobile), Responsive Admin Layout (desktop/tablet/mobile), Route Structure (/admin/*), Implementation Notes
+- Key decisions: sidebar nav items swap (not stack) when entering admin — keeps sidebar clean; 3-signal differentiation (sidebar badge, toolbar pill badge, mobile header text change) provides redundant context awareness; back-to-app as prominent sidebar header link replacing brand section; no separate accent color for admin (stays amber); admin routes redirect silently if not authorized
+- Admin nav groups: Management (Users, Settings) and Insights (Analytics, Audit Log)
+- Admin detection via simple `location.pathname.startsWith("/admin")` check in sidebar
+- Files created: `tasks/design-admin.md`
+- **Learnings for future iterations:**
+  - Admin sidebar context switch uses same `navGroups` pattern — define `adminNavGroups` alongside `navGroups` and switch based on route prefix
+  - Sidebar context transition should use AnimatePresence with fast fade (100ms) — not instant swap, not slow crossfade
+  - Admin route guard should silently redirect to `/` (no error toast) — admin routes shouldn't be discoverable by non-admins
+  - Mobile header text changes to "Admin" (not "GeekVault") when on admin routes — provides context without sidebar visible
+  - No admin-specific CSS tokens needed — admin pill badge uses existing Tailwind `amber-500/600` with opacity modifiers
+  - Admin pages live in `src/web/src/features/admin/` with co-located components/ subfolder
+  - `/admin` root redirects to `/admin/users` (most common admin task)
+  - Command palette should index admin pages under an "Admin" group, conditional on user role
 ---
