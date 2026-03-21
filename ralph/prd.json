@@ -228,7 +228,7 @@
         "Document appended to tasks/design-pages.md under 'Owned Copies' section"
       ],
       "priority": 11,
-      "passes": false,
+      "passes": true,
       "notes": "Owned copies are a core feature — the management experience should feel premium."
     },
     {

@@ -41,6 +41,11 @@
 - Copy card hover-reveal actions need `sm:opacity-0 sm:group-hover:opacity-100` for mobile touch support (not plain `opacity-0`)
 - Breadcrumbs only used on catalog item detail page (3 levels deep) — all other pages use sidebar highlight + back links
 - Financial values: use `font-variant-numeric: tabular-nums` on price/value displays (Inter supports natively)
+- Lightbox components must use `createPortal` to escape overflow containers and keyboard focus trap
+- Inline editing: optimistic update + rollback — no success toast, toast on error only
+- Image upload zone: `grid-cols-4 sm:grid-cols-5` for preview grid (not flex-wrap — prevents ragged rows)
+- Hover-reveal buttons: add `group-focus-within:opacity-100` alongside `group-hover:opacity-100` for keyboard accessibility
+- Currency prefix pattern: `absolute left-3 pointer-events-none` + `pl-7` on input
 
 ---
 
@@ -223,4 +228,28 @@
   - Edit item dialog uses `sm:max-w-2xl` (wider than copy dialog's `sm:max-w-lg`) — more fields including custom field grid
   - Set membership section is designed but depends on API returning set data for individual items — design is ready, implementation gated on API
   - Financial values in copy cards should use `font-variant-numeric: tabular-nums` for decimal alignment
+- Lightbox component is NEW — `ImageGalleryLightbox` in `components/ds/`, portal-rendered, keyboard-trapped
+- ImageUploadZone is NEW — encapsulates drag-drop zone, file validation, preview grid, reorder via @dnd-kit
+- Inline editing uses optimistic updates with rollback — no toast on success, toast on error
+- Only Condition and Purchase Price support inline edit — other fields use full edit dialog
+
+---
+
+## 2026-03-21 - US-011
+- Designed owned copies and image gallery with full visual specification
+- Appended "Owned Copies" section to `tasks/design-pages.md`
+- Sections: Design Philosophy, Copy Card Design (detailed layout/container/badge/actions/details/notes/thumbnails), Image Gallery Lightbox (visual design/navigation/keyboard/touch/zoom/responsive), Create/Edit Owned Copy Form (enhanced dialog with color-coded condition select, currency-prefixed inputs, textarea notes, drag-and-drop image upload zone with preview grid and reorder), Delete Confirmation (copy-specific), Inline Editing Pattern (condition dropdown + price inline input with optimistic updates), Responsive Summary, Implementation Notes
+- Key decisions: condition badge as hero visual element with 3-tier color semantics, thumbnail overflow indicator (+N badge), lightbox with direction-aware slide transitions and swipe/zoom support, multi-image upload zone replacing bare file input, inline editing limited to condition and price (most commonly updated), textarea for notes (upgrade from text input)
+- Two new components designed: `ImageGalleryLightbox` and `ImageUploadZone` for `components/ds/`
+- **Learnings for future iterations:**
+  - Lightbox needs `createPortal` to escape overflow containers — don't render inside card content
+  - Focus must return to trigger thumbnail after lightbox close — store ref before opening
+  - Inline editing: optimistic update + rollback pattern avoids perceived latency; no success toast needed for inline saves
+  - Image upload preview grid uses `grid-cols-4 sm:grid-cols-5` — NOT flex-wrap (prevents ragged last row)
+  - Existing image removal in edit mode needs mini-confirmation (tooltip popover) — accidental removal is destructive and not undoable
+  - Copy cards should NOT have lift hover effect (unlike collection gallery cards) — copies are data records, not navigable destinations
+  - Thumbnail overflow max is 4 desktop / 3 mobile — prevents card height bloat with many images
+  - `group-focus-within:opacity-100` ensures hover-reveal action buttons appear when keyboard-focused (not just mouse hover)
+  - Currency prefix on price inputs: `absolute left-3` with `pl-7` on input — consistent with SaaS form patterns
+---
 ---
