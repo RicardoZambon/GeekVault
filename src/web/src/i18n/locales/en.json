@@ -48,6 +48,16 @@
     "title": "Dashboard",
     "description": "Overview of your collections and stats.",
     "welcome": "Welcome back, {{name}}",
+    "greeting": {
+      "morning": "Good morning, {{name}}",
+      "afternoon": "Good afternoon, {{name}}",
+      "evening": "Good evening, {{name}}",
+      "welcomeBack": "Welcome back"
+    },
+    "subtitle": {
+      "withData": "You have {{collections}} collections with {{items}} items",
+      "empty": "Start building your collection today"
+    },
     "loading": "Loading dashboard...",
     "fetchError": "Failed to load dashboard data",
     "totalCollections": "Collections",

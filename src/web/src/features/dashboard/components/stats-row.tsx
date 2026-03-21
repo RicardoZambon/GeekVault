@@ -27,11 +27,14 @@ export function StatsRow({
 
   if (loading) {
     return (
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+      <div className="grid gap-3 grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
         {Array.from({ length: 5 }).map((_, i) => (
-          <div key={i} className="rounded-lg border bg-card p-6">
+          <div
+            key={i}
+            className={`rounded-[var(--radius-lg)] border bg-card p-5 ${i === 4 ? "col-span-2 md:col-span-1" : ""}`}
+          >
             <div className="flex items-center gap-3">
-              <SkeletonRect width={40} height={40} className="rounded-lg" />
+              <SkeletonRect width={40} height={40} className="rounded-[var(--radius-md)]" />
               <div className="space-y-2 flex-1">
                 <SkeletonRect width="60%" height={14} />
                 <SkeletonRect width="40%" height={24} />
@@ -72,9 +75,13 @@ export function StatsRow({
   ]
 
   return (
-    <StaggerChildren className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-      {stats.map((s) => (
-        <motion.div key={s.label} variants={staggerItemVariants}>
+    <StaggerChildren className="grid gap-3 grid-cols-2 md:gap-4 md:grid-cols-3 lg:grid-cols-5">
+      {stats.map((s, i) => (
+        <motion.div
+          key={s.label}
+          variants={staggerItemVariants}
+          className={i === stats.length - 1 ? "col-span-2 md:col-span-1" : ""}
+        >
           <StatCard icon={s.icon} label={s.label} value={s.value} />
         </motion.div>
       ))}

@@ -48,6 +48,16 @@
     "title": "Painel",
     "description": "Visão geral das suas coleções e estatísticas.",
     "welcome": "Bem-vindo de volta, {{name}}",
+    "greeting": {
+      "morning": "Bom dia, {{name}}",
+      "afternoon": "Boa tarde, {{name}}",
+      "evening": "Boa noite, {{name}}",
+      "welcomeBack": "Bem-vindo de volta"
+    },
+    "subtitle": {
+      "withData": "Você tem {{collections}} coleções com {{items}} itens",
+      "empty": "Comece a construir sua coleção hoje"
+    },
     "loading": "Carregando painel...",
     "fetchError": "Falha ao carregar dados do painel",
     "totalCollections": "Coleções",

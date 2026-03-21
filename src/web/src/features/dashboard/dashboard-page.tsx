@@ -1,9 +1,9 @@
-import { useEffect, useState } from "react"
+import { useEffect, useState, useMemo } from "react"
 import { useNavigate } from "react-router-dom"
 import { useTranslation } from "react-i18next"
 import { Lock } from "lucide-react"
 import { useAuth } from "@/components/auth-provider"
-import { PageHeader, EmptyState, toast } from "@/components/ds"
+import { EmptyState, FadeIn, toast } from "@/components/ds"
 import { StatsRow } from "./components/stats-row"
 import { ChartsSection } from "./components/charts-section"
 import { CollectionSummaries } from "./components/collection-summaries"
@@ -43,6 +43,13 @@ interface DashboardData {
   recentAcquisitions: RecentAcquisition[]
 }
 
+function getGreetingKey(): string {
+  const hour = new Date().getHours()
+  if (hour >= 5 && hour < 12) return "dashboard.greeting.morning"
+  if (hour >= 12 && hour < 17) return "dashboard.greeting.afternoon"
+  return "dashboard.greeting.evening"
+}
+
 export default function Dashboard() {
   const { t } = useTranslation()
   const { token, user } = useAuth()
@@ -62,15 +69,35 @@ export default function Dashboard() {
       .finally(() => setLoading(false))
   }, [token, t])
 
-  const welcomeMsg = user?.displayName
-    ? t("dashboard.welcome", { name: user.displayName })
-    : t("dashboard.description")
+  const greeting = useMemo(() => {
+    if (user?.displayName) {
+      return t(getGreetingKey(), { name: user.displayName })
+    }
+    return t("dashboard.greeting.welcomeBack")
+  }, [user?.displayName, t])
+
+  const subtitle = useMemo(() => {
+    if (!data || data.totalCollections === 0) return t("dashboard.subtitle.empty")
+    return t("dashboard.subtitle.withData", {
+      collections: data.totalCollections,
+      items: data.totalItems,
+    })
+  }, [data, t])
 
   const isEmpty = !loading && data !== null && data.totalCollections === 0
 
   return (
-    <div className="space-y-6">
-      <PageHeader title={t("dashboard.title")} description={welcomeMsg} />
+    <div className="space-y-8">
+      <div className="space-y-1.5">
+        <FadeIn>
+          <h1 className="font-display text-4xl font-bold tracking-tight text-foreground" style={{ letterSpacing: "-0.02em" }}>
+            {greeting}
+          </h1>
+        </FadeIn>
+        <FadeIn delay={0.06}>
+          <p className="text-lg text-muted-foreground">{subtitle}</p>
+        </FadeIn>
+      </div>
 
       {isEmpty ? (
         <EmptyState
@@ -82,30 +109,29 @@ export default function Dashboard() {
         />
       ) : (
         <>
+          <StatsRow
+            totalCollections={data?.totalCollections ?? 0}
+            totalItems={data?.totalItems ?? 0}
+            totalOwnedCopies={data?.totalOwnedCopies ?? 0}
+            totalEstimatedValue={data?.totalEstimatedValue ?? 0}
+            totalInvested={data?.totalInvested ?? 0}
+            loading={loading}
+          />
 
-      <StatsRow
-        totalCollections={data?.totalCollections ?? 0}
-        totalItems={data?.totalItems ?? 0}
-        totalOwnedCopies={data?.totalOwnedCopies ?? 0}
-        totalEstimatedValue={data?.totalEstimatedValue ?? 0}
-        totalInvested={data?.totalInvested ?? 0}
-        loading={loading}
-      />
+          <ChartsSection
+            itemsByCondition={data?.itemsByCondition ?? []}
+            loading={loading}
+          />
 
-      <ChartsSection
-        itemsByCondition={data?.itemsByCondition ?? []}
-        loading={loading}
-      />
+          <CollectionSummaries
+            collections={data?.collectionSummaries ?? []}
+            loading={loading}
+          />
 
-      <CollectionSummaries
-        collections={data?.collectionSummaries ?? []}
-        loading={loading}
-      />
-
-      <RecentAcquisitions
-        acquisitions={data?.recentAcquisitions ?? []}
-        loading={loading}
-      />
+          <RecentAcquisitions
+            acquisitions={data?.recentAcquisitions ?? []}
+            loading={loading}
+          />
         </>
       )}
     </div>

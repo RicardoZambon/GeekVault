@@ -27,23 +27,29 @@ const trendArrows = {
 const StatCard = React.forwardRef<HTMLDivElement, StatCardProps>(
   ({ className, icon, label, value, trend, ...props }, ref) => {
     return (
-      <Card ref={ref} className={cn("", className)} {...props}>
-        <CardContent className="p-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary [&>svg]:h-5 [&>svg]:w-5">
-                {icon}
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">{label}</p>
-                <p className="text-2xl font-semibold font-display">{value}</p>
-              </div>
+      <Card
+        ref={ref}
+        variant="flat"
+        className={cn(
+          "shadow-[var(--shadow-sm)] hover:-translate-y-0.5 hover:shadow-[var(--shadow-md)] hover:border-accent/10 transition-all duration-200 active:translate-y-0 active:scale-[0.99]",
+          className
+        )}
+        {...props}
+      >
+        <CardContent className="p-5">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[var(--radius-md)] bg-accent/10 text-accent [&>svg]:h-5 [&>svg]:w-5">
+              {icon}
             </div>
-            {trend && (
-              <span className={cn("text-sm font-medium", trendColors[trend.direction])}>
-                {trendArrows[trend.direction]} {trend.text}
-              </span>
-            )}
+            <div className="min-w-0">
+              <p className="text-sm text-muted-foreground">{label}</p>
+              <p className="text-2xl font-semibold font-display tabular-nums">{value}</p>
+              {trend && (
+                <span className={cn("text-xs font-medium", trendColors[trend.direction])}>
+                  {trendArrows[trend.direction]} {trend.text}
+                </span>
+              )}
+            </div>
           </div>
         </CardContent>
       </Card>

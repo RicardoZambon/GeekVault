@@ -18,6 +18,7 @@ vi.mock("react-i18next", () => ({
   useTranslation: () => ({
     t: (key: string, opts?: Record<string, unknown>) => {
       if (opts?.name) return `${key}:${opts.name}`
+      if (opts?.collections !== undefined) return `${key}:${opts.collections}:${opts.items}`
       if (opts?.count !== undefined) return `${key}:${opts.count}`
       return key
     },
@@ -180,7 +181,8 @@ describe("Dashboard", () => {
 
     render(<MemoryRouter><Dashboard /></MemoryRouter>)
     await waitFor(() => {
-      expect(screen.getByText("dashboard.title")).toBeInTheDocument()
+      // Time-aware greeting with user name
+      expect(screen.getByText(/dashboard\.greeting\.\w+:Ralph/)).toBeInTheDocument()
     })
     // Stats are rendered via AnimatedNumber mock
     expect(screen.getByText("3")).toBeInTheDocument() // totalCollections
@@ -192,7 +194,7 @@ describe("Dashboard", () => {
     expect(screen.getByText("Comics")).toBeInTheDocument()
   })
 
-  it("shows welcome message with user display name", async () => {
+  it("shows time-aware greeting with user display name", async () => {
     vi.spyOn(global, "fetch").mockResolvedValueOnce({
       ok: true,
       json: () => Promise.resolve(dashboardData),
@@ -200,7 +202,32 @@ describe("Dashboard", () => {
 
     render(<MemoryRouter><Dashboard /></MemoryRouter>)
     await waitFor(() => {
-      expect(screen.getByText("dashboard.welcome:Ralph")).toBeInTheDocument()
+      // Should render one of morning/afternoon/evening with Ralph
+      expect(screen.getByText(/dashboard\.greeting\.\w+:Ralph/)).toBeInTheDocument()
+    })
+  })
+
+  it("shows subtitle with collection and item counts", async () => {
+    vi.spyOn(global, "fetch").mockResolvedValueOnce({
+      ok: true,
+      json: () => Promise.resolve(dashboardData),
+    } as Response)
+
+    render(<MemoryRouter><Dashboard /></MemoryRouter>)
+    await waitFor(() => {
+      expect(screen.getByText("dashboard.subtitle.withData:3:50")).toBeInTheDocument()
+    })
+  })
+
+  it("shows empty subtitle when no collections", async () => {
+    vi.spyOn(global, "fetch").mockResolvedValueOnce({
+      ok: true,
+      json: () => Promise.resolve({ ...dashboardData, totalCollections: 0, collectionSummaries: [], recentAcquisitions: [], itemsByCondition: [] }),
+    } as Response)
+
+    render(<MemoryRouter><Dashboard /></MemoryRouter>)
+    await waitFor(() => {
+      expect(screen.getByText("dashboard.subtitle.empty")).toBeInTheDocument()
     })
   })
 
@@ -211,7 +238,7 @@ describe("Dashboard", () => {
     } as Response)
 
     render(<MemoryRouter><Dashboard /></MemoryRouter>)
-    await waitFor(() => screen.getByText("dashboard.title"))
+    await waitFor(() => screen.getByText(/dashboard\.greeting/))
     // Batman #1 has null purchasePrice, estimatedValue, acquisitionDate, acquisitionSource
     const dashes = screen.getAllByText("\u2014")
     expect(dashes.length).toBeGreaterThan(0)
@@ -276,7 +303,7 @@ describe("Dashboard", () => {
 
     render(<MemoryRouter><Dashboard /></MemoryRouter>)
     await waitFor(() => {
-      expect(screen.getByText("dashboard.title")).toBeInTheDocument()
+      expect(screen.getByText(/dashboard\.greeting/)).toBeInTheDocument()
     })
 
     // The Pie mock should have captured the label function
@@ -292,7 +319,7 @@ describe("Dashboard", () => {
     } as Response)
 
     render(<MemoryRouter><Dashboard /></MemoryRouter>)
-    await waitFor(() => screen.getByText("dashboard.title"))
+    await waitFor(() => screen.getByText(/dashboard\.greeting/))
 
     // Verify stats labels
     expect(screen.getByText("dashboard.totalCollections")).toBeInTheDocument()
@@ -316,7 +343,7 @@ describe("Dashboard", () => {
     // data is null, loading is false, isEmpty check: !loading && data !== null && data.totalCollections === 0
     // data is null so isEmpty is false, falls through to render stats with 0 values
     await waitFor(() => {
-      expect(screen.getByText("dashboard.title")).toBeInTheDocument()
+      expect(screen.getByText(/dashboard\.greeting/)).toBeInTheDocument()
     })
   })
 
@@ -331,5 +358,28 @@ describe("Dashboard", () => {
     // Collection summary details
     expect(screen.getByText("30")).toBeInTheDocument() // itemCount
     expect(screen.getByText("15")).toBeInTheDocument() // ownedCount
+  })
+
+  it("shows welcomeBack greeting when no display name", async () => {
+    // Override auth mock for this test
+    const authModule = await import("@/components/auth-provider")
+    vi.spyOn(authModule, "useAuth").mockReturnValue({
+      token: "mock-token",
+      user: { displayName: "", email: "test@test.com" } as any,
+      isLoading: false,
+      login: vi.fn(),
+      register: vi.fn(),
+      logout: vi.fn(),
+    })
+
+    vi.spyOn(global, "fetch").mockResolvedValueOnce({
+      ok: true,
+      json: () => Promise.resolve(dashboardData),
+    } as Response)
+
+    render(<MemoryRouter><Dashboard /></MemoryRouter>)
+    await waitFor(() => {
+      expect(screen.getByText("dashboard.greeting.welcomeBack")).toBeInTheDocument()
+    })
   })
 })
