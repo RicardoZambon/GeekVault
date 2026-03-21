@@ -915,3 +915,405 @@ When collections are loading (`loading === true`):
 9. **File upload preview** (showing thumbnail alongside filename in the dropzone) is a new enhancement for the create/edit dialog — improves UX by confirming the right image was selected.
 10. **List view thumbnail** (40×40px in the name column) is new — adds visual context to the table view that the current plain-text implementation lacks.
 11. **Mobile action button visibility** (`max-[640px]:opacity-100`) — current implementation uses this pattern; keep it.
+
+---
+
+## Collection Detail
+
+### Design Philosophy
+
+The collection detail page is the **heart of the vault** — where a collector spends the most time browsing, organizing, and admiring their items. It must balance information density (items grid, sets, stats, filters) with visual clarity. The cover image banner at the top creates an immersive "you are inside this collection" feeling, while the tabbed content below stays organized and scannable.
+
+**Key aesthetic decisions:**
+- **Cover image as cinematic banner** — not a small thumbnail; it fills the top of the page like a hero section, anchoring the collection's visual identity
+- **Frosted glass metadata overlay** on the banner — collection name, type, and stats float over the cover image with a warm-tinted backdrop blur
+- **Tab-based content organization** — Items, Sets, Stats as clear sections rather than a monolithic scroll. Tabs use the amber accent underline to indicate active state
+- **Stats summary inline in header** — key metrics (item count, total value, completion %) are visible without switching tabs
+- **Search and filter bar is persistent within Items tab** — always accessible, not hidden behind a toggle
+- **Grid and list views persist per collection** — localStorage remembers the user's preference for each collection
+- **Back navigation via text link** — not breadcrumbs (per design-layout.md: back links on detail pages, Linear/Notion pattern)
+- **Import wizard is prominently placed** — it's a key action, not buried in a menu
+
+---
+
+### Overall Page Layout
+
+```
+┌──────────────────────────────────────────────────────────────┐
+│  ← Back to Collections                                       │
+│                                                              │
+├──────────────────────────────────────────────────────────────┤
+│  ┌──────────────────────────────────────────────────────────┐│
+│  │                                                          ││
+│  │         Cover Image Banner (240px desktop)               ││
+│  │                                                          ││
+│  │  ┌────────────────────────────────────────────┐          ││
+│  │  │  [Type Badge]                               │          ││
+│  │  │  Collection Name (display-lg)               │          ││
+│  │  │  Description (body-base, muted)             │          ││
+│  │  │  📦 42 items · 💰 $1,240 value · 🎯 85%    │          ││
+│  │  └────────────────────────────────────────────┘          ││
+│  │                                          [Edit] [⋯]      ││
+│  └──────────────────────────────────────────────────────────┘│
+│                                                              │
+│  gap: --space-6 (24px)                                       │
+│                                                              │
+│  ┌──────────────────────────────────────────────────────────┐│
+│  │  [All Items]  [Sets (3)]  [Stats]                        ││
+│  └──────────────────────────────────────────────────────────┘│
+│                                                              │
+│  ═══════════════ Tab Content Area ═══════════════            │
+│                                                              │
+│  Items Tab:                                                  │
+│  ┌──────────────────────────────────────────────────────────┐│
+│  │  [🔍 Search...] [Condition▾] [All|Owned|Unowned]         ││
+│  │  [Sort▾] [↑↓]                [Grid|List] [↓Ex] [↑Im] [+]││
+│  └──────────────────────────────────────────────────────────┘│
+│                                                              │
+│  ┌────────┐ ┌────────┐ ┌────────┐ ┌────────┐               │
+│  │  Item  │ │  Item  │ │  Item  │ │  Item  │               │
+│  │  Card  │ │  Card  │ │  Card  │ │  Card  │               │
+│  └────────┘ └────────┘ └────────┘ └────────┘               │
+│  ┌────────┐ ┌────────┐ ┌────────┐ ┌────────┐               │
+│  │  Item  │ │  Item  │ │  Item  │ │  Item  │               │
+│  └────────┘ └────────┘ └────────┘ └────────┘               │
+└──────────────────────────────────────────────────────────────┘
+```
+
+- **Section spacing**: `--space-6` (24px) between banner and tabs, `--space-4` (16px) between toolbar and content
+- **Page container**: Standard content area padding from design-layout.md
+- **No max content width**: Content stretches to fill available space; grids handle their own sizing
+
+---
+
+### Back Navigation
+
+- **Element**: Ghost button with left arrow icon
+- **Text**: "Back to Collections" (i18n key: `collectionDetail.backToCollections`)
+- **Icon**: `ArrowLeft` from lucide-react, `h-4 w-4`, placed before text
+- **Spacing**: `mb-4` below the button before the banner begins
+- **Behavior**: Navigates to `/collections`
+- **Keyboard**: Focusable, Enter/Space triggers navigation
+
+---
+
+### Collection Header / Banner
+
+#### Cover Image Treatment
+
+- **Container**: Full-width, `rounded-xl` (`--radius-xl`, 16px), `overflow-hidden`, `relative`
+- **Height**: `h-60` (240px) desktop, `h-48` (192px) tablet, `h-40` (160px) mobile
+- **Image**: `object-cover`, `w-full`, `h-full` — fills the container entirely
+- **Overlay**: Gradient from bottom — `bg-gradient-to-t from-black/70 via-black/30 to-transparent` — ensures text readability on any image
+- **No cover image fallback**: When no cover image exists, show a warm gradient background using the collection's index-based rotation (same 4-gradient pattern as collections list page):
+  - Gradient 0: `from-[hsl(var(--chart-1))] to-[hsl(var(--chart-2))]`
+  - Gradient 1: `from-[hsl(var(--chart-3))] to-[hsl(var(--chart-4))]`
+  - Gradient 2: `from-[hsl(var(--chart-5))] to-[hsl(var(--chart-6))]`
+  - Gradient 3: `from-[hsl(var(--chart-7))] to-[hsl(var(--chart-8))]`
+  - Each at 15% opacity: `opacity-15` with a centered `Package` icon (`h-16 w-16`, `text-foreground/20`)
+
+#### Metadata Overlay (on banner)
+
+Positioned at the bottom-left of the banner, over the gradient overlay:
+
+- **Container**: `absolute bottom-0 left-0 right-0 p-6` (desktop), `p-4` (mobile)
+- **Collection type badge**: `Badge` component with `variant="primary"`, `size="sm"` — e.g., "Trading Cards", "Vinyl Records". Placed above the title with `mb-2`
+- **Collection name**: `display-lg` (2.25rem / 36px, weight 700, Plus Jakarta Sans, letter-spacing -0.02em), `text-white`, `drop-shadow-lg`
+- **Description**: `body-base` (1rem / 16px, Inter), `text-white/80`, `line-clamp-2` (max 2 lines), `mt-1`
+- **Stats row**: Inline metrics below description, `mt-3`, `flex items-center gap-4 flex-wrap`
+  - Each stat: `text-sm text-white/90 font-medium flex items-center gap-1.5`
+  - Stats shown: `📦 {n} items` · `💰 ${value} value` · `🎯 {n}% complete` (if sets exist)
+  - Icons: `Package` (items), `DollarSign` or currency icon (value), `Target` (completion) — all `h-3.5 w-3.5`
+  - Separator: `·` character in `text-white/50`
+  - Value and completion only show if data exists (not zero)
+
+#### Action Buttons (on banner)
+
+Positioned at the bottom-right of the banner:
+
+- **Container**: `absolute bottom-6 right-6 flex items-center gap-2`
+- **Edit button**: `Button` with `variant="secondary"`, `size="sm"`, glass effect: `bg-white/20 backdrop-blur-sm border-white/30 text-white hover:bg-white/30`
+  - Icon: `Pencil` `h-3.5 w-3.5`
+  - Label: "Edit" (i18n)
+- **More actions dropdown**: `DropdownMenu` trigger — icon-only button matching edit button glass style
+  - Icon: `MoreVertical` `h-4 w-4`
+  - Dropdown items: "Import Items" (Upload icon), "Export Items" (Download icon), "Delete Collection" (Trash2 icon, `text-destructive`)
+  - **Delete** uses destructive text color and shows `ConfirmDialog` on click
+
+---
+
+### Tab Navigation
+
+#### Structure
+
+Three tabs: **All Items**, **Sets**, **Stats**
+
+- **Container**: `flex border-b border-border mt-6`
+- **Tab button**: `px-4 py-2.5 text-sm font-medium border-b-2 transition-colors`
+  - **Active**: `border-accent text-foreground`
+  - **Inactive**: `border-transparent text-muted-foreground hover:text-foreground hover:border-border`
+- **Sets tab** shows count: "Sets (3)" — count from `sets.length`
+- **Stats tab** only renders if collection has items (otherwise hidden)
+- **Keyboard**: Arrow keys move between tabs, Enter/Space selects, `role="tablist"` + `role="tab"` + `aria-selected`
+- **Animation**: Tab content uses `AnimatePresence mode="wait"` — exit old tab content (fade out, 150ms), enter new (fade in + slide-up 8px, 250ms)
+
+---
+
+### Items Tab
+
+#### Toolbar Layout
+
+Two rows:
+
+**Row 1 — Actions bar** (between view toggle and action buttons):
+```
+[Grid|List]                              [Export] [Import] [+ Add Item]
+```
+
+- **View toggle**: Same segmented control pattern as current — two icon buttons in a bordered container
+  - Grid icon: `LayoutGrid`, List icon: `List` — both `h-4 w-4`
+  - Active state: `bg-primary text-primary-foreground`
+  - Inactive: `bg-transparent text-muted-foreground hover:text-foreground`
+  - Persisted in localStorage per collection: key `geekvault-view-{collectionId}`
+- **Export button**: `variant="outline"`, `size="sm"`, `Download` icon + "Export" label
+- **Import button**: `variant="outline"`, `size="sm"`, `Upload` icon + "Import" label
+- **Add Item button**: `bg-accent text-accent-foreground hover:bg-accent/90`, `Plus` icon + "Add Item" label
+
+**Row 2 — Search and filters** (`mt-3`):
+```
+[🔍 Search items...]  [Condition ▾]  [All|Owned|Unowned]  [Sort ▾] [↑↓]
+```
+
+- **Search input**: `relative flex-1 min-w-0 sm:min-w-[180px]`, `Search` icon at `left-2.5 top-2.5`, `pl-9 h-9`
+  - Placeholder: "Search items..." (i18n)
+  - Updates URL search param (debounced)
+- **Condition filter**: `Select` component, `h-9 w-full sm:w-[160px]`
+  - Options: All, Mint, Near Mint, Excellent, Good, Fair, Poor
+- **Owned status toggle**: Segmented control (same pattern as view toggle)
+  - Three options: All, Owned, Unowned
+  - `px-3 py-1.5 text-xs font-medium`
+- **Sort select**: `Select`, `h-9 w-full sm:w-[120px]`
+  - Options: Custom, Name, Price, Value, Date, Rarity
+- **Sort direction**: Icon-only button, `h-9 w-9`, `ArrowUp` / `ArrowDown` based on current direction
+
+#### Grid View — Item Cards
+
+- **Grid**: `grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4`, `mt-4`
+- **Card container**: `Card` with `rounded-lg` (`--radius-lg`, 12px), `overflow-hidden`, `cursor-pointer`, `group`
+  - Note: Item cards use `--radius-lg` (12px), not `--radius-xl` (16px) like collection cards — these are smaller, denser items
+- **Image area**: `aspect-square bg-muted relative`
+  - With image: `object-cover h-full w-full`, CSS `transition: transform 400ms` for hover zoom (`group-hover:scale-105`)
+  - No image: Gradient placeholder `from-primary/5 to-accent/5` with centered `Image` icon (`h-10 w-10 text-muted-foreground/30`)
+- **Owned indicator**: Green circle badge at `top-2 right-2`, `bg-success`, `Check` icon `h-3 w-3 text-white`
+- **Drag handle**: `absolute top-2 left-2 z-10`, `bg-black/40 text-white rounded p-1`, `opacity-0 group-hover:opacity-100 transition-opacity`
+  - `GripVertical` icon `h-3.5 w-3.5`
+  - Only visible when sort is "custom"
+- **Context menu** (use as cover): `absolute top-2 right-2 z-10` (shifts to right-10 when owned badge is present), `opacity-0 group-hover:opacity-100`
+  - Only appears if item has an image
+- **Hover overlay**: `absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all` with centered "View" pill
+- **Card body**: `p-3 space-y-1`
+  - **Item name**: `text-sm font-medium text-foreground line-clamp-1`
+  - **Identifier**: `text-xs text-muted-foreground`
+  - **Rarity badge** (if present): `Badge variant="outline" size="sm"`, `mt-1`
+- **Hover effect**: `-translate-y-0.5`, `shadow-lg` via `transition-all`
+- **Press effect**: None (card navigates on click)
+- **Active ring** (owned items): `ring-2 ring-success/50`
+- **Drag active**: `ring-2 ring-accent shadow-lg`
+- **Keyboard**: `tabIndex={0}`, `role="link"`, `onKeyDown` Enter/Space → navigate to `/collections/{id}/items/{itemId}`
+
+#### List View — Data Table
+
+- **Columns**:
+  1. **Thumbnail**: 40×40px image in `rounded bg-muted`, fallback `Image` icon — `w-[60px]`
+  2. **Name**: Primary text, `sortable: true`
+  3. **Identifier**: Secondary text
+  4. **Status**: Owned = `Badge variant="success"`, Unowned = `Badge variant="outline"`
+  5. **Rarity**: Text or "—" if null
+  6. **Actions**: `DropdownMenu` with "Use as Cover" (only if item has image) — `w-[48px]`
+- **Row click**: Navigates to item detail page
+- **Row hover**: `hover:bg-muted/50`
+- **Responsive column hiding**: Hide Rarity at `<1024px`, hide Identifier at `<768px`
+
+#### Empty State
+
+- **Icon**: `Package` from lucide-react
+- **Title**: "No items yet" (i18n: `emptyStates.collectionDetail.title`)
+- **Description**: "Add your first item to start building this collection" (i18n: `emptyStates.collectionDetail.description`)
+- **Action button**: "Add Item" — opens add item dialog
+- **No-results variant**: When search/filter returns empty but collection has items:
+  - Title: "No matching items"
+  - Description: "Try adjusting your search or filters"
+  - Action: "Clear filters" — resets all URL search params
+
+#### Drag-to-Reorder
+
+- Only active when sort = "custom" (default sort)
+- Uses `SortableList` from `ds/` with `layout="grid"`
+- **Drag feedback**: `ring-2 ring-accent`, `shadow-xl`, `scale-1.02` (matches collections list spec)
+- **Optimistic update**: Reorder items immediately in UI, revert on API error with toast notification
+
+---
+
+### Sets Tab
+
+- **Header bar**: `flex items-center justify-between mt-4 mb-4`
+  - **Title**: "Sets" `text-lg font-semibold`
+  - **Create Set button**: `Button` with `variant="outline"`, `size="sm"`, `Plus` icon + "Create Set"
+- **Sets list**: Expandable accordion-style cards
+  - **Set card**: `Card` with `p-4`, `cursor-pointer`, `hover:bg-muted/30 transition-colors`
+    - **Row layout**: `flex items-center justify-between`
+    - **Left side**: `flex items-center gap-3`
+      - Expand chevron: `ChevronDown` icon, `h-4 w-4`, rotates 180° when expanded (`transition-transform`)
+      - Set name: `text-sm font-medium`
+      - Completion badge: `text-xs text-muted-foreground` — e.g., "12/20 items"
+    - **Right side**: `flex items-center gap-2`
+      - Progress bar: `w-24 h-2 rounded-full bg-muted overflow-hidden` with inner fill `bg-accent` at `width: {completionPercentage}%`, `transition-all duration-slow`
+      - Percentage text: `text-xs font-medium` — e.g., "60%"
+        - Color by completion: `<50%` = `text-muted-foreground`, `50-99%` = `text-accent`, `100%` = `text-success`
+      - Edit button: `Pencil` icon button, `h-8 w-8`
+      - Delete button: `Trash2` icon button, `h-8 w-8`, `hover:text-destructive`
+  - **Expanded content**: `AnimatePresence` with slide-down animation (`height: 0 → auto`, 250ms, ease-enter)
+    - **Items list**: `mt-3 space-y-1 pl-8`
+    - Each item row: `flex items-center gap-2 py-1.5 text-sm`
+      - Owned indicator: `CheckCircle2` (green, `text-success`) or `Circle` (muted, `text-muted-foreground/40`)
+      - Item name: `text-foreground` if owned, `text-muted-foreground` if not
+      - If linked to catalog item: clickable, hover underline
+    - **Add items button**: At bottom of expanded list, `text-xs text-accent hover:underline cursor-pointer`
+    - **Remove item**: `Trash2` icon on hover, `h-3.5 w-3.5`, `text-muted-foreground hover:text-destructive`
+
+- **Empty state**: When no sets exist
+  - Icon: `Package` or `Layers` icon
+  - Title: "No sets yet"
+  - Description: "Create sets to track completion of themed subgroups"
+  - Action: "Create Set" button
+
+---
+
+### Stats Tab
+
+- **Layout**: `mt-4 grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3`
+
+#### Stats Cards
+
+- **Total Items**: `StatCard` — icon `Package`, value = item count, label "Total Items"
+- **Owned Items**: `StatCard` — icon `Check`, value = owned count, label "Owned Items", subtitle showing ownership percentage
+- **Total Value**: `StatCard` — icon `DollarSign`, value = total value (formatted currency), label "Total Value"
+- **Sets Completion** (if sets exist): `StatCard` — icon `Target`, value = avg completion %, label "Set Completion"
+- **Card design**: Same `StatCard` component from dashboard with `--radius-lg`, `border`, `p-4`, amber icon container, animated number
+
+#### Condition Breakdown Chart
+
+- **Container**: `Card` with `p-6`, `col-span-1 md:col-span-2 lg:col-span-2`
+- **Chart**: Donut chart (recharts `PieChart` with `innerRadius` + `outerRadius`) showing items by condition
+- **Colors**: Use `hsl(var(--chart-N))` palette
+- **Legend**: Custom legend below chart with condition name + count + percentage
+
+#### Rarity Distribution Chart (if rarity data exists)
+
+- **Container**: `Card` with `p-6`
+- **Chart**: Horizontal bar chart showing items per rarity level
+- **Colors**: `hsl(var(--chart-N))` palette
+
+---
+
+### Add Item Dialog
+
+- **Trigger**: "Add Item" button in toolbar
+- **Dialog**: `Dialog` + `DialogContent` — max-width `max-w-lg`
+- **Form layout**: `space-y-4`
+  - **Identifier** (required): `Label` + `Input`, full width
+  - **Name** (required): `Label` + `Input`, full width
+  - **Description**: `Label` + `Textarea`, full width
+  - **Release Date**: `Label` + `Input type="date"`, half width
+  - **Manufacturer**: `Label` + `Input`, half width (side-by-side with release date on desktop)
+  - **Reference Code**: `Label` + `Input`, half width
+  - **Rarity**: `Label` + `Input`, half width (side-by-side with reference code)
+  - **Image upload**: Dropzone — `border-2 border-dashed border-border rounded-lg p-6 text-center hover:border-accent/50 transition-colors cursor-pointer`
+    - Idle: `Upload` icon + "Click or drag image" text
+    - With file: Thumbnail preview (64×64px, `object-cover rounded`) + filename + "Remove" link
+  - **Custom fields** (dynamic, from collection type): Rendered based on `collectionType.customFields` — `Input` for text, `Select` for options, with required indicator `*`
+- **Footer**: `flex justify-end gap-2`
+  - Cancel: `variant="ghost"`
+  - Submit: `bg-accent text-accent-foreground`, loading spinner when submitting
+- **Error display**: `text-sm text-destructive mt-2` below form
+
+---
+
+### Export Dialog
+
+- **Dialog**: `Dialog` + `DialogContent`, compact `max-w-sm`
+- **Format selection**: Two radio-style cards side by side
+  - CSV card: File icon + "CSV" + "Spreadsheet compatible"
+  - JSON card: Code icon + "JSON" + "Full data with metadata"
+  - Active: `ring-2 ring-accent`
+- **Footer**: Cancel + "Export" button (with loading state)
+- **Error**: Inline text below format cards
+
+---
+
+### Import Dialog
+
+- Renders `ImportWizard` component in a dialog
+- Entry point: "Import Items" in toolbar or "Import Items" in banner dropdown
+- Full-width dialog: `max-w-2xl`
+
+---
+
+### Loading State
+
+- **Banner skeleton**: `rounded-xl` container with `h-60` (desktop), custom `skeleton-pulse` animation
+  - Overlay area: Two line skeletons (title + description widths) at bottom-left
+- **Tab bar skeleton**: Three pill-shaped skeletons inline, `h-8 w-20` each
+- **Toolbar skeleton**: Full-width `h-9` bar + row of filter skeletons
+- **Grid skeleton**: 4-column grid of card skeletons — `aspect-square` image area + two text lines below
+  - 8 skeleton cards total
+
+#### Animation
+
+- Skeletons render immediately — uses custom `skeleton-pulse` keyframe per design-motion.md
+- No entrance animation on loading state — instant render so user sees structure
+
+---
+
+### Error / Not Found State
+
+- **Not found**: Centered layout with `text-muted-foreground` message + "Back to Collections" outline button
+- **Fetch error**: Inline error banner below the header — `rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive`
+
+---
+
+### Responsive Behavior Summary
+
+| Element | Desktop (≥1024px) | Tablet (768px–1023px) | Mobile (<768px) |
+|---------|-------------------|----------------------|-----------------|
+| **Banner height** | `h-60` (240px) | `h-48` (192px) | `h-40` (160px) |
+| **Banner padding** | `p-6` | `p-5` | `p-4` |
+| **Banner text** | `display-lg` (36px) | `display-lg` (36px) | `text-xl` (20px, font-bold) |
+| **Stats in banner** | Inline row, all stats | Inline row, all stats | Wrap, hide value if zero |
+| **Action buttons** | On banner, glass style | On banner, glass style | Below banner, standard buttons |
+| **Tab bar** | Full-width | Full-width | Full-width, scrollable if needed |
+| **Toolbar row 1** | Single row | Single row | Stack: view toggle above, actions below |
+| **Toolbar row 2** | Single row | Wrap naturally | Stack vertically, full-width inputs |
+| **Items grid columns** | 4-col | 3-col | 1-col (or 2-col for small cards) |
+| **Items grid gap** | `--space-4` (16px) | `--space-4` (16px) | `--space-3` (12px) |
+| **Card aspect ratio** | `aspect-square` | `aspect-square` | `aspect-square` |
+| **List view columns** | All 6 | Hide Rarity | Hide Rarity + Identifier |
+| **Set card layout** | Full row with progress bar | Full row | Stack progress below name |
+| **Stats tab grid** | 3-col | 2-col | 1-col |
+| **Section gap** | `--space-6` (24px) | `--space-6` (24px) | `--space-4` (16px) |
+
+---
+
+### Implementation Notes
+
+1. **Cover image banner** is the biggest visual change from current — current shows a small `h-48/h-56` image strip; redesign makes it a full-width hero with metadata overlay. The gradient overlay and text positioning are critical for readability on any image.
+2. **Frosted glass action buttons** on the banner use `bg-white/20 backdrop-blur-sm border-white/30` — same pattern as collection grid card action buttons but adapted for the banner context.
+3. **Gradient fallback** for missing covers uses the same 4-gradient rotation from collections list page — `index % 4` but here the index can be derived from `collection.id % 4` since there's only one collection.
+4. **Stats in the banner** replace the old separate stats display — embedding them in the hero reduces vertical space usage and creates a more cohesive header.
+5. **Tab animation** uses `AnimatePresence mode="wait"` for content switching — keep it lightweight (fade + small y offset) to avoid feeling slow when switching tabs frequently.
+6. **Set accordion expand** uses Framer Motion `animate={{ height: "auto" }}` — this requires measuring content height. Consider using `layout` prop for smooth height transitions.
+7. **Completion percentage color thresholds** (muted < 50%, accent 50-99%, success 100%) create visual reward as sets approach completion — this is a deliberate gamification touch.
+8. **Mobile action buttons** move below the banner instead of floating on it — avoids touch target issues with absolute positioning on small screens. Use standard button variants instead of glass effect.
+9. **Custom fields in add-item form** are dynamically rendered from `collectionType.customFields` — the form must handle text inputs, select dropdowns (for fields with options), and required field validation.
+10. **Image hover zoom** on grid item cards uses CSS `transition: transform 400ms`, NOT Framer Motion — matches the pattern established in collections list page.
+11. **Search filters persist in URL params** — current implementation already does this correctly; preserve the pattern for shareable/bookmarkable filtered views.

@@ -190,7 +190,7 @@
         "Document appended to tasks/design-pages.md under 'Collection Detail' section"
       ],
       "priority": 9,
-      "passes": false,
+      "passes": true,
       "notes": "This is a complex page — balance information density with visual clarity."
     },
     {

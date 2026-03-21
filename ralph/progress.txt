@@ -184,4 +184,26 @@
   - List view thumbnail (40×40px) in name column is a new pattern — adds visual context not present in the current text-only DataTable
   - Drag handle and collection type badge share the top-left corner — when drag handle is present (custom sort), badge shifts to `left-12`
   - Card lift on hover is -4px (stronger than dashboard's -2px) — this is the hero page, cards should feel more responsive
+  - Collection detail item cards use `--radius-lg` (12px) not `--radius-xl` — smaller items warrant tighter radius than collection gallery cards
+  - Cover image banner with gradient overlay and metadata text: `bg-gradient-to-t from-black/70 via-black/30 to-transparent`
+  - Gradient fallback for single collection cover: use `collection.id % 4` since there's no list index available
+  - Mobile breakpoint moves banner action buttons below the banner — absolute positioning on small screens causes touch target issues
+  - Set completion color thresholds: <50% muted, 50-99% accent, 100% success — gamification touch
+---
+
+## 2026-03-21 - US-009
+- Designed collection detail page with full visual specification
+- Appended "Collection Detail" section to `tasks/design-pages.md`
+- Sections: Design Philosophy, Overall Page Layout, Back Navigation, Collection Header/Banner (cover image treatment, metadata overlay, action buttons), Tab Navigation, Items Tab (toolbar, grid view, list view, empty state, drag-to-reorder), Sets Tab (accordion expansion, progress bars, CRUD), Stats Tab (stat cards, charts), Add Item Dialog, Export Dialog, Import Dialog, Loading State, Error/Not Found State, Responsive Summary, Implementation Notes
+- Key decisions: cover image as full-width cinematic banner with frosted glass overlay, tab-based content organization, stats embedded in banner, item cards use --radius-lg (12px) vs collection cards' --radius-xl (16px), set completion uses color thresholds for gamification
+- **Learnings for future iterations:**
+  - Collection detail item cards use `--radius-lg` (12px), not `--radius-xl` (16px) — items are denser/smaller than collection gallery cards
+  - Cover image banner uses `bg-gradient-to-t from-black/70 via-black/30 to-transparent` for text readability on any image
+  - Gradient fallback for a single collection: `collection.id % 4` (no list index available, unlike collections list page)
+  - Frosted glass buttons on banners: `bg-white/20 backdrop-blur-sm border-white/30 text-white hover:bg-white/30`
+  - Mobile adaptation moves absolute-positioned banner buttons to below the banner — absolute positioning on small touch screens causes target issues
+  - Set accordion expand uses Framer Motion `animate={{ height: "auto" }}` — requires measuring content; consider `layout` prop
+  - Completion color thresholds (<50% muted, 50-99% accent, 100% success) — deliberate gamification for set tracking
+  - Stats tab reuses `StatCard` from dashboard — keep consistent card design across pages
+  - Tab content animation should be lightweight (fade + small y) to avoid feeling slow on frequent tab switches
 ---
