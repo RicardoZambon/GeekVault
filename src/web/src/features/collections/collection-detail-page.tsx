@@ -2,13 +2,27 @@ import { useState, useEffect, useCallback, type FormEvent } from "react"
 import { useParams, useNavigate, useSearchParams } from "react-router-dom"
 import { useTranslation } from "react-i18next"
 import { motion, AnimatePresence } from "framer-motion"
-import { Plus, ArrowLeft, Image, Package, Check, Trash2, Pencil, Search, SearchX, CheckCircle2, Circle, ArrowUp, ArrowDown, Download, Upload, LayoutGrid, List, ChevronDown, GripVertical, MoreVertical, DollarSign, Target } from "lucide-react"
+import { Plus, ArrowLeft, Image, Package, Check, Trash2, Pencil, Search, SearchX, CheckCircle2, Circle, ArrowUp, ArrowDown, Download, Upload, LayoutGrid, List, ChevronDown, GripVertical, MoreVertical, DollarSign, Target, Heart, Trophy, BarChart3 } from "lucide-react"
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip as RechartsTooltip,
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+} from "recharts"
 import { ImportWizard } from "./components/import-wizard"
 import {
   EmptyState,
   Badge,
   Card,
   CardContent,
+  CardHeader,
+  CardTitle,
   DataTable,
   SkeletonRect,
   Select,
@@ -22,6 +36,8 @@ import {
   DropdownMenuTrigger,
   DropdownMenuContent,
   DropdownMenuItem,
+  durations,
+  easings,
 } from "@/components/ds"
 import type { DataTableColumn } from "@/components/ds"
 import { useAuth } from "@/components/auth-provider"
@@ -126,6 +142,40 @@ const WARM_GRADIENTS = [
   "from-[hsl(var(--chart-7))] to-[hsl(var(--chart-8))]",
 ]
 
+const CHART_COLORS = Array.from({ length: 8 }, (_, i) => `var(--chart-${i + 1})`)
+
+function getCompletionColor(pct: number): string {
+  if (pct >= 100) return "bg-green-500"
+  if (pct >= 50) return "bg-accent"
+  return "bg-muted-foreground/40"
+}
+
+function getCompletionTextColor(pct: number): string {
+  if (pct >= 100) return "text-green-500"
+  if (pct >= 50) return "text-accent"
+  return "text-muted-foreground"
+}
+
+interface ChartTooltipProps {
+  active?: boolean
+  payload?: Array<{ name: string; value: number; payload: { condition?: string; rarity?: string; count: number } }>
+  total?: number
+}
+
+function ChartTooltip({ active, payload, total }: ChartTooltipProps) {
+  if (!active || !payload?.length) return null
+  const { name, value } = payload[0]
+  const percentage = total ? ((value / total) * 100).toFixed(1) : null
+  return (
+    <div className="rounded-[var(--radius-md)] border border-border bg-card px-3 py-2 shadow-md">
+      <p className="text-sm font-medium text-foreground">{name}</p>
+      <p className="text-xs text-muted-foreground">
+        {value} {percentage && `(${percentage}%)`}
+      </p>
+    </div>
+  )
+}
+
 export default function CollectionDetail() {
   const { id } = useParams()
   const { t } = useTranslation()
@@ -222,6 +272,10 @@ export default function CollectionDetail() {
   const [exportFormat, setExportFormat] = useState<"csv" | "json">("csv")
   const [exporting, setExporting] = useState(false)
   const [exportError, setExportError] = useState("")
+
+  // Wishlist state for set items
+  const [wishlistAdding, setWishlistAdding] = useState<Set<number>>(new Set())
+  const [wishlistAdded, setWishlistAdded] = useState<Set<number>>(new Set())
 
   // Import state
   const [importDialogOpen, setImportDialogOpen] = useState(false)
@@ -581,6 +635,32 @@ export default function CollectionDetail() {
       // non-critical
     } finally {
       setSetItemDeleting(false)
+    }
+  }
+
+  // --- Add to Wishlist ---
+  async function handleAddToWishlist(setItem: SetItem) {
+    if (wishlistAdding.has(setItem.id) || wishlistAdded.has(setItem.id)) return
+    setWishlistAdding((prev) => { const next = new Set(prev); next.add(setItem.id); return next })
+    try {
+      const res = await fetch(`/api/collections/${id}/wishlist`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          name: setItem.name,
+          catalogItemId: setItem.catalogItemId,
+          priority: 2, // Medium priority default
+          targetPrice: null,
+          notes: null,
+        }),
+      })
+      if (!res.ok) throw new Error("Failed")
+      setWishlistAdded((prev) => { const next = new Set(prev); next.add(setItem.id); return next })
+      toast.success(t("sets.addedToWishlist"))
+    } catch {
+      toast.error(t("sets.wishlistFailed"))
+    } finally {
+      setWishlistAdding((prev) => { const next = new Set(prev); next.delete(setItem.id); return next })
     }
   }
 
@@ -1276,6 +1356,8 @@ export default function CollectionDetail() {
                 const pct = s.completionPercentage ?? 0
                 const isExpanded = expandedSets.has(s.id)
                 const detail = setDetails[s.id]
+                const completionBarColor = getCompletionColor(pct)
+                const completionText = getCompletionTextColor(pct)
                 return (
                   <Card key={s.id} className="overflow-hidden">
                     {/* Accordion header */}
@@ -1283,15 +1365,17 @@ export default function CollectionDetail() {
                       className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-muted/30"
                       onClick={() => toggleSetExpanded(s.id)}
                     >
-                      <ChevronDown
-                        className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-200 ${
-                          isExpanded ? "rotate-0" : "-rotate-90"
-                        }`}
-                      />
+                      <motion.div
+                        animate={{ rotate: isExpanded ? 0 : -90 }}
+                        transition={{ duration: 0.2 }}
+                        className="shrink-0"
+                      >
+                        <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                      </motion.div>
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2">
                           <h3 className="truncate text-sm font-semibold">{s.name}</h3>
-                          <span className="shrink-0 text-xs text-muted-foreground">
+                          <span className="shrink-0 text-xs text-muted-foreground tabular-nums">
                             {s.completedCount ?? 0}/{s.expectedItemCount} {t("sets.items")}
                           </span>
                         </div>
@@ -1299,17 +1383,19 @@ export default function CollectionDetail() {
                         <div className="mt-1.5 flex items-center gap-2">
                           <div className="h-2 flex-1 overflow-hidden rounded-full bg-primary/10">
                             <div
-                              className={`h-full rounded-full transition-all duration-500 ${
-                                pct >= 100 ? "bg-green-500" : "bg-accent"
-                              }`}
+                              className={`h-full rounded-full transition-all duration-500 ${completionBarColor}`}
                               style={{ width: `${Math.min(pct, 100)}%` }}
                             />
                           </div>
-                          <span className="shrink-0 text-xs font-medium tabular-nums text-muted-foreground">
+                          <span className={`shrink-0 text-xs font-medium tabular-nums ${completionText}`}>
                             {pct.toFixed(0)}%
                           </span>
                         </div>
                       </div>
+                      {/* Completion trophy for 100% */}
+                      {pct >= 100 && (
+                        <Trophy className="h-4 w-4 shrink-0 text-green-500" />
+                      )}
                       {/* Action buttons */}
                       <div className="flex shrink-0 items-center gap-1">
                         <button
@@ -1359,48 +1445,80 @@ export default function CollectionDetail() {
                                 ))}
                               </div>
                             ) : detail.items && detail.items.length > 0 ? (
-                              <ul className="space-y-0.5">
-                                {detail.items
-                                  .sort((a, b) => a.sortOrder - b.sortOrder)
-                                  .map((si) => {
-                                    const owned = isSetItemOwned(si)
-                                    return (
-                                      <li
-                                        key={si.id}
-                                        className="group flex items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors hover:bg-muted/50"
-                                      >
-                                        {owned ? (
-                                          <CheckCircle2 className="h-4 w-4 shrink-0 text-green-500" />
-                                        ) : (
-                                          <Circle className="h-4 w-4 shrink-0 text-muted-foreground/30" />
-                                        )}
-                                        <span className={`truncate ${owned ? "text-foreground" : "text-muted-foreground"}`}>
-                                          {si.name}
-                                        </span>
-                                        <div className="ml-auto flex shrink-0 items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
-                                          {si.catalogItemId && (
-                                            <button
-                                              className="text-xs text-primary hover:underline"
-                                              onClick={() => navigate(`/collections/${id}/items/${si.catalogItemId}`)}
-                                            >
-                                              {t("sets.viewItem")}
-                                            </button>
+                              <>
+                                {/* All owned celebration */}
+                                {pct >= 100 && (
+                                  <div className="mb-3 flex items-center gap-2 rounded-lg bg-green-500/10 px-3 py-2 text-sm text-green-600 dark:text-green-400">
+                                    <Trophy className="h-4 w-4 shrink-0" />
+                                    {t("sets.allOwned")}
+                                  </div>
+                                )}
+                                <ul className="space-y-0.5">
+                                  {detail.items
+                                    .sort((a, b) => a.sortOrder - b.sortOrder)
+                                    .map((si) => {
+                                      const owned = isSetItemOwned(si)
+                                      return (
+                                        <li
+                                          key={si.id}
+                                          className={`group flex items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors hover:bg-muted/50 ${
+                                            owned
+                                              ? "border border-solid border-green-500/20 bg-green-500/5"
+                                              : "border border-dashed border-border bg-card/50"
+                                          }`}
+                                        >
+                                          {owned ? (
+                                            <CheckCircle2 className="h-4 w-4 shrink-0 text-green-500" />
+                                          ) : (
+                                            <Circle className="h-4 w-4 shrink-0 text-muted-foreground/30" />
                                           )}
-                                          <button
-                                            className="rounded p-1 text-muted-foreground hover:text-destructive"
-                                            onClick={() => {
-                                              // Set selectedSet for the remove handler
-                                              setSelectedSet(detail)
-                                              confirmRemoveSetItem(si.id)
-                                            }}
-                                          >
-                                            <Trash2 className="h-3.5 w-3.5" />
-                                          </button>
-                                        </div>
-                                      </li>
-                                    )
-                                  })}
-                              </ul>
+                                          <span className={`truncate ${owned ? "text-foreground font-medium" : "text-muted-foreground"}`}>
+                                            {si.name}
+                                          </span>
+                                          <div className="ml-auto flex shrink-0 items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+                                            {/* Add to wishlist for missing items */}
+                                            {!owned && (
+                                              <button
+                                                className={`flex items-center gap-1 rounded px-2 py-0.5 text-xs transition-colors ${
+                                                  wishlistAdded.has(si.id)
+                                                    ? "text-muted-foreground cursor-default"
+                                                    : "text-accent hover:bg-accent/10"
+                                                }`}
+                                                onClick={() => handleAddToWishlist(si)}
+                                                disabled={wishlistAdding.has(si.id) || wishlistAdded.has(si.id)}
+                                              >
+                                                <Heart className={`h-3 w-3 ${wishlistAdded.has(si.id) ? "fill-current" : ""}`} />
+                                                {wishlistAdding.has(si.id)
+                                                  ? t("sets.adding")
+                                                  : wishlistAdded.has(si.id)
+                                                    ? t("sets.inWishlist")
+                                                    : t("sets.addToWishlist")}
+                                              </button>
+                                            )}
+                                            {si.catalogItemId && (
+                                              <button
+                                                className="text-xs text-primary hover:underline"
+                                                onClick={() => navigate(`/collections/${id}/items/${si.catalogItemId}`)}
+                                              >
+                                                {t("sets.viewItem")}
+                                              </button>
+                                            )}
+                                            <button
+                                              className="rounded p-1 text-muted-foreground hover:text-destructive"
+                                              onClick={() => {
+                                                // Set selectedSet for the remove handler
+                                                setSelectedSet(detail)
+                                                confirmRemoveSetItem(si.id)
+                                              }}
+                                            >
+                                              <Trash2 className="h-3.5 w-3.5" />
+                                            </button>
+                                          </div>
+                                        </li>
+                                      )
+                                    })}
+                                </ul>
+                              </>
                             ) : (
                               <p className="py-4 text-center text-sm text-muted-foreground">
                                 {t("sets.emptyItems")}
@@ -1426,8 +1544,9 @@ export default function CollectionDetail() {
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.25 }}
-          className="mt-4"
+          className="mt-4 space-y-6"
         >
+          {/* Stat cards */}
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <Card>
               <CardContent className="p-5">
@@ -1471,6 +1590,151 @@ export default function CollectionDetail() {
               </Card>
             )}
           </div>
+
+          {/* Charts: condition breakdown and rarity distribution */}
+          {/* v8 ignore start -- recharts renders SVG; not directly testable in jsdom */}
+          {(() => {
+            // Compute rarity data from items
+            const rarityCounts: Record<string, number> = {}
+            for (const item of items) {
+              if (item.rarity) {
+                rarityCounts[item.rarity] = (rarityCounts[item.rarity] ?? 0) + 1
+              }
+            }
+            // Owned vs unowned breakdown
+            const ownedCount = ownedItemIds.size
+            const unownedCount = items.length - ownedCount
+            const ownershipData = [
+              ...(ownedCount > 0 ? [{ condition: t("collectionDetail.ownedOwned"), count: ownedCount }] : []),
+              ...(unownedCount > 0 ? [{ condition: t("collectionDetail.ownedUnowned"), count: unownedCount }] : []),
+            ]
+            const rarityData = Object.entries(rarityCounts)
+              .map(([rarity, count]) => ({ rarity, count }))
+              .sort((a, b) => b.count - a.count)
+            const ownershipTotal = ownershipData.reduce((sum, d) => sum + d.count, 0)
+            const rarityTotal = rarityData.reduce((sum, d) => sum + d.count, 0)
+
+            return (
+              <div className="grid gap-6 md:gap-4 lg:grid-cols-2">
+                {/* Ownership breakdown donut */}
+                <motion.div
+                  initial={{ opacity: 0, y: 16 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: durations.normal, ease: [...easings.enter] as [number, number, number, number] }}
+                >
+                  <Card variant="flat" className="shadow-sm">
+                    <CardHeader className="px-5 pt-5 pb-3">
+                      <CardTitle className="font-display text-xl font-semibold">{t("collectionDetail.statsOwnershipBreakdown")}</CardTitle>
+                    </CardHeader>
+                    <CardContent className="px-5 pb-4">
+                      {ownershipData.length > 0 ? (
+                        <>
+                          <div className="h-64">
+                            <ResponsiveContainer width="100%" height="100%">
+                              <PieChart>
+                                <Pie
+                                  data={ownershipData}
+                                  dataKey="count"
+                                  nameKey="condition"
+                                  cx="50%"
+                                  cy="50%"
+                                  innerRadius={50}
+                                  outerRadius={80}
+                                  isAnimationActive
+                                  animationDuration={800}
+                                >
+                                  {ownershipData.map((_, index) => (
+                                    <Cell key={index} fill={CHART_COLORS[index % CHART_COLORS.length]} />
+                                  ))}
+                                </Pie>
+                                <RechartsTooltip content={<ChartTooltip total={ownershipTotal} />} />
+                                <text
+                                  x="50%"
+                                  y="50%"
+                                  textAnchor="middle"
+                                  dominantBaseline="central"
+                                  className="fill-foreground font-display text-2xl font-bold"
+                                >
+                                  {ownershipTotal}
+                                </text>
+                              </PieChart>
+                            </ResponsiveContainer>
+                          </div>
+                          <div className="mt-3 flex flex-wrap gap-3">
+                            {ownershipData.map((entry, index) => (
+                              <div key={entry.condition} className="flex items-center gap-1.5">
+                                <span
+                                  className="inline-block h-2 w-2 rounded-full"
+                                  style={{ backgroundColor: CHART_COLORS[index % CHART_COLORS.length] }}
+                                />
+                                <span className="text-xs text-muted-foreground">{entry.condition}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </>
+                      ) : (
+                        <div className="flex h-64 items-center justify-center">
+                          <p className="text-sm text-muted-foreground">{t("collectionDetail.statsNoData")}</p>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                </motion.div>
+
+                {/* Rarity distribution bar chart */}
+                <motion.div
+                  initial={{ opacity: 0, y: 16 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: durations.normal, ease: [...easings.enter] as [number, number, number, number] }}
+                >
+                  <Card variant="flat" className="shadow-sm">
+                    <CardHeader className="px-5 pt-5 pb-3">
+                      <CardTitle className="font-display text-xl font-semibold">{t("collectionDetail.statsRarityDistribution")}</CardTitle>
+                    </CardHeader>
+                    <CardContent className="px-5 pb-4">
+                      {rarityData.length > 0 ? (
+                        <div className="h-64">
+                          <ResponsiveContainer width="100%" height="100%">
+                            <BarChart data={rarityData}>
+                              <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                              <XAxis
+                                dataKey="rarity"
+                                tick={{ fontSize: 12, fill: "var(--muted-foreground)" }}
+                                axisLine={false}
+                                tickLine={false}
+                              />
+                              <YAxis
+                                allowDecimals={false}
+                                tick={{ fontSize: 12, fill: "var(--muted-foreground)" }}
+                                axisLine={false}
+                                tickLine={false}
+                              />
+                              <RechartsTooltip content={<ChartTooltip total={rarityTotal} />} />
+                              <Bar
+                                dataKey="count"
+                                fill="var(--chart-1)"
+                                radius={[6, 6, 0, 0]}
+                                isAnimationActive
+                                animationDuration={800}
+                              />
+                            </BarChart>
+                          </ResponsiveContainer>
+                        </div>
+                      ) : (
+                        <div className="flex h-64 items-center justify-center">
+                          <div className="text-center">
+                            <BarChart3 className="mx-auto h-8 w-8 text-muted-foreground/30" />
+                            <p className="mt-2 text-sm text-muted-foreground">{t("collectionDetail.statsNoRarityData")}</p>
+                          </div>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              </div>
+            )
+          })()}
+          {/* v8 ignore stop */}
         </motion.div>
       )}
 

@@ -299,7 +299,7 @@
         "Verify in browser using dev-browser skill"
       ],
       "priority": 16,
-      "passes": false,
+      "passes": true,
       "notes": "Spec: tasks/design-pages.md → Collection Detail section (Header, Tabs)"
     },
     {
@@ -319,7 +319,7 @@
         "Verify in browser using dev-browser skill"
       ],
       "priority": 17,
-      "passes": false,
+      "passes": true,
       "notes": "Spec: tasks/design-pages.md → Collection Detail section (Items Tab)"
     },
     {
@@ -338,7 +338,7 @@
         "Verify in browser using dev-browser skill"
       ],
       "priority": 18,
-      "passes": false,
+      "passes": true,
       "notes": "Spec: tasks/design-pages.md → Collection Detail section (Sets Tab, Stats Tab)"
     },
     {

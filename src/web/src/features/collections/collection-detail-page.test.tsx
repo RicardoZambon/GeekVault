@@ -2095,4 +2095,195 @@ describe("CollectionDetail", () => {
     expect(banner?.className).toContain("md:h-48")
     expect(banner?.className).toContain("lg:h-60")
   })
+
+  // --- US-018: Sets tab and Stats tab redesign ---
+
+  it("applies completion color thresholds: muted for <50%, accent for 50-99%, success for 100%", async () => {
+    const setsData = [
+      { id: 10, collectionId: 1, name: "Low Set", expectedItemCount: 10, completedCount: 2, completionPercentage: 20 },
+      { id: 11, collectionId: 1, name: "Mid Set", expectedItemCount: 10, completedCount: 7, completionPercentage: 70 },
+      { id: 12, collectionId: 1, name: "Full Set", expectedItemCount: 5, completedCount: 5, completionPercentage: 100 },
+    ]
+    vi.spyOn(global, "fetch").mockImplementation((url) => {
+      const urlStr = String(url)
+      if (urlStr.includes("/collection-types/")) return Promise.resolve({ ok: true, json: () => Promise.resolve(collectionType) } as Response)
+      if (urlStr.includes("/copies")) return Promise.resolve({ ok: true, json: () => Promise.resolve([]) } as Response)
+      if (urlStr.includes("/sets")) return Promise.resolve({ ok: true, json: () => Promise.resolve(setsData) } as Response)
+      if (urlStr.match(/\/collections\/\d+$/)) return Promise.resolve({ ok: true, json: () => Promise.resolve(collection) } as Response)
+      return Promise.resolve({ ok: true, json: () => Promise.resolve(items) } as Response)
+    })
+    renderWithRoute()
+    await waitFor(() => screen.getByText("Comics"))
+    fireEvent.click(screen.getByText(/sets\.title/))
+    await waitFor(() => screen.getByText("Low Set"))
+
+    // Check progress bar colors via the bar elements
+    const progressBars = document.querySelectorAll(".rounded-full.transition-all")
+    const barClasses = Array.from(progressBars).map((el) => el.className)
+    // Low (<50%) should have muted color
+    expect(barClasses.some((c) => c.includes("bg-muted-foreground"))).toBe(true)
+    // Mid (50-99%) should have accent
+    expect(barClasses.some((c) => c.includes("bg-accent"))).toBe(true)
+    // Full (100%) should have green
+    expect(barClasses.some((c) => c.includes("bg-green-500"))).toBe(true)
+  })
+
+  it("shows trophy icon for 100% complete sets", async () => {
+    const setsData = [
+      { id: 12, collectionId: 1, name: "Full Set", expectedItemCount: 5, completedCount: 5, completionPercentage: 100 },
+    ]
+    vi.spyOn(global, "fetch").mockImplementation((url) => {
+      const urlStr = String(url)
+      if (urlStr.includes("/collection-types/")) return Promise.resolve({ ok: true, json: () => Promise.resolve(collectionType) } as Response)
+      if (urlStr.includes("/copies")) return Promise.resolve({ ok: true, json: () => Promise.resolve([]) } as Response)
+      if (urlStr.includes("/sets")) return Promise.resolve({ ok: true, json: () => Promise.resolve(setsData) } as Response)
+      if (urlStr.match(/\/collections\/\d+$/)) return Promise.resolve({ ok: true, json: () => Promise.resolve(collection) } as Response)
+      return Promise.resolve({ ok: true, json: () => Promise.resolve(items) } as Response)
+    })
+    renderWithRoute()
+    await waitFor(() => screen.getByText("Comics"))
+    fireEvent.click(screen.getByText(/sets\.title/))
+    await waitFor(() => screen.getByText("Full Set"))
+    // Trophy icon should be rendered (lucide renders as svg)
+    const trophySvg = document.querySelector(".text-green-500")
+    expect(trophySvg).toBeInTheDocument()
+  })
+
+  it("shows all-owned celebration message and owned/missing visual distinction in set items", async () => {
+    const setsData = [
+      { id: 10, collectionId: 1, name: "Complete Set", expectedItemCount: 2, completedCount: 2, completionPercentage: 100 },
+    ]
+    const setDetail = {
+      id: 10, collectionId: 1, name: "Complete Set", expectedItemCount: 2, completedCount: 2, completionPercentage: 100,
+      items: [
+        { id: 100, setId: 10, catalogItemId: 1, name: "Spider-Man #1", sortOrder: 1 },
+        { id: 101, setId: 10, catalogItemId: 2, name: "Batman #1", sortOrder: 2 },
+      ],
+    }
+    vi.spyOn(global, "fetch").mockImplementation((url) => {
+      const urlStr = String(url)
+      if (urlStr.includes("/collection-types/")) return Promise.resolve({ ok: true, json: () => Promise.resolve(collectionType) } as Response)
+      if (urlStr.includes("/items/1/copies")) return Promise.resolve({ ok: true, json: () => Promise.resolve([{ id: 1 }]) } as Response)
+      if (urlStr.includes("/items/2/copies")) return Promise.resolve({ ok: true, json: () => Promise.resolve([{ id: 2 }]) } as Response)
+      if (urlStr.includes("/copies")) return Promise.resolve({ ok: true, json: () => Promise.resolve([]) } as Response)
+      if (urlStr.match(/\/sets\/10$/)) return Promise.resolve({ ok: true, json: () => Promise.resolve(setDetail) } as Response)
+      if (urlStr.includes("/sets")) return Promise.resolve({ ok: true, json: () => Promise.resolve(setsData) } as Response)
+      if (urlStr.match(/\/collections\/\d+$/)) return Promise.resolve({ ok: true, json: () => Promise.resolve(collection) } as Response)
+      return Promise.resolve({ ok: true, json: () => Promise.resolve(items) } as Response)
+    })
+    renderWithRoute()
+    await waitFor(() => screen.getByText("Comics"))
+    fireEvent.click(screen.getByText(/sets\.title/))
+    await waitFor(() => screen.getByText("Complete Set"))
+    fireEvent.click(screen.getByText("Complete Set"))
+    await waitFor(() => screen.getByText("sets.allOwned"))
+    // Owned items should have solid border class
+    const listItems = document.querySelectorAll("li.border-solid")
+    expect(listItems.length).toBeGreaterThan(0)
+  })
+
+  it("shows add-to-wishlist button on missing set items", async () => {
+    const setsData = [
+      { id: 10, collectionId: 1, name: "Series A", expectedItemCount: 2, completedCount: 0, completionPercentage: 0 },
+    ]
+    const setDetail = {
+      id: 10, collectionId: 1, name: "Series A", expectedItemCount: 2, completedCount: 0, completionPercentage: 0,
+      items: [
+        { id: 101, setId: 10, catalogItemId: null, name: "Missing Item", sortOrder: 1 },
+      ],
+    }
+    vi.spyOn(global, "fetch").mockImplementation((url) => {
+      const urlStr = String(url)
+      if (urlStr.includes("/collection-types/")) return Promise.resolve({ ok: true, json: () => Promise.resolve(collectionType) } as Response)
+      if (urlStr.includes("/copies")) return Promise.resolve({ ok: true, json: () => Promise.resolve([]) } as Response)
+      if (urlStr.match(/\/sets\/10$/)) return Promise.resolve({ ok: true, json: () => Promise.resolve(setDetail) } as Response)
+      if (urlStr.includes("/sets")) return Promise.resolve({ ok: true, json: () => Promise.resolve(setsData) } as Response)
+      if (urlStr.match(/\/collections\/\d+$/)) return Promise.resolve({ ok: true, json: () => Promise.resolve(collection) } as Response)
+      return Promise.resolve({ ok: true, json: () => Promise.resolve(items) } as Response)
+    })
+    renderWithRoute()
+    await waitFor(() => screen.getByText("Comics"))
+    fireEvent.click(screen.getByText(/sets\.title/))
+    await waitFor(() => screen.getByText("Series A"))
+    fireEvent.click(screen.getByText("Series A"))
+    await waitFor(() => screen.getByText("Missing Item"))
+    // Missing items should have dashed border
+    const dashedItems = document.querySelectorAll("li.border-dashed")
+    expect(dashedItems.length).toBeGreaterThan(0)
+    // Add to wishlist button should be present
+    expect(screen.getByText("sets.addToWishlist")).toBeInTheDocument()
+  })
+
+  it("handles add-to-wishlist click with optimistic UI", async () => {
+    const setsData = [
+      { id: 10, collectionId: 1, name: "Series A", expectedItemCount: 1, completedCount: 0, completionPercentage: 0 },
+    ]
+    const setDetail = {
+      id: 10, collectionId: 1, name: "Series A", expectedItemCount: 1, completedCount: 0, completionPercentage: 0,
+      items: [
+        { id: 101, setId: 10, catalogItemId: null, name: "Missing Item", sortOrder: 1 },
+      ],
+    }
+    vi.spyOn(global, "fetch").mockImplementation((url, opts) => {
+      const urlStr = String(url)
+      const method = (opts as RequestInit)?.method ?? "GET"
+      if (urlStr.includes("/wishlist") && method === "POST") {
+        return Promise.resolve({ ok: true, json: () => Promise.resolve({ id: 1 }) } as Response)
+      }
+      if (urlStr.includes("/collection-types/")) return Promise.resolve({ ok: true, json: () => Promise.resolve(collectionType) } as Response)
+      if (urlStr.includes("/copies")) return Promise.resolve({ ok: true, json: () => Promise.resolve([]) } as Response)
+      if (urlStr.match(/\/sets\/10$/)) return Promise.resolve({ ok: true, json: () => Promise.resolve(setDetail) } as Response)
+      if (urlStr.includes("/sets")) return Promise.resolve({ ok: true, json: () => Promise.resolve(setsData) } as Response)
+      if (urlStr.match(/\/collections\/\d+$/)) return Promise.resolve({ ok: true, json: () => Promise.resolve(collection) } as Response)
+      return Promise.resolve({ ok: true, json: () => Promise.resolve(items) } as Response)
+    })
+    renderWithRoute()
+    await waitFor(() => screen.getByText("Comics"))
+    fireEvent.click(screen.getByText(/sets\.title/))
+    await waitFor(() => screen.getByText("Series A"))
+    fireEvent.click(screen.getByText("Series A"))
+    await waitFor(() => screen.getByText("sets.addToWishlist"))
+    fireEvent.click(screen.getByText("sets.addToWishlist"))
+    // After successful add, should show "In Wishlist"
+    await waitFor(() => {
+      expect(screen.getByText("sets.inWishlist")).toBeInTheDocument()
+    })
+  })
+
+  it("renders stats tab with ownership and rarity charts section", async () => {
+    const itemsWithRarity = {
+      items: [
+        { id: 1, collectionId: 1, identifier: "SM-001", name: "Spider-Man #1", description: null, releaseDate: null, manufacturer: null, referenceCode: null, image: null, rarity: "Rare", customFieldValues: [], ownedCopies: null },
+        { id: 2, collectionId: 1, identifier: "BM-001", name: "Batman #1", description: null, releaseDate: null, manufacturer: null, referenceCode: null, image: null, rarity: "Common", customFieldValues: [], ownedCopies: null },
+      ],
+      totalCount: 2,
+      page: 1,
+      pageSize: 100,
+    }
+    vi.spyOn(global, "fetch").mockImplementation((url) => {
+      const urlStr = String(url)
+      if (urlStr.includes("/collection-types/")) return Promise.resolve({ ok: true, json: () => Promise.resolve(collectionType) } as Response)
+      if (urlStr.includes("/copies")) return Promise.resolve({ ok: true, json: () => Promise.resolve([]) } as Response)
+      if (urlStr.includes("/sets")) return Promise.resolve({ ok: true, json: () => Promise.resolve([]) } as Response)
+      if (urlStr.match(/\/collections\/\d+$/)) return Promise.resolve({ ok: true, json: () => Promise.resolve(collection) } as Response)
+      return Promise.resolve({ ok: true, json: () => Promise.resolve(itemsWithRarity) } as Response)
+    })
+    renderWithRoute()
+    await waitFor(() => screen.getByText("Comics"))
+    fireEvent.click(screen.getByText("collectionDetail.tabStats"))
+    await waitFor(() => {
+      expect(screen.getByText("collectionDetail.statsOwnershipBreakdown")).toBeInTheDocument()
+      expect(screen.getByText("collectionDetail.statsRarityDistribution")).toBeInTheDocument()
+    })
+  })
+
+  it("shows no rarity data message when items have no rarity", async () => {
+    mockFetch()
+    renderWithRoute()
+    await waitFor(() => screen.getByText("Comics"))
+    fireEvent.click(screen.getByText("collectionDetail.tabStats"))
+    await waitFor(() => {
+      expect(screen.getByText("collectionDetail.statsNoRarityData")).toBeInTheDocument()
+    })
+  })
 })

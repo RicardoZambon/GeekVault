@@ -315,6 +315,10 @@
     "statsItems": "Total Items",
     "statsOwned": "Owned Copies",
     "statsCompletion": "Completion",
+    "statsOwnershipBreakdown": "Ownership Breakdown",
+    "statsRarityDistribution": "Rarity Distribution",
+    "statsNoData": "No data available yet",
+    "statsNoRarityData": "No rarity data available",
     "noMatchingItems": "No matching items",
     "noMatchingItemsHint": "Try adjusting your search or filters",
     "clearFilters": "Clear filters"
@@ -400,7 +404,13 @@
     "emptyItems": "No items in this set yet. Add items to track completion.",
     "viewItem": "View",
     "removeItemTitle": "Remove Item",
-    "removeItemConfirm": "Are you sure you want to remove this item from the set?"
+    "removeItemConfirm": "Are you sure you want to remove this item from the set?",
+    "addToWishlist": "Add to Wishlist",
+    "adding": "Adding...",
+    "inWishlist": "In Wishlist",
+    "addedToWishlist": "Added to wishlist",
+    "wishlistFailed": "Failed to add to wishlist",
+    "allOwned": "Congratulations! You own all items in this set!"
   },
   "wishlist": {
     "title": "Wishlist",

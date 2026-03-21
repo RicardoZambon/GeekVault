@@ -315,6 +315,10 @@
     "statsItems": "Total de Itens",
     "statsOwned": "Cópias Possuídas",
     "statsCompletion": "Conclusão",
+    "statsOwnershipBreakdown": "Distribuição de Posse",
+    "statsRarityDistribution": "Distribuição de Raridade",
+    "statsNoData": "Nenhum dado disponível ainda",
+    "statsNoRarityData": "Nenhum dado de raridade disponível",
     "noMatchingItems": "Nenhum item correspondente",
     "noMatchingItemsHint": "Tente ajustar sua busca ou filtros",
     "clearFilters": "Limpar filtros"
@@ -400,7 +404,13 @@
     "emptyItems": "Nenhum item neste conjunto ainda. Adicione itens para acompanhar o progresso.",
     "viewItem": "Ver",
     "removeItemTitle": "Remover Item",
-    "removeItemConfirm": "Tem certeza de que deseja remover este item do conjunto?"
+    "removeItemConfirm": "Tem certeza de que deseja remover este item do conjunto?",
+    "addToWishlist": "Adicionar à Lista",
+    "adding": "Adicionando...",
+    "inWishlist": "Na Lista de Desejos",
+    "addedToWishlist": "Adicionado à lista de desejos",
+    "wishlistFailed": "Falha ao adicionar à lista de desejos",
+    "allOwned": "Parabéns! Você possui todos os itens deste conjunto!"
   },
   "wishlist": {
     "title": "Lista de Desejos",
