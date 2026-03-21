@@ -1,0 +1,54 @@
+# Ralph Progress — GeekVault SaaS Redesign Plan
+# Branch: ralph/saas-redesign-plan
+# Started: 2026-03-21
+
+## Codebase Patterns
+- CSS custom properties defined in `src/web/src/index.css` with `:root` (light) and `.dark` scopes
+- Sidebar has its own token set (`--sidebar-*`) separate from main theme
+- Components in `ds/` are design-system-level; `ui/` holds shadcn/ui primitives
+- All pages use react-i18next — every UI string needs keys in both `en.json` and `pt.json`
+- Feature pages are in `src/web/src/features/{domain}/` with co-located sub-components
+- Animation uses Framer Motion wrappers from `ds/motion.tsx` — respects `prefers-reduced-motion`
+- Layout breakpoints: mobile (<768px uses Header+Sheet), tablet/desktop (>=768px uses Sidebar+TopToolbar)
+- Sidebar collapse state persisted in localStorage key `"geekvault-sidebar-collapsed"`
+- Chart colors in dashboard are hardcoded — not from CSS tokens (dark mode issue)
+- Empty states inconsistent: some pages show EmptyState component, dashboard sub-sections return null
+- New palette uses Tailwind "stone" scale (warm grays) — all neutrals must be stone, not slate/zinc/gray
+- Amber accent: #D97706 (light) / #F59E0B (dark) — always brighter on dark backgrounds
+- New semantic tokens: `--warning` and `--info` (not in current codebase, will need adding)
+
+---
+
+## 2026-03-21 - US-001
+- Completed full design audit of the frontend
+- Files created: `tasks/design-audit.md`
+- **Learnings for future iterations:**
+  - Auth layout uses hardcoded gradient colors, not CSS variables — needs fixing in redesign
+  - Chart colors (#1B3A6B, #E8A838) are hardcoded in charts-section.tsx — nearly invisible in dark mode
+  - No shadow/elevation tokens exist — all shadows via Tailwind utilities with no dark mode adaptation
+  - Stats row grid jumps 2-col → 5-col, leaving orphan card on tablet
+  - Card click handlers use onClick on divs — not keyboard accessible
+  - `prefers-reduced-motion` is respected in motion.tsx but NOT in Tailwind animate-pulse/animate-spin
+  - Spacing tokens (--space-*) exist but are rarely used in practice — most spacing is direct Tailwind utilities
+---
+
+## 2026-03-21 - US-002
+- Defined new color palette and brand identity: "Warm Obsidian" direction
+- Proposed 3 palette directions (Slate & Emerald, Warm Obsidian, Arctic Violet), selected Warm Obsidian
+- Full light + dark mode specification with stone/warm gray family and deep amber accent
+- Sidebar tokens for both modes (always-dark sidebar with amber active indicators)
+- 8-color chart palette for recharts (light + dark variants)
+- Interactive state colors: focus ring, selection highlight, hover overlays
+- Dark mode elevation strategy with warm surface stacking
+- WCAG AA contrast ratios verified for all key pairings
+- Files created: `tasks/design-tokens.md` (Color Palette section)
+- **Learnings for future iterations:**
+  - Tailwind's "stone" scale (warm grays) is the foundation — all neutrals must use stone, not slate/zinc/gray
+  - Amber accent shifts from #D97706 (light) to #F59E0B (dark) — brighter on dark backgrounds
+  - Primary button inverts between modes: dark-on-light → light-on-dark (not just accent swap)
+  - Dark mode needs more opaque shadows (rgba 0.5) since subtle shadows vanish on dark backgrounds
+  - `focus-visible` (not `focus`) should be used for focus rings to avoid rings on mouse click
+  - Chart colors need separate light/dark values — brighter variants for dark mode backgrounds
+  - Warning token (#E89B2D / #FBBF24) is new — current codebase lacks it, will need adding
+  - Info token (#2563EB / #3B82F6) is new — current codebase also lacks it
+---

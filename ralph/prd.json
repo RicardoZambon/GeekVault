@@ -1,0 +1,401 @@
+{
+  "project": "GeekVault",
+  "branchName": "ralph/saas-redesign-plan",
+  "description": "Plan the GeekVault SaaS-grade frontend redesign — audit current design, define visual identity, design every page, and produce a comprehensive implementation PRD",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Audit current design and identify gaps",
+      "description": "As a designer, I want a thorough audit of the current frontend so that I know exactly what exists, what works, and what needs to change.",
+      "acceptanceCriteria": [
+        "Read all CSS tokens from src/web/src/index.css and document the current color palette (light + dark), typography, spacing, elevation, and border-radius values",
+        "Read every component in src/web/src/components/ds/ and src/web/src/components/ui/ — document each component's purpose, variants, and visual patterns",
+        "Read every page in src/web/src/features/ — document each page's current layout, sections, and components used",
+        "Read src/web/src/components/layout/ — document the app shell structure (sidebar, header, toolbar, user-menu, command-palette, animated-outlet)",
+        "Catalog design inconsistencies: spacing mismatches, color usage drift, component pattern variations across pages",
+        "Identify missing components or patterns that top-tier SaaS apps have (e.g., empty states, loading skeletons, micro-interactions, onboarding)",
+        "Document responsive behavior gaps across mobile, tablet, and desktop breakpoints",
+        "Assess dark mode quality — are there surfaces, components, or states where dark mode feels like an afterthought?",
+        "Identify accessibility gaps: missing focus rings, ARIA labels, keyboard navigation, or reduced-motion support",
+        "Document saved to tasks/design-audit.md with sections: Current Design System, Page-by-Page Audit, Inconsistencies, Missing Patterns, Responsive Gaps, Accessibility Gaps, Dark Mode Assessment, Summary of Priorities"
+      ],
+      "priority": 1,
+      "passes": true,
+      "notes": "This is the foundation — every subsequent story references this audit. Be thorough. Read actual file contents, don't guess."
+    },
+    {
+      "id": "US-002",
+      "title": "Define new color palette and brand identity (light + dark)",
+      "description": "As a designer, I want to define a new color palette for both light and dark modes so that GeekVault has a distinctive premium identity.",
+      "acceptanceCriteria": [
+        "Read tasks/design-audit.md to understand current state and gaps",
+        "Read src/web/src/index.css to see current token structure and variable names",
+        "Use the frontend-design skill to propose 2-3 distinct palette directions — each with primary, accent, semantic (success/warning/destructive/info), and neutral scales for both light and dark modes",
+        "For each direction, provide rationale: what mood it evokes, what SaaS products it's inspired by, why it works for a collectibles app",
+        "Select the strongest direction and fully specify it",
+        "Define sidebar-specific tokens that complement the main palette",
+        "Define chart color palette (6-8 harmonious colors) for recharts visualizations",
+        "Define focus ring, selection highlight, and hover overlay colors",
+        "Describe side-by-side light vs dark comparison for key surfaces: background, card, sidebar, input, modal overlay",
+        "Document saved to tasks/design-tokens.md under 'Color Palette' section"
+      ],
+      "priority": 2,
+      "passes": true,
+      "notes": "The frontend-design skill has full creative freedom — NOT constrained by the current Navy + Gold scheme. Be opinionated, propose one strong direction."
+    },
+    {
+      "id": "US-003",
+      "title": "Define typography and spacing scale",
+      "description": "As a designer, I want to define typography pairings and a spacing system so that text and layout feel cohesive and premium.",
+      "acceptanceCriteria": [
+        "Read tasks/design-tokens.md (palette from US-002) to ensure typography complements the chosen palette",
+        "Read src/web/src/index.css to see current font-display, font-body, and spacing tokens",
+        "Define font pairing: display font (headings, brand) + body font (UI text, paragraphs) — with Google Fonts URLs or system font stacks",
+        "Define full type scale: display (xl, lg), heading (h1-h4), body (lg, base, sm), caption, overline — with size, weight, line-height, letter-spacing for each",
+        "Define spacing scale: base unit and progression (e.g., 4px base with 0.5, 1, 1.5, 2, 3, 4, 5, 6, 8, 10, 12, 16, 20, 24 multipliers)",
+        "Define border-radius tokens: none, sm, md, lg, xl, 2xl, full — with px values",
+        "Define shadow/elevation scale: sm, md, lg, xl — with CSS box-shadow values for both light and dark modes",
+        "Define the complete CSS custom property names to be used (matching existing structure in index.css where possible)",
+        "Document appended to tasks/design-tokens.md under 'Typography', 'Spacing', 'Border Radius', and 'Elevation' sections"
+      ],
+      "priority": 3,
+      "passes": false,
+      "notes": "These tokens will be used by every component and page. Be precise with values — implementation should be copy-paste from this spec."
+    },
+    {
+      "id": "US-004",
+      "title": "Define animation and motion language",
+      "description": "As a designer, I want a defined motion language so that every animation in the app feels intentional, consistent, and premium.",
+      "acceptanceCriteria": [
+        "Read src/web/src/components/ds/motion.tsx to understand current animation patterns (PageTransition, FadeIn, StaggerChildren, ScaleIn)",
+        "Read tasks/design-tokens.md to align motion with the new visual identity",
+        "Define animation principles (3-5 rules, e.g., 'purposeful over decorative', 'fast by default', 'physics-based feel')",
+        "Define duration tokens with ms values: instant (~50ms), fast (~150ms), normal (~250ms), slow (~400ms), deliberate (~600ms)",
+        "Define easing curves with cubic-bezier values: standard, enter (decelerate), exit (accelerate), and spring parameters for Framer Motion",
+        "Define page transition pattern: enter animation, exit animation, between-page sequencing (wait vs crossfade)",
+        "Define component entrance patterns: stagger timing between children, individual entrance types (fade, scale, slide-up, slide-in)",
+        "Define hover/press micro-interactions for: buttons (scale/shadow), cards (lift/glow), links (underline/color), icon buttons (rotate/bounce)",
+        "Define loading patterns: skeleton pulse animation, spinner, progress bar",
+        "Define modal/dialog entrance+exit, sheet slide, toast slide-in, dropdown appear",
+        "Define drag-and-drop feedback: lift shadow, scale, placeholder style, drop animation",
+        "Define reduced-motion fallback strategy (what happens when prefers-reduced-motion is set)",
+        "Document saved to tasks/design-motion.md with sections for each pattern type"
+      ],
+      "priority": 4,
+      "passes": false,
+      "notes": "Use Framer Motion syntax for spring/transition configs where applicable — makes implementation easier."
+    },
+    {
+      "id": "US-005",
+      "title": "Design app shell and navigation layout",
+      "description": "As a designer, I want to decide the optimal navigation layout so that users can move through the app effortlessly on any device.",
+      "acceptanceCriteria": [
+        "Read src/web/src/components/layout/ — all files (app-layout.tsx, sidebar.tsx, header.tsx, top-toolbar.tsx, user-menu.tsx, command-palette.tsx, animated-outlet.tsx)",
+        "Read tasks/design-audit.md for current layout assessment",
+        "Read tasks/design-tokens.md for new palette and typography to reference",
+        "Use the frontend-design skill to evaluate layout paradigms (sidebar, top-nav, hybrid, bottom-nav mobile) and propose the best approach for a collectibles management app",
+        "Document the selected layout paradigm with rationale (why this over alternatives)",
+        "Define desktop layout: navigation placement, content area dimensions, toolbar/header, spacing between sections",
+        "Define tablet adaptation: what changes at 768px breakpoint",
+        "Define mobile layout: navigation approach (bottom nav, drawer, hamburger sheet), header content, how content area adapts",
+        "Define navigation item hierarchy with groupings — Primary: Dashboard, Collections; Management: Collection Types, Wishlist; Account: Profile; Admin: Admin (conditional on role)",
+        "Define active, hover, focus, and disabled states for navigation items",
+        "Define breadcrumbs or location awareness strategy (where shown, format, behavior)",
+        "Define collapse/expand behavior: trigger, animation, persisted state, tooltip behavior when collapsed",
+        "Define user menu: trigger (avatar), dropdown content (profile link, theme toggle, language, logout), placement",
+        "Document saved to tasks/design-layout.md under 'App Shell & Navigation' section"
+      ],
+      "priority": 5,
+      "passes": false,
+      "notes": "The frontend-design skill decides the paradigm — don't assume sidebar. Consider what works best for a collectibles management app specifically."
+    },
+    {
+      "id": "US-006",
+      "title": "Design command palette",
+      "description": "As a designer, I want to design an enhanced command palette so that power users can navigate and act quickly via keyboard.",
+      "acceptanceCriteria": [
+        "Read src/web/src/components/layout/command-palette.tsx for current implementation",
+        "Read tasks/design-tokens.md and tasks/design-motion.md for new visual identity and animation patterns",
+        "Define visual design: backdrop (blur, overlay color, opacity), container (width, max-height, border, shadow, radius), search input (icon, placeholder text, height), result list (spacing, dividers)",
+        "Define result groups: Navigation (pages), Collections (user's collections), Recent Items (recently viewed), Actions (create collection, add to wishlist, etc.), Settings (theme, language)",
+        "Define result item layout: icon + primary label + secondary description + optional keyboard shortcut hint — with spacing and typography",
+        "Define keyboard interactions: open (Cmd/Ctrl+K), navigate results (arrow keys), select (Enter), dismiss (Esc), clear search (Cmd+Backspace)",
+        "Define search behavior: what gets indexed, fuzzy matching, how results are ranked/scored",
+        "Define empty state (no search query — show recent/suggested) and no-results state (search with no matches)",
+        "Define entrance/exit animation using motion tokens from design-motion.md",
+        "Document appended to tasks/design-layout.md under 'Command Palette' section"
+      ],
+      "priority": 6,
+      "passes": false,
+      "notes": "This uses cmdk library. Design should work within cmdk's component model."
+    },
+    {
+      "id": "US-007",
+      "title": "Design dashboard / home screen",
+      "description": "As a designer, I want to design a dashboard that gives users an at-a-glance overview and makes them excited to engage with the app.",
+      "acceptanceCriteria": [
+        "Read src/web/src/features/dashboard/ — all files (dashboard-page.tsx and components/)",
+        "Read tasks/design-tokens.md, tasks/design-motion.md, tasks/design-layout.md for new design language",
+        "Use the frontend-design skill to design the dashboard layout",
+        "Define overall page layout: section order, grid structure, spacing between sections",
+        "Define welcome/greeting section: personalized or time-aware greeting, user name, optional subtitle (e.g., collection count)",
+        "Define stats row: which 4-5 metrics to show (collections, items, owned copies, total value, total invested), card layout, icon placement, animated number behavior, trend indicator (up/down/neutral with color)",
+        "Define charts section: chart types (pie for conditions, bar for breakdown — or alternatives), 2-column grid layout, chart styling (colors from chart palette, legends, tooltips), responsive stacking behavior",
+        "Define collection summaries section: card design (cover image treatment, title, item count, last updated), grid layout, max items shown, 'View all' link",
+        "Define recent acquisitions section: table or card layout, which columns/fields (item name, collection, date, price, condition), row count limit",
+        "Define empty state: compelling onboarding CTA when user has no collections (icon, message, primary action button)",
+        "Define loading state: skeleton layout that matches the final design structure",
+        "Define responsive behavior: how each section adapts at desktop → tablet → mobile",
+        "Document saved to tasks/design-pages.md under 'Dashboard' section (create the file if it doesn't exist)"
+      ],
+      "priority": 7,
+      "passes": false,
+      "notes": "Dashboard uses recharts for charts. Design should work with recharts component model."
+    },
+    {
+      "id": "US-008",
+      "title": "Design collections list page",
+      "description": "As a designer, I want to design the collections browsing experience so that managing the vault feels enjoyable and premium.",
+      "acceptanceCriteria": [
+        "Read src/web/src/features/collections/collections-page.tsx for current implementation",
+        "Read tasks/design-tokens.md and tasks/design-layout.md for new design language",
+        "Define grid view card design: cover image treatment (aspect ratio, fallback gradient, overlay), title and metadata overlay position, hover effects (lift, glow, action buttons appear), action buttons (view, edit, delete)",
+        "Define list view design: table columns (name, type, item count, last updated), row height, hover state, inline action buttons",
+        "Define toolbar: search input (width, placeholder, icon), filter dropdowns (collection type, sort by), view toggle (grid/list icons), create collection button — layout and responsive behavior",
+        "Define create/edit dialog: form layout (name, description, type select, cover image dropzone), image upload interaction (drag-and-drop zone, preview, remove), validation error display, button placement",
+        "Define delete confirmation: dialog content, destructive button styling",
+        "Define empty state: icon, message, primary CTA to create first collection",
+        "Define drag-to-reorder: visual feedback during drag (shadow, scale, placeholder line), only active when sort = 'custom'",
+        "Define responsive behavior: grid columns at each breakpoint, toolbar collapse on mobile (filters in expandable section)",
+        "Document appended to tasks/design-pages.md under 'Collections List' section"
+      ],
+      "priority": 8,
+      "passes": false,
+      "notes": "Grid view is the primary view. Make it visually impressive — this is the page users see most."
+    },
+    {
+      "id": "US-009",
+      "title": "Design collection detail page",
+      "description": "As a designer, I want to design a rich collection detail view showing items, sets, and stats in one place.",
+      "acceptanceCriteria": [
+        "Read src/web/src/features/collections/collection-detail-page.tsx for current implementation",
+        "Read tasks/design-tokens.md and tasks/design-layout.md for new design language",
+        "Define collection header: cover image as banner (height, overlay, blur treatment), title overlay, description, metadata (type, item count, created date), action buttons (edit, import, delete)",
+        "Define catalog items section: grid card design (image, name, key attributes, condition badge) and list row design, toggle between views",
+        "Define search and filter bar for items within collection: search input, filter dropdowns (condition, sort), result count",
+        "Define stats summary: what metrics to show (item count, total value, completion percentage if sets exist), placement (sidebar, header, or inline cards)",
+        "Define tab or section structure: All Items, Sets, Stats — or alternative organization approach with rationale",
+        "Define import wizard entry point: button placement, visual prominence",
+        "Define responsive layout: how header, items grid, and tabs adapt on mobile",
+        "Document appended to tasks/design-pages.md under 'Collection Detail' section"
+      ],
+      "priority": 9,
+      "passes": false,
+      "notes": "This is a complex page — balance information density with visual clarity."
+    },
+    {
+      "id": "US-010",
+      "title": "Design catalog item detail page",
+      "description": "As a designer, I want to design a detailed item page that showcases all information and owned copies beautifully.",
+      "acceptanceCriteria": [
+        "Read src/web/src/features/collections/catalog-item-detail-page.tsx for current implementation",
+        "Read tasks/design-tokens.md for new design language",
+        "Define item hero layout: image(s) placement and sizing, name, key attributes (collection, set membership) — side-by-side on desktop, stacked on mobile",
+        "Define metadata display: how custom fields are organized (grouped sections, key-value pairs, or card-based), typography hierarchy",
+        "Define owned copies section: copy card design (condition badge, purchase date, price paid, thumbnail), add new copy button placement, edit/delete actions",
+        "Define add/edit owned copy flow: form fields (condition select, purchase date picker, price input, notes textarea, multi-image upload), dialog or inline expansion",
+        "Define set membership indicator: which sets this item belongs to, completion status hint, link to set detail",
+        "Define back navigation: breadcrumb trail (Collections > [Collection Name] > [Item Name]) or back button",
+        "Define responsive layout: desktop (image + info side-by-side, copies below) vs mobile (stacked vertically)",
+        "Document appended to tasks/design-pages.md under 'Catalog Item Detail' section"
+      ],
+      "priority": 10,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-011",
+      "title": "Design owned copies and image gallery",
+      "description": "As a designer, I want to design owned copy management with rich detail, image galleries, and inline editing.",
+      "acceptanceCriteria": [
+        "Read tasks/design-pages.md 'Catalog Item Detail' section for context on where copies appear",
+        "Read tasks/design-tokens.md and tasks/design-motion.md for design language",
+        "Define copy card design in detail: layout (horizontal or vertical), condition badge (colors for each condition level), purchase date format, price display (with currency), thumbnail size and radius, hover state",
+        "Define image gallery: grid layout for multiple images per copy, thumbnail sizing, click-to-expand lightbox interaction (overlay, zoom, navigation between images, close), transition animations",
+        "Define create/edit form in detail: condition select (dropdown with color indicators), date picker styling, price input (with currency prefix), notes textarea, multi-image upload zone (drag-and-drop, preview grid, remove individual images, reorder)",
+        "Define delete confirmation: dialog content specific to owned copies",
+        "Define inline editing pattern: which fields can be quick-edited (condition, price), trigger (click on value or edit icon), inline editor appearance, save/cancel behavior",
+        "Document appended to tasks/design-pages.md under 'Owned Copies' section"
+      ],
+      "priority": 11,
+      "passes": false,
+      "notes": "Owned copies are a core feature — the management experience should feel premium."
+    },
+    {
+      "id": "US-012",
+      "title": "Design sets page and set detail",
+      "description": "As a designer, I want to design set tracking so users can visualize their completion progress.",
+      "acceptanceCriteria": [
+        "Read src/web/src/features/ for any existing sets-related pages or components",
+        "Read tasks/design-tokens.md for design language",
+        "Define sets list view: card or table design showing set name, parent collection, completion progress (e.g., '12/20 items'), visual progress indicator",
+        "Define completion visualization: progress bar (style, colors for different completion levels), circular progress ring, or percentage badge — pick one and specify fully",
+        "Define set detail page: header with set name, collection link, overall progress prominently displayed",
+        "Define set items list: item rows/cards with clear owned vs missing visual distinction (e.g., owned = full color with checkmark, missing = muted/grayed with X or empty circle)",
+        "Define quick action: 'Add to Wishlist' button on missing items — icon, placement, confirmation behavior",
+        "Define responsive layout for both list and detail views",
+        "Document appended to tasks/design-pages.md under 'Sets' section"
+      ],
+      "priority": 12,
+      "passes": false,
+      "notes": "Completion tracking is a dopamine feature — make progress feel rewarding visually."
+    },
+    {
+      "id": "US-013",
+      "title": "Design wishlist page",
+      "description": "As a designer, I want to design a polished wishlist that helps users prioritize and track desired items.",
+      "acceptanceCriteria": [
+        "Read src/web/src/features/wishlist/wishlist-page.tsx for current implementation",
+        "Read tasks/design-tokens.md for design language",
+        "Define grouped layout: wishlist items grouped by collection with collapsible section headers (collection name, item count badge, toggle icon), collapse/expand animation",
+        "Define priority badge design: high (urgent red/orange, bold), medium (neutral blue/gray), low (subtle muted) — size, shape, label text",
+        "Define wishlist item card: name, priority badge, target price (if set), notes preview (if set), link to catalog item icon, action buttons (edit, delete) — layout and spacing",
+        "Define filter and sort bar: priority filter (all, high, medium, low), sort options (priority, price, name, date added), layout and responsive behavior",
+        "Define create/edit dialog: collection select (disabled when editing), name input, priority select, target price input, notes textarea, catalog item link (searchable dropdown) — form layout",
+        "Define drag-to-reorder: visual feedback within priority groups, drag handle placement",
+        "Define empty state: encouraging message and CTA to browse collections",
+        "Define responsive grid: column count at each breakpoint",
+        "Document appended to tasks/design-pages.md under 'Wishlist' section"
+      ],
+      "priority": 13,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-014",
+      "title": "Design collection types, profile, and auth pages",
+      "description": "As a designer, I want to design the remaining user-facing pages: collection types management, user profile, and auth pages (login + register).",
+      "acceptanceCriteria": [
+        "Read src/web/src/features/collection-types/, src/web/src/features/profile/, and src/web/src/features/auth/ for current implementations",
+        "Read tasks/design-tokens.md and tasks/design-layout.md for design language",
+        "COLLECTION TYPES: Define types list (card or table with type name, icon/color indicator, collection count), create/edit dialog (name input, icon picker or color assignment), delete confirmation with usage warning, empty state with CTA",
+        "PROFILE: Define profile header (large avatar with upload hover overlay, display name, email), form sections (Account Info: display name + email read-only, About: bio textarea, Preferences: language + currency selects, Appearance: theme toggle light/dark/system with visual indicators), save button placement and feedback, loading skeleton layout, responsive behavior",
+        "AUTH LAYOUT: Define split-screen or full-bleed layout with brand storytelling on decorative panel (gradients, patterns, or abstract imagery using new palette), form panel positioning",
+        "LOGIN: Define form layout (email input, password input, submit button, register link, error banner placement), loading state on submit",
+        "REGISTER: Define form layout (name, email, password, confirm password, submit, login link), validation states",
+        "AUTH RESPONSIVE: Mobile adaptation — hide decorative panel, center form, adjust spacing",
+        "Document appended to tasks/design-pages.md under 'Collection Types', 'Profile', and 'Auth Pages' sections"
+      ],
+      "priority": 14,
+      "passes": false,
+      "notes": "These are simpler pages grouped together to avoid tiny stories. Auth pages are the first impression — make them count."
+    },
+    {
+      "id": "US-015",
+      "title": "Design admin layout and navigation",
+      "description": "As a designer, I want to design the admin area layout so it feels connected to the main app but clearly differentiated.",
+      "acceptanceCriteria": [
+        "Read tasks/design-layout.md for main app navigation design to ensure admin complements it",
+        "Read tasks/design-tokens.md for design language",
+        "Define layout approach with rationale: shared shell with admin nav section vs completely separate admin layout vs toggle between user/admin contexts",
+        "Define admin navigation items: Users, Settings, Analytics, Audit Log — with icons",
+        "Define visual differentiation strategy: how a user knows they're in admin (accent color shift, admin badge in nav, section header, border/highlight)",
+        "Define back-to-app navigation: link placement, label, icon",
+        "Define responsive admin layout: how admin nav adapts on mobile and tablet",
+        "Define route structure: /admin, /admin/users, /admin/settings, /admin/analytics, /admin/audit-log",
+        "Document saved to tasks/design-admin.md under 'Admin Layout & Navigation' section (create the file)"
+      ],
+      "priority": 15,
+      "passes": false,
+      "notes": "Admin should feel professional and efficient, not flashy."
+    },
+    {
+      "id": "US-016",
+      "title": "Design admin user management and system settings",
+      "description": "As a designer, I want to design user management and system settings pages for the admin area.",
+      "acceptanceCriteria": [
+        "Read tasks/design-admin.md for admin layout context",
+        "Read tasks/design-tokens.md for design language",
+        "USER MANAGEMENT — User list: data table design with columns (avatar, display name, email, role badge, status indicator, last active date), row height, hover state, click action",
+        "USER MANAGEMENT — Search and filter bar: search input, role filter dropdown, status filter (active/disabled), layout",
+        "USER MANAGEMENT — User detail: profile info card, collection stats summary (collections count, items count, joined date)",
+        "USER MANAGEMENT — Edit actions: role change dropdown with confirmation dialog, enable/disable toggle with confirmation, destructive action styling",
+        "USER MANAGEMENT — Pagination: page size, page controls style, total count display",
+        "SYSTEM SETTINGS — Settings categories: General (app name, description, default language, default currency), Security (password policy toggles, session timeout input, registration toggle), Features (feature flag toggles with descriptions), Storage (upload size limit input, allowed file types checkboxes)",
+        "SYSTEM SETTINGS — Per-section layout: card per category, form fields within, save button per section",
+        "SYSTEM SETTINGS — Feedback: success toast on save, error inline, unsaved changes indicator",
+        "SYSTEM SETTINGS — Responsive: single column on mobile, side-by-side labels on desktop",
+        "Document appended to tasks/design-admin.md under 'User Management' and 'System Settings' sections"
+      ],
+      "priority": 16,
+      "passes": false,
+      "notes": "Group these two since they share admin data-table and form patterns."
+    },
+    {
+      "id": "US-017",
+      "title": "Design admin analytics dashboard and audit log",
+      "description": "As a designer, I want to design the analytics dashboard and audit log pages for the admin area.",
+      "acceptanceCriteria": [
+        "Read tasks/design-admin.md for admin layout context",
+        "Read tasks/design-tokens.md and tasks/design-pages.md 'Dashboard' section for chart styling consistency",
+        "ANALYTICS — Platform stats: stat cards for total users, active users (30d), total collections, total items — card layout matching user dashboard style but with admin-specific metrics",
+        "ANALYTICS — Growth charts: line chart for user signups over time, bar chart for collections created over time — chart styling, axes labels, tooltips",
+        "ANALYTICS — Usage breakdown: top 5 most active users (table), largest collections (table), most popular collection types (horizontal bar chart or table)",
+        "ANALYTICS — Time range selector: 7d, 30d, 90d, all time — button group or select, placement (top-right of page or inline with header)",
+        "ANALYTICS — Loading and empty states: skeleton matching chart layout, empty state for new platforms with no data",
+        "ANALYTICS — Responsive: charts stack on mobile, tables scroll horizontally",
+        "AUDIT LOG — Table design: columns (timestamp, user avatar+name, action verb, target entity, details summary), row height, alternating row bg or dividers",
+        "AUDIT LOG — Filters: action type multi-select, user search, date range picker — placement above table",
+        "AUDIT LOG — Search: search input for full-text search across log entries",
+        "AUDIT LOG — Detail expansion: click row to expand inline detail panel (or modal), showing full event payload/context",
+        "AUDIT LOG — Export: CSV export button, placement (toolbar area), loading state during export",
+        "AUDIT LOG — Pagination: same style as user management table",
+        "Document appended to tasks/design-admin.md under 'Analytics Dashboard' and 'Audit Log' sections"
+      ],
+      "priority": 17,
+      "passes": false,
+      "notes": "Analytics charts should use the same recharts color palette defined in design-tokens.md."
+    },
+    {
+      "id": "US-018",
+      "title": "Compile the implementation PRD",
+      "description": "As a project lead, I want all design decisions compiled into a single implementation PRD so that the redesign can be executed systematically.",
+      "acceptanceCriteria": [
+        "Read ALL design documents: tasks/design-audit.md, tasks/design-tokens.md, tasks/design-motion.md, tasks/design-layout.md, tasks/design-pages.md, tasks/design-admin.md",
+        "Read src/web/src/index.css, src/web/src/components/ds/, and src/web/src/features/ to understand what files need to change",
+        "Write an implementation PRD with the standard structure: Introduction, Goals, User Stories, Functional Requirements, Non-Goals, Design Considerations, Technical Considerations, Success Metrics",
+        "User stories must be implementation stories (code changes) — NOT design stories. Each story should reference the relevant design-*.md document for visual specs",
+        "Order stories by dependency: 1) Design tokens + CSS (theme), 2) Motion system, 3) App shell + navigation, 4) Command palette, 5) Each page in order (dashboard, collections, collection detail, catalog item, owned copies, sets, wishlist, collection types, profile, auth), 6) Admin layout, 7) Admin pages, 8) Final review",
+        "Each story must be small enough for one focused implementation session — split large pages into sub-stories if needed (e.g., 'Collection detail header' and 'Collection detail items grid' as separate stories)",
+        "Every implementation story must include: 'Typecheck passes' and 'Verify in browser using dev-browser skill' in acceptance criteria",
+        "Every story with UI strings must include: 'Add new strings to both src/web/src/i18n/locales/en.json and pt.json'",
+        "Include Functional Requirements section covering: theme modes, responsive breakpoints, accessibility standards, animation reduced-motion, testing requirements",
+        "Include Non-Goals: no backend changes, no new features (visual redesign only), no marketing pages",
+        "Include Technical Considerations: React 19, Tailwind CSS v4, shadcn/ui, Framer Motion, recharts, 90% coverage gate, i18n with react-i18next",
+        "Document saved to tasks/prd-saas-redesign-implementation.md"
+      ],
+      "priority": 18,
+      "passes": false,
+      "notes": "This is the most critical story — the output is the 'real' PRD that drives all implementation. Be thorough and precise. Each implementation story must be actionable without further design decisions."
+    },
+    {
+      "id": "US-019",
+      "title": "Prepare design review summary",
+      "description": "As a project lead, I want a review summary highlighting key decisions, trade-offs, and open items so the stakeholder can quickly evaluate the plan.",
+      "acceptanceCriteria": [
+        "Read ALL design documents and the implementation PRD (tasks/prd-saas-redesign-implementation.md)",
+        "Create a review summary document with sections: Executive Summary, Key Design Decisions (with rationale for each), Trade-offs and Alternatives Considered, Risk Areas (what might need iteration), Implementation Scope (story count, estimated complexity), Open Items (anything deferred or needing stakeholder input)",
+        "Executive Summary: 2-3 paragraph overview of the new design direction, what changes, what stays, and the expected impact",
+        "Key Design Decisions: list each major decision (palette, layout paradigm, motion approach, admin differentiation) with 'Decision: X, Rationale: Y, Alternative considered: Z'",
+        "Trade-offs: what was sacrificed for what (e.g., 'Chose sidebar over top-nav because X, trading off Y')",
+        "Risk Areas: which designs are most ambitious or most likely to need revision after implementation",
+        "Implementation Scope: total number of implementation stories, rough categorization (foundation, pages, admin, review)",
+        "Open Items: any questions that need stakeholder input before implementation can begin",
+        "Document saved to tasks/design-review-summary.md"
+      ],
+      "priority": 19,
+      "passes": false,
+      "notes": "This replaces the interactive sign-off story — it prepares everything for the stakeholder to review asynchronously."
+    }
+  ]
+}
