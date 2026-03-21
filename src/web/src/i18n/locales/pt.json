@@ -594,5 +594,13 @@
     "registerLink": "Cadastre-se",
     "hasAccount": "Já tem uma conta?",
     "loginLink": "Entrar"
+  },
+  "lightbox": {
+    "ariaLabel": "Galeria de imagens",
+    "close": "Fechar galeria",
+    "prev": "Imagem anterior",
+    "next": "Próxima imagem",
+    "imageAlt": "Imagem {{current}} de {{total}}",
+    "goToImage": "Ir para imagem {{index}}"
   }
 }

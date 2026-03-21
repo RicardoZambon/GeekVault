@@ -594,5 +594,13 @@
     "registerLink": "Sign up",
     "hasAccount": "Already have an account?",
     "loginLink": "Sign in"
+  },
+  "lightbox": {
+    "ariaLabel": "Image gallery",
+    "close": "Close gallery",
+    "prev": "Previous image",
+    "next": "Next image",
+    "imageAlt": "Image {{current}} of {{total}}",
+    "goToImage": "Go to image {{index}}"
   }
 }
