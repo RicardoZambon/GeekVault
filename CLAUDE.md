@@ -63,14 +63,16 @@ src/api/GeekVault.Api/
 ├── Entities/
 │   ├── Security/          # User
 │   └── Vault/             # CatalogItem, Collection, CollectionType, Set, SetItem, OwnedCopy, OwnedCopyImage, WishlistItem, etc.
+├── Models/                # Legacy/unused — original entity classes before migration to Entities/ (not referenced by any code)
 ├── DTOs/
 │   ├── Common/            # PaginatedResponse
 │   ├── Security/          # Auth, Profile DTOs
-│   └── Vault/             # Request/Response DTOs for each domain
+│   └── Vault/             # Request/Response DTOs per domain (Collection, CatalogItem, Set, OwnedCopy, Wishlist, Dashboard, CollectionType, CustomField, ImportExport)
 ├── Data/
 │   └── ApplicationDbContext.cs   # EF Core DbContext with Identity
 ├── Extensions/
-│   └── ServiceCollectionExtensions.cs  # DI registration
+│   ├── ServiceCollectionExtensions.cs  # DI registration
+│   └── FileValidationExtensions.cs     # Image file type validation
 ├── Migrations/            # EF Core migrations
 ├── wwwroot/uploads/       # File uploads (images)
 ├── Program.cs             # Minimal API entry point
@@ -79,7 +81,8 @@ src/api/GeekVault.Api/
 
 src/api/GeekVault.Api.Tests/
 ├── TestFactory.cs                    # WebApplicationFactory for integration tests
-├── *EndpointsTests.cs                # Integration tests per domain (Auth, Collections, CatalogItems, Sets, OwnedCopies, Wishlist, Dashboard, etc.)
+├── *EndpointsTests.cs                # Integration tests per domain (Auth, Collections, CatalogItems, Sets, OwnedCopies, Wishlist, Dashboard, CollectionTypes, Import, Export)
+├── CatalogItemSearchTests.cs         # Catalog item search-specific tests
 └── GeekVault.Api.Tests.csproj
 ```
 
@@ -94,10 +97,12 @@ src/api/GeekVault.Api.Tests/
 src/web/
 ├── src/
 │   ├── components/
-│   │   ├── layout/              # App shell — sidebar, header, command palette
+│   │   ├── layout/              # App shell — sidebar, header, toolbar, command palette
 │   │   │   ├── app-layout.tsx   # Main layout wrapper (sidebar + header + content)
 │   │   │   ├── sidebar.tsx      # Collapsible desktop sidebar, persistent state
 │   │   │   ├── header.tsx       # Mobile header with menu toggle
+│   │   │   ├── top-toolbar.tsx  # Top toolbar with breadcrumbs and actions
+│   │   │   ├── user-menu.tsx    # User avatar dropdown (profile, theme, logout)
 │   │   │   ├── command-palette.tsx  # Cmd+K navigation & actions (cmdk)
 │   │   │   └── animated-outlet.tsx  # Page transition wrapper (Framer Motion)
 │   │   ├── ds/                  # Design system — reusable UI components
@@ -125,7 +130,8 @@ src/web/
 │   │   └── profile/             # profile-page
 │   ├── hooks/                   # Custom React hooks
 │   │   ├── use-debounce.ts      # Debounce input values
-│   │   └── use-media-query.ts   # Responsive breakpoint detection
+│   │   ├── use-media-query.ts   # Responsive breakpoint detection
+│   │   └── index.ts             # Barrel export
 │   ├── i18n/              # i18n config and translation files
 │   │   ├── index.ts       # i18next initialization
 │   │   └── locales/       # en.json, pt.json translation files

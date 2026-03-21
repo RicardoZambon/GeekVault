@@ -1,175 +1,359 @@
 ## Codebase Patterns
-- i18n: All UI strings go in both `src/web/src/i18n/locales/en.json` and `pt.json` — nested keys under feature namespaces
-- Typecheck: `cd src/web && npx tsc -b` must pass before committing
-- Frontend tests: `cd src/web && npm test` to run all tests
+- Backend: .NET 8.0 minimal API with EF Core + SQL Server. Build: `cd src/api/GeekVault.Api && dotnet build`. Test: `cd src/api/GeekVault.Api.Tests && dotnet test`
+- Frontend: React 19 + TypeScript + Vite 8 + Tailwind CSS v4. Build: `cd src/web && npx tsc -b`. Test: `cd src/web && npm test`
+- i18n: All UI strings go in both `src/web/src/i18n/locales/en.json` and `pt.json`
+- Existing patterns to follow: CatalogItemsService.ReorderAsync for reorder logic, SetsService for completion % calculation
+- CollectionResponse is a positional record — all constructor call sites are in CollectionsService only (now includes CollectionTypeName)
+- Use GetByIdAndUserIdWithTypeAsync (not GetByIdAndUserIdAsync) when you need CollectionType.Name in the response
+- CollectionWithCounts DTO in ICollectionsRepository is the projected query pattern for GetAll — extend it for new fields (includes ItemCount + OwnedCount)
+- OwnedCopies count subquery pattern: `_db.OwnedCopies.Count(oc => _db.CatalogItems.Any(ci => ci.Id == oc.CatalogItemId && ci.CollectionId == c.Id))`
+- Owned copies endpoint: POST /api/items/{catalogItemId}/copies (requires Condition field)
+- CollectionResponse now includes OwnedCount + CompletionPercentage — all constructor call sites updated in CollectionsService
+- EF Core migrations: use `defaultValueSql: "GETUTCDATE()"` instead of `defaultValue` for UTC now defaults on existing rows
+- Catalog items endpoint: POST /api/collections/{collectionId}/items (requires Identifier field)
+- Both repositories share the same scoped DbContext — setting UpdatedAt on a Collection loaded by one repo and calling SaveChangesAsync on another repo persists all tracked changes
+- Collections reorder endpoint: POST /api/collections/reorder with `{ CollectionIds: [int] }` — default sort is now sortOrder (not name), use `?sortBy=name` for explicit alphabetical
+- SortableList gridClassName doesn't accept inline styles — use Tailwind arbitrary property for custom grid template columns
+- Frontend collections page: isCustomSort (sortBy === "sortOrder") toggles between SortableList (draggable) and StaggerChildren (animated)
 
 ---
 
 ## 2026-03-15 - US-001
-- Added i18n keys for sidebar and toolbar redesign to both en.json and pt.json
-- Keys added: `app.tagline`, `nav.groups.*`, `nav.userMenu.*`, `toolbar.*`
-- Files changed: `src/web/src/i18n/locales/en.json`, `src/web/src/i18n/locales/pt.json`
+- Added CreatedAt (DateTime, default UTC now) and UpdatedAt (DateTime?, nullable) to Collection entity
+- Updated CollectionResponse DTO to include both timestamp fields
+- Set CreatedAt on CreateAsync, UpdatedAt on UpdateAsync and UploadCoverAsync
+- Generated EF Core migration with GETUTCDATE() default for existing rows
+- All 128 integration tests pass, build succeeds
+- Files changed:
+  - src/api/GeekVault.Api/Entities/Vault/Collection.cs
+  - src/api/GeekVault.Api/DTOs/Vault/CollectionDtos.cs
+  - src/api/GeekVault.Api/Services/Vault/CollectionsService.cs
+  - src/api/GeekVault.Api/Migrations/20260315234848_AddCollectionTimestamps.cs
+  - src/api/GeekVault.Api/Migrations/20260315234848_AddCollectionTimestamps.Designer.cs
 - **Learnings for future iterations:**
-  - The locale files are plain JSON with nested namespaces — follow existing grouping conventions
-  - Both locale files must stay in sync — same keys, translated values
+  - EF Core migration default values use `defaultValue` which sets a C# literal — use `defaultValueSql: "GETUTCDATE()"` for UTC now defaults on existing rows
+  - CollectionResponse is a positional record in CollectionDtos.cs — adding fields requires updating all constructor call sites in CollectionsService
+  - All CollectionResponse constructors are in CollectionsService only (no other services create them)
 ---
 
 ## 2026-03-15 - US-002
-- DropdownMenu component already existed at `src/web/src/components/ds/dropdown-menu.tsx`
-- It wraps `@radix-ui/react-dropdown-menu` (already installed) and exports all required primitives
-- Barrel export in `ds/index.ts` already includes all DropdownMenu exports
-- No code changes needed — verified existing implementation meets all acceptance criteria
-- Files changed: none (just PRD update)
+- Propagated UpdatedAt to parent Collection from CatalogItemsService (CreateAsync, DeleteAsync, ReorderAsync) and OwnedCopiesService (CreateAsync, DeleteAsync)
+- For CatalogItemsService: collection already loaded via _collectionsRepository — just set collection.UpdatedAt before SaveChangesAsync
+- For OwnedCopiesService: item.Collection already loaded via GetCatalogItemWithCollectionAsync (Include) — set item.Collection.UpdatedAt before SaveChangesAsync
+- All 128 integration tests pass, build succeeds
+- Files changed:
+  - src/api/GeekVault.Api/Services/Vault/CatalogItemsService.cs
+  - src/api/GeekVault.Api/Services/Vault/OwnedCopiesService.cs
 - **Learnings for future iterations:**
-  - The `components/ds/` directory is where shadcn/ui-style components live (not `components/ui/`)
-  - `components/ui/` has lower-level primitives (button, dialog, input, label, sheet)
-  - Always check existing components before creating new ones — the PRD notes hint at this
+  - Both repositories share the same scoped DbContext — setting a property on an entity loaded by one repo and calling SaveChangesAsync on another repo persists all tracked changes
+  - OwnedCopiesRepository.GetCatalogItemWithCollectionAsync includes Collection navigation property, so item.Collection is available for direct mutation
 ---
 
 ## 2026-03-15 - US-003
-- Replaced flat `navItems` array with exported `navGroups: NavGroup[]` structure in sidebar.tsx
-- Three groups: Overview (Dashboard), Collections (Collections, Collection Types, Wishlist), Account (Profile)
-- Both `Sidebar` and `MobileSidebarContent` now iterate over `navGroups` instead of `navItems`
-- Added `NavItem` and `NavGroup` interfaces
-- No functional changes — same nav items render in the same order
-- Files changed: `src/web/src/components/layout/sidebar.tsx`
+- Added CollectionTypeName (string) to CollectionResponse DTO
+- Added .Include(c => c.CollectionType) to GetByUserIdAsync in CollectionsRepository
+- Created GetByUserIdWithCountsAsync projected query in repository — returns CollectionWithCounts (Collection + ItemCount) in single DB round-trip, eliminating N+1
+- Updated GetAllAsync to use projected query instead of per-collection GetItemCountAsync loop
+- Updated GetByIdAsync and UpdateAsync to use GetByIdAndUserIdWithTypeAsync for CollectionType.Name
+- Updated CreateAsync to reload with type after save
+- All 128 integration tests pass, build succeeds
+- Files changed:
+  - src/api/GeekVault.Api/DTOs/Vault/CollectionDtos.cs
+  - src/api/GeekVault.Api/Repositories/Vault/ICollectionsRepository.cs
+  - src/api/GeekVault.Api/Repositories/Vault/CollectionsRepository.cs
+  - src/api/GeekVault.Api/Services/Vault/CollectionsService.cs
 - **Learnings for future iterations:**
-  - `navGroups` is exported from sidebar.tsx for shared use
-  - Each group has a `labelKey` (i18n) and `items` array
-  - Both desktop and mobile sidebar components consume the same data structure
+  - CollectionWithCounts in ICollectionsRepository is the projected query DTO — extend it for additional computed fields (OwnedCount for US-005)
+  - GetByIdAndUserIdWithTypeAsync already existed and includes CollectionType — use it when CollectionType.Name is needed
+  - After AddAsync+SaveChangesAsync, navigation properties aren't loaded — reload with GetByIdAndUserIdWithTypeAsync to get CollectionType.Name
 ---
 
-## 2026-03-15 - US-004
-- Rebuilt sidebar header to show vault icon + "GeekVault" title (font-display) + tagline subtitle (i18n `app.tagline`)
-- Header height changed from h-14 to h-[72px] with proper vertical centering
-- Collapsed mode shows only vault icon centered; expanded shows icon + text block with gap-3
-- Removed logoFull image usage from desktop sidebar (still used by MobileSidebarContent)
-- Files changed: `src/web/src/components/layout/sidebar.tsx`
+## 2026-03-16 - US-004
+- Added server-side sort to GET /api/collections with sortBy (name | updatedAt | itemCount | createdAt) and sortDir (asc | desc) query params
+- Default sort: name ascending
+- Sorting performed in DB query via IQueryable OrderBy/OrderByDescending in the repository projected query
+- For updatedAt sort, uses coalesce (UpdatedAt ?? CreatedAt) so collections without updates sort by creation date
+- Added 6 integration tests covering each sort option and default behavior
+- All 134 tests pass, build succeeds
+- Files changed:
+  - src/api/GeekVault.Api/Controllers/Vault/CollectionsController.cs
+  - src/api/GeekVault.Api/Repositories/Vault/ICollectionsRepository.cs
+  - src/api/GeekVault.Api/Repositories/Vault/CollectionsRepository.cs
+  - src/api/GeekVault.Api/Services/Vault/ICollectionsService.cs
+  - src/api/GeekVault.Api/Services/Vault/CollectionsService.cs
+  - src/api/GeekVault.Api.Tests/CollectionEndpointsTests.cs
 - **Learnings for future iterations:**
-  - `font-display` maps to Nunito font (defined in index.css as `--font-display`)
-  - `vaultIcon` asset is the small square icon, `logoFull` is the full horizontal logo image
-  - Sidebar header and top toolbar should both be h-[72px] for visual alignment
+  - Catalog items endpoint is POST /api/collections/{collectionId}/items (not /api/catalog-items) and requires Identifier field
+  - Sort in repository: use switch expression on sortBy with ToLowerInvariant() for case-insensitive matching
+  - When filtering dotnet test by name, coverage gate may fail due to low coverage — run all tests for final validation
 ---
 
-## 2026-03-15 - US-005
-- Updated sidebar dimensions: expanded w-[260px], collapsed w-[72px]
-- Nav items now min-h-[44px] for comfortable touch targets
-- Icons increased from h-4 w-4 to h-5 w-5 for all nav items
-- Gap between navigation groups changed to gap-4 (16px)
-- Applied to both Sidebar and MobileSidebarContent
-- Files changed: `src/web/src/components/layout/sidebar.tsx`
+## 2026-03-16 - US-005
+- Added OwnedCount (int) and CompletionPercentage (double, 0-100) to CollectionResponse DTO
+- Extended CollectionWithCounts with OwnedCount field, added OwnedCopies.Count() subquery to projected query in GetByUserIdWithCountsAsync
+- Added GetOwnedCountAsync to ICollectionsRepository for single-collection lookups (GetByIdAsync, UpdateAsync)
+- CompletionPercentage calculated as Math.Round((double)ownedCount / itemCount * 100, 1), 0 when itemCount is 0
+- Added 2 integration tests: GetCollection_ReturnsCompletionPercentage, ListCollections_ReturnsCompletionPercentage
+- All 136 tests pass, build succeeds
+- Files changed:
+  - src/api/GeekVault.Api/DTOs/Vault/CollectionDtos.cs
+  - src/api/GeekVault.Api/Repositories/Vault/ICollectionsRepository.cs
+  - src/api/GeekVault.Api/Repositories/Vault/CollectionsRepository.cs
+  - src/api/GeekVault.Api/Services/Vault/CollectionsService.cs
+  - src/api/GeekVault.Api.Tests/CollectionEndpointsTests.cs
 - **Learnings for future iterations:**
-  - Sidebar widths are only defined in sidebar.tsx — no external references to update
-  - The nav group wrapping div with gap-4 also prepares for group labels in US-006
+  - OwnedCopies count subquery: `_db.OwnedCopies.Count(oc => _db.CatalogItems.Any(ci => ci.Id == oc.CatalogItemId && ci.CollectionId == c.Id))` — same pattern used in GetCollectionSummariesAsync
+  - Owned copies endpoint: POST /api/items/{catalogItemId}/copies (requires Condition field)
+  - Test record types (e.g. CollectionResult) must be updated when adding new fields to response DTOs — deserialization silently ignores extra fields but missing positional params cause issues
 ---
 
-## 2026-03-15 - US-006
-- Added group labels (text-xs, uppercase, muted) above each navigation group in expanded mode
-- Collapsed mode shows thin horizontal separator lines between groups instead of labels
-- Mobile sidebar also shows group labels (always expanded)
-- Files changed: `src/web/src/components/layout/sidebar.tsx`
+## 2026-03-16 - US-006
+- Added POST /api/collections/{id}/cover-from-item/{itemId} endpoint that copies a catalog item's image as the collection cover
+- Injected ICatalogItemsRepository into CollectionsService to look up items by id and collection
+- Implementation: validates collection ownership + item belongs to collection + item has image, then File.Copy to new cover path
+- Sets UpdatedAt on the collection after copying
+- Returns 404 if collection not found, item not in collection, or item has no image
+- Added 3 integration tests: happy path, item-not-in-collection, item-has-no-image
+- All 139 tests pass, build succeeds, 94.54% line coverage
+- Files changed:
+  - src/api/GeekVault.Api/Services/Vault/ICollectionsService.cs
+  - src/api/GeekVault.Api/Services/Vault/CollectionsService.cs
+  - src/api/GeekVault.Api/Controllers/Vault/CollectionsController.cs
+  - src/api/GeekVault.Api.Tests/CollectionEndpointsTests.cs
 - **Learnings for future iterations:**
-  - Collapsed mode uses border-t separators between groups instead of text labels
-  - Group labels use `font-semibold uppercase text-sidebar-foreground/50`
-- Edge collapse toggle uses `group/sidebar` on aside + `group-hover/sidebar:opacity-100` pattern for hover-reveal
-
+  - Catalog item image upload endpoint: POST /api/collections/{collectionId}/items/{id}/image (multipart form, field name "image")
+  - CatalogItem.Image stores the relative URL (e.g. "/uploads/item-123.png") — use Path.Combine(webRootPath, image.TrimStart('/')) to get the filesystem path
+  - CollectionsService now has ICatalogItemsRepository injected — can look up items directly without going through CatalogItemsService
 ---
 
-## 2026-03-15 - US-007
-- Active nav item now has 3px left border (border-l-[3px]) instead of 2px
-- Active icon colored with sidebar-primary color
-- Hover state uses lighter bg (bg-sidebar-accent/50) without left border — distinct from active
-- Used NavLink render function children pattern to conditionally color icons
-- Applied to both Sidebar and MobileSidebarContent
-- Files changed: `src/web/src/components/layout/sidebar.tsx`
+## 2026-03-16 - US-007
+- Added SortOrder (int, default 0) to Collection entity
+- Generated EF Core migration AddCollectionSortOrder (default 0 for existing rows)
+- Added ReorderCollectionsRequest DTO in CollectionDtos.cs
+- Added GetByIdsAndUserIdAsync to ICollectionsRepository + CollectionsRepository
+- Added ReorderAsync to ICollectionsService + CollectionsService (follows CatalogItemsService.ReorderAsync pattern)
+- Added POST /api/collections/reorder endpoint to CollectionsController
+- Changed default sort (no sortBy param) from name to sortOrder with ThenBy name as tiebreaker
+- Added explicit "name" case to sort switch so `?sortBy=name` still sorts alphabetically
+- Added 2 integration tests: ReorderCollections_UpdatesSortOrder, ReorderCollections_DuplicateIds_ReturnsBadRequest
+- All 141 tests pass, 94.59% line coverage, build succeeds
+- Files changed:
+  - src/api/GeekVault.Api/Entities/Vault/Collection.cs
+  - src/api/GeekVault.Api/DTOs/Vault/CollectionDtos.cs
+  - src/api/GeekVault.Api/Repositories/Vault/ICollectionsRepository.cs
+  - src/api/GeekVault.Api/Repositories/Vault/CollectionsRepository.cs
+  - src/api/GeekVault.Api/Services/Vault/ICollectionsService.cs
+  - src/api/GeekVault.Api/Services/Vault/CollectionsService.cs
+  - src/api/GeekVault.Api/Controllers/Vault/CollectionsController.cs
+  - src/api/GeekVault.Api/Migrations/20260316001217_AddCollectionSortOrder.cs
+  - src/api/GeekVault.Api.Tests/CollectionEndpointsTests.cs
 - **Learnings for future iterations:**
-  - NavLink in react-router-dom v7 supports both `className` and `children` as render functions simultaneously
-  - Use `{({ isActive }) => (...)}` as children to conditionally style inner elements
+  - Default sort is now sortOrder (not name) — explicit `?sortBy=name` still works
+  - ReorderCollectionsRequest uses CollectionIds (not ItemIds) — follows same pattern as ReorderItemsRequest but for collections
+  - When all SortOrder values are 0 (initial state), ThenBy Name ensures alphabetical tiebreaking
 ---
 
-## 2026-03-15 - US-008
-- All acceptance criteria already met by previous stories (US-005, US-006, US-007)
-- Collapsed width 72px, centered icons h-5 w-5, tooltips on right, active state with bg + 3px border + colored icon, group separators
-- No code changes needed
-- Files changed: none (just PRD update)
----
-
-## 2026-03-15 - US-009
-- Removed logout button from both desktop Sidebar and MobileSidebarContent
-- Removed bottom collapse/expand chevron button
-- Added hover-reveal chevron at sidebar right edge, vertically centered (absolute positioning)
-- Used `group/sidebar` + `group-hover/sidebar:opacity-100` for hover reveal
-- Removed unused imports: LogOut, useNavigate; removed handleLogout from both components
-- Files changed: `src/web/src/components/layout/sidebar.tsx`
+## 2026-03-16 - US-008
+- Removed description prop from PageHeader on collections page (both loading and main views)
+- New Collection button remains in the actions slot, right-aligned
+- Added i18n keys to both en.json and pt.json: collections.sort.{name,lastUpdated,mostItems,recentlyAdded}, collections.toolbar.{filters,sortBy}, collections.viewGrid, collections.viewList, collections.updated, collections.complete, collections.useAsCover
+- All 514 frontend tests pass, typecheck passes
+- Files changed:
+  - src/web/src/features/collections/collections-page.tsx
+  - src/web/src/i18n/locales/en.json
+  - src/web/src/i18n/locales/pt.json
 - **Learnings for future iterations:**
-  - Logout will be in the user profile dropdown (US-010)
-  - The edge toggle uses absolute positioning with translate-x-1/2 to sit on the sidebar edge
-  - `group/sidebar` is a named Tailwind group for scoped hover
-- UserMenu shared component at `src/web/src/components/layout/user-menu.tsx` — reusable in toolbar and sidebar
+  - i18n keys for collections toolbar/grid are nested under collections.sort.*, collections.toolbar.*, and flat under collections.viewGrid/viewList/updated/complete/useAsCover
+  - The collections.description key still exists in locale files (no breaking change) but is no longer rendered on the page
 ---
 
-## 2026-03-15 - US-010
-- Created shared `UserMenu` component at `components/layout/user-menu.tsx`
-- UserMenu wraps DropdownMenu with: user name/email label, Profile, Settings (disabled), Help (disabled), Logout
-- Desktop sidebar user block is now clickable and opens UserMenu dropdown
-- Collapsed sidebar shows avatar icon, clicks open the same dropdown
-- Mobile sidebar updated with same UserMenu dropdown
-- Email shown in both expanded profile block and dropdown label
-- Files changed: `src/web/src/components/layout/user-menu.tsx` (new), `src/web/src/components/layout/sidebar.tsx`
+## 2026-03-16 - US-009
+- Built unified toolbar with search (max-width 420px), type filter dropdown, sort dropdown, and New Collection button (right-aligned via ml-auto)
+- Search preserves existing debounced behavior
+- Type filter: All Types (default) + all collection types from API
+- Sort dropdown: Name (asc), Last Updated (desc), Most Items (desc), Recently Added (desc) — triggers server-side sort via API query params
+- Sort preference (sortBy + sortDir) persisted to localStorage (keys: collections-sortBy, collections-sortDir) and restored on page load
+- Default sort: name ascending
+- Moved New Collection button from header actions slot into toolbar
+- fetchCollections now passes sortBy/sortDir query params to GET /api/collections
+- All 514 frontend tests pass, typecheck passes
+- Files changed:
+  - src/web/src/features/collections/collections-page.tsx
 - **Learnings for future iterations:**
-  - UserMenu accepts `side` and `align` props for positioning flexibility
-  - Uses `children` as trigger via DropdownMenuTrigger asChild
-  - Settings and Help items are disabled with opacity-50 and cursor-not-allowed
+  - Sort dropdown value uses composite format "sortBy:sortDir" (e.g. "name:asc") to encode both sort field and direction in a single Select value
+  - localStorage keys: collections-sortBy, collections-sortDir — used by sort dropdown persistence
+  - fetchCollections accepts optional sort override param for immediate re-fetch when sort changes (avoids stale closure)
 ---
 
-## 2026-03-15 - US-011
-- Created `TopToolbar` component at `components/layout/top-toolbar.tsx`
-- Empty shell: 72px height, bottom border, hidden on mobile (md:flex), horizontal padding
-- Integrated into `app-layout.tsx` between Header and main content
-- Files changed: `src/web/src/components/layout/top-toolbar.tsx` (new), `src/web/src/components/layout/app-layout.tsx`
----
-
-## 2026-03-15 - US-012
-- Added search trigger button to top toolbar left side
-- 280px wide, rounded with search icon, placeholder text from i18n, kbd shortcut hint
-- Opens command palette by dispatching Ctrl+K keyboard event
-- Detects Mac vs other platform for shortcut display (⌘K vs Ctrl+K)
-- Files changed: `src/web/src/components/layout/top-toolbar.tsx`
+## 2026-03-16 - US-010
+- Restructured toolbar for mobile collapsibility
+- Mobile (< sm): search full-width + Filters toggle button; tapping reveals/hides type filter + sort row with CSS grid animation
+- Desktop (>= sm): all toolbar items shown inline, no toggle
+- New Collection button always visible in both layouts
+- Animation uses CSS grid-rows-[0fr]/[1fr] transition for smooth collapse/expand
+- Added SlidersHorizontal icon from lucide-react for Filters toggle
+- All 514 frontend tests pass, typecheck passes
+- Files changed:
+  - src/web/src/features/collections/collections-page.tsx
 - **Learnings for future iterations:**
-  - Command palette opens via dispatching `new KeyboardEvent("keydown", { key: "k", metaKey: true })` on document
-  - Use `navigator.platform` to detect Mac for keyboard shortcut display
+  - CSS grid-rows-[0fr]/[1fr] with overflow-hidden is a clean way to animate height collapse without JS measurement
+  - Mobile filter selects are duplicated (desktop hidden:sm, mobile sm:hidden) to avoid complex conditional rendering — the Select mock handles both
+  - filtersOpen state controls mobile filter row visibility
 ---
 
-## 2026-03-15 - US-013
-- Added right-side toolbar icons: Help (tooltip), Notifications (dropdown), Language toggle, Theme toggle, User avatar menu
-- Layout order: Help | Notifications | Language | Theme | User
-- Reuses shared UserMenu component from US-010
-- Help shows "Coming soon" tooltip, Notifications shows "No notifications" dropdown
-- Language/theme toggles follow same pattern as mobile header
-- All buttons use ghost variant with size="icon"
-- Files changed: `src/web/src/components/layout/top-toolbar.tsx`
----
-
-## 2026-03-15 - US-014
-- All acceptance criteria already met by prior stories (US-003, US-006, US-009, US-010)
-- MobileSidebarContent has grouped nav with labels, UserMenu dropdown, no standalone logout
-- No code changes needed
----
-
-## 2026-03-15 - US-015
-- Updated `sidebar.test.tsx`: added DropdownMenu mocks to `@/components/ds` mock, added `./user-menu` mock, removed logout assertions, updated logo test to check vault icon + brand text, added group label assertions
-- Updated `app-layout.test.tsx`: added TopToolbar mock, added toolbar render test
-- Removed obsolete test: "handles logout click" (logout now in UserMenu dropdown)
-- All 494 tests pass
-- Files changed: `src/web/src/components/layout/sidebar.test.tsx`, `src/web/src/components/layout/app-layout.test.tsx`
+## 2026-03-16 - US-011
+- Replaced old Card/CardContent/CardFooter/Badge markup with Netflix-style cover card
+- Cover card: aspect-ratio 4/3, rounded-xl, overflow hidden, full-bleed cover image with object-cover
+- Gradient overlay at bottom: linear-gradient(transparent, rgba(0,0,0,0.7)) with collection name (18px semibold white) and metadata (13px white/85%)
+- Fallback: gradient placeholder with Library icon when no cover image
+- Entire card clickable, navigates to /collections/{id}
+- Three-dot menu in top-right corner, visible on hover with backdrop blur
+- Removed: Card, CardContent, CardFooter, Badge, Eye imports (no longer needed)
+- Updated loading skeleton to match new 4/3 aspect ratio card shape
+- Updated test: removed "Comic Books" badge assertion (type badge removed from card)
+- All 514 frontend tests pass, typecheck passes
+- Files changed:
+  - src/web/src/features/collections/collections-page.tsx
+  - src/web/src/features/collections/collections-page.test.tsx
 - **Learnings for future iterations:**
-  - When adding new components used by tested components, add mocks to the test file
-  - Mock UserMenu as passthrough `({ children }) => <>{children}</>` to test the trigger UI without dropdown internals
+  - Cover card uses inline style for aspect-ratio 4/3 and gradient background
+  - Three-dot menu uses bg-black/30 backdrop-blur-sm for readability over images
+  - collectionTypeName is no longer displayed on the card (removed Badge) — only shown in list view (US-015)
 ---
 
-## 2026-03-15 - US-016
-- Created `top-toolbar.test.tsx` with 7 tests: search trigger, keyboard event dispatch, help icon, notifications, language toggle, theme toggle, user avatar
-- Created `user-menu.test.tsx` with 5 tests: trigger rendering, user name/email display, menu items present, Profile navigation, Logout with logout+navigate
-- All 506 tests pass across 37 test files
-- Files changed: `src/web/src/components/layout/top-toolbar.test.tsx` (new), `src/web/src/components/layout/user-menu.test.tsx` (new)
+## 2026-03-16 - US-012
+- Added ownedCount, completionPercentage, createdAt, updatedAt to Collection interface
+- Built getRelativeTime() using Intl.RelativeTimeFormat (no date-fns dependency)
+- Built getMetadataLine() that joins: '{count} items · {percent}% complete · Updated {timeAgo}'
+- If itemCount is 0, completion % is omitted; if updatedAt is null, time is omitted
+- Metadata styled: 13px, white text, 85% opacity (text-[13px] text-white/85)
+- Updated test fixtures with new fields, updated metadata assertion to use content matcher
+- All 514 frontend tests pass, typecheck passes
+- Files changed:
+  - src/web/src/features/collections/collections-page.tsx
+  - src/web/src/features/collections/collections-page.test.tsx
+- **Learnings for future iterations:**
+  - Intl.RelativeTimeFormat used without locale param (defaults to browser locale) — matches i18n language automatically
+  - Metadata line uses " · " (middle dot) as separator between parts
+  - Test uses content matcher function for metadata: `screen.getByText((content) => content.includes(...))`
+---
+
+## 2026-03-16 - US-013
+- Added hover lift: translateY(-4px) and shadow-lg via Tailwind hover:-translate-y-1 hover:shadow-lg with 200ms ease transition
+- Quick action buttons appear on hover: Open (ExternalLink), Edit (Pencil), three-dot menu (MoreVertical)
+- All quick actions have semi-transparent backdrop (bg-black/30 backdrop-blur-sm)
+- On touch devices (max-[640px]): quick actions always visible via max-[640px]:opacity-100
+- Three-dot menu provides Delete option
+- Updated tests: edit buttons now found via getAllByLabelText instead of getAllByText
+- All 514 frontend tests pass, typecheck passes
+- Files changed:
+  - src/web/src/features/collections/collections-page.tsx
+  - src/web/src/features/collections/collections-page.test.tsx
+- **Learnings for future iterations:**
+  - Quick action buttons use aria-label for accessibility — tests should use getAllByLabelText
+  - Touch device visibility uses max-[640px]:opacity-100 (always show on narrow screens)
+  - Edit is now a direct icon button, not inside dropdown — dropdown only has Delete
+---
+
+## 2026-03-16 - US-014
+- Changed grid from fixed breakpoint columns (sm:grid-cols-2 lg:grid-cols-3) to CSS auto-fill: repeat(auto-fill, minmax(320px, 1fr))
+- Gap increased from gap-4 to gap-6 (24px)
+- Applied same grid style to loading skeleton section
+- Stagger animation preserved (StaggerChildren wrapper unchanged)
+- Effectively shows ~3 cols desktop, ~2 tablet, 1 mobile without explicit breakpoints
+- All 514 frontend tests pass, typecheck passes
+- Files changed:
+  - src/web/src/features/collections/collections-page.tsx
+- **Learnings for future iterations:**
+  - CSS auto-fill with minmax gives fluid responsive columns without media queries
+  - Grid style applied via inline style={{ gridTemplateColumns }} since Tailwind v4 doesn't have a clean utility for auto-fill/minmax
+---
+
+## 2026-03-16 - US-015
+- Added viewMode state ("grid" | "list") with localStorage persistence (key: collections-view-mode)
+- Toggle button in toolbar next to sort dropdown — shows List icon in grid mode, LayoutGrid icon in list mode
+- Toggle wrapped in TooltipProvider/Tooltip for hover label
+- Grid view: existing cover tile layout (default)
+- List view: DataTable component showing name, type, items, updated columns
+- List view rows are clickable (navigate to collection detail)
+- Added i18n keys: collections.listItems, collections.listUpdated to both en.json and pt.json
+- All 514 frontend tests pass, typecheck passes
+- Files changed:
+  - src/web/src/features/collections/collections-page.tsx
+  - src/web/src/i18n/locales/en.json
+  - src/web/src/i18n/locales/pt.json
+- **Learnings for future iterations:**
+  - localStorage key: collections-view-mode — values: "grid" or "list"
+  - DataTable generic type: use `DataTable<Collection>` for typed columns
+  - Tooltip requires TooltipProvider wrapper
+---
+
+## 2026-03-16 - US-016
+- No code changes needed — skeleton loading state already implemented in US-011/US-014
+- Existing skeleton: 6 cards, same grid layout (auto-fill minmax 320px), aspect-ratio 4/3, rounded-xl, animate-pulse
+- Bottom overlay area with faint skeleton rects (opacity-30 and opacity-20) mimics text placement
+- Existing test validates: "shows loading state with skeleton elements" checks for .animate-pulse elements
+- Typecheck passes
+---
+
+## 2026-03-16 - US-017
+- Added "Use as Cover" option to catalog item context menu on collection detail page
+- Grid view: three-dot DropdownMenu appears on hover (top-right) for items with images, contains "Use as Cover" option
+- List view: three-dot menu added as actions column in DataTable for items with images
+- Clicking calls POST /api/collections/{id}/cover-from-item/{itemId} (handleUseAsCover already existed)
+- Shows success/failure toast; collection cover updates immediately via fetchCollection()
+- Added i18n keys: collections.useAsCoverSuccess, collections.useAsCoverFailed, collections.itemActions to both en.json and pt.json
+- All 514 frontend tests pass, typecheck passes
+- Files changed:
+  - src/web/src/features/collections/collection-detail-page.tsx
+  - src/web/src/i18n/locales/en.json
+  - src/web/src/i18n/locales/pt.json
+- **Learnings for future iterations:**
+  - handleUseAsCover function was already implemented in the page (from earlier iteration planning) — just needed UI wiring
+  - DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem were already imported but unused in the detail page
+  - For grid view context menus, use onClick stopPropagation on the wrapper div to prevent card click navigation
+  - For list view DataTable actions, stopPropagation on both the trigger button and DropdownMenuItem onClick to prevent row click
+---
+
+## 2026-03-16 - US-018
+- Wrapped grid view in SortableList when in "Custom Order" sort mode (sortBy === "sortOrder")
+- Added "Custom Order" as first sort option (sortOrder:asc) in both desktop and mobile sort dropdowns
+- Changed default sort from "name" to "sortOrder" to match backend default
+- Drag handle (GripVertical) visible on hover, top-left corner with bg-black/40 backdrop
+- Reorder calls POST /api/collections/reorder with optimistic UI update and rollback on error
+- When explicit sort selected (name, updatedAt, etc.), grid uses StaggerChildren instead of SortableList — drag disabled
+- Drag-to-reorder disabled in list view (SortableList only wraps grid view)
+- Added i18n keys: collections.sort.customOrder, collections.reorderFailed to both en.json and pt.json
+- All 514 frontend tests pass, typecheck passes
+- Files changed:
+  - src/web/src/features/collections/collections-page.tsx
+  - src/web/src/i18n/locales/en.json
+  - src/web/src/i18n/locales/pt.json
+- **Learnings for future iterations:**
+  - SortableList gridClassName doesn't support inline styles — use Tailwind arbitrary property [grid-template-columns:repeat(auto-fill,minmax(320px,1fr))]
+  - isCustomSort flag (sortBy === "sortOrder") determines whether SortableList or StaggerChildren is rendered
+  - Default sort changed from "name:asc" to "sortOrder:asc" — localStorage key "collections-sortBy" stores this
+  - Touch device drag handles use max-[640px]:opacity-100 to be always visible on narrow screens
+---
+
+## 2026-03-16 - US-019
+- Added SortableList mock to DS mock (required since default sort is now "sortOrder" which renders SortableList)
+- Added 8 new tests covering:
+  - Sort dropdown triggering API call with query params
+  - Sort preference persisted to localStorage
+  - Mobile filter toggle (Filters button shows/hides filter row)
+  - Grid/list view toggle and localStorage persistence
+  - Completion percentage display on cover card metadata
+  - Search filtering by collection name
+  - Type filter filtering by collection type
+  - No results message when filter matches nothing
+- All 28 existing tests continue to pass (no changes needed)
+- Total: 522 frontend tests pass, typecheck passes
+- Files changed:
+  - src/web/src/features/collections/collections-page.test.tsx
+- **Learnings for future iterations:**
+  - SortableList must be mocked in DS mock for collections-page tests since default sort is "sortOrder" (renders SortableList instead of StaggerChildren)
+  - The t() mock only handles `count` interpolation — other vars like `percent`, `timeAgo` return the bare key string
+  - localStorage state persists between tests — set it explicitly in beforeEach or in individual tests to avoid state leakage
+  - CSS class selectors with brackets need escaping in querySelector: `.grid-rows-\\[0fr\\]`
 ---

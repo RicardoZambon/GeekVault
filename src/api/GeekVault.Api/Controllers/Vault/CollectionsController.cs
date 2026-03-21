@@ -10,10 +10,12 @@ public static class CollectionsController
     {
         app.MapGet("/api/collections", async (
             ClaimsPrincipal principal,
-            ICollectionsService service) =>
+            ICollectionsService service,
+            string? sortBy,
+            string? sortDir) =>
         {
             var userId = principal.FindFirstValue(ClaimTypes.NameIdentifier)!;
-            var collections = await service.GetAllAsync(userId);
+            var collections = await service.GetAllAsync(userId, sortBy, sortDir);
             return Results.Ok(collections);
         })
         .RequireAuthorization()
@@ -107,6 +109,41 @@ public static class CollectionsController
         .WithName("UploadCollectionCover")
         .WithOpenApi()
         .DisableAntiforgery();
+
+        app.MapPost("/api/collections/{id:int}/cover-from-item/{itemId:int}", async (
+            int id,
+            int itemId,
+            ClaimsPrincipal principal,
+            ICollectionsService service,
+            IWebHostEnvironment env) =>
+        {
+            var userId = principal.FindFirstValue(ClaimTypes.NameIdentifier)!;
+            var webRootPath = env.WebRootPath ?? Path.Combine(env.ContentRootPath, "wwwroot");
+            var (coverUrl, notFound, error) = await service.CoverFromItemAsync(id, itemId, userId, webRootPath);
+            if (notFound) return Results.NotFound(error != null ? new { error } : null);
+            if (error != null) return Results.BadRequest(new { error });
+
+            return Results.Ok(new { coverUrl });
+        })
+        .RequireAuthorization()
+        .WithName("CoverFromItem")
+        .WithOpenApi();
+
+        app.MapPost("/api/collections/reorder", async (
+            ReorderCollectionsRequest request,
+            ClaimsPrincipal principal,
+            ICollectionsService service) =>
+        {
+            var userId = principal.FindFirstValue(ClaimTypes.NameIdentifier)!;
+            var (success, notFound, error) = await service.ReorderAsync(userId, request.CollectionIds);
+            if (notFound) return Results.NotFound();
+            if (error != null) return Results.BadRequest(new { error });
+
+            return Results.NoContent();
+        })
+        .RequireAuthorization()
+        .WithName("ReorderCollections")
+        .WithOpenApi();
 
         return app;
     }

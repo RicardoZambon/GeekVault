@@ -16,8 +16,45 @@ public class CollectionsRepository : ICollectionsRepository
     public async Task<List<Collection>> GetByUserIdAsync(string userId)
     {
         return await _db.Collections
+            .Include(c => c.CollectionType)
             .Where(c => c.UserId == userId)
             .ToListAsync();
+    }
+
+    public async Task<List<CollectionWithCounts>> GetByUserIdWithCountsAsync(string userId, string? sortBy = null, string? sortDir = null)
+    {
+        var query = _db.Collections
+            .Include(c => c.CollectionType)
+            .Where(c => c.UserId == userId)
+            .Select(c => new CollectionWithCounts
+            {
+                Collection = c,
+                ItemCount = _db.CatalogItems.Count(ci => ci.CollectionId == c.Id),
+                OwnedCount = _db.OwnedCopies.Count(oc => _db.CatalogItems.Any(ci => ci.Id == oc.CatalogItemId && ci.CollectionId == c.Id))
+            });
+
+        var descending = string.Equals(sortDir, "desc", StringComparison.OrdinalIgnoreCase);
+
+        query = sortBy?.ToLowerInvariant() switch
+        {
+            "updatedAt" or "updatedat" => descending
+                ? query.OrderByDescending(x => x.Collection.UpdatedAt ?? x.Collection.CreatedAt)
+                : query.OrderBy(x => x.Collection.UpdatedAt ?? x.Collection.CreatedAt),
+            "itemcount" => descending
+                ? query.OrderByDescending(x => x.ItemCount)
+                : query.OrderBy(x => x.ItemCount),
+            "createdat" => descending
+                ? query.OrderByDescending(x => x.Collection.CreatedAt)
+                : query.OrderBy(x => x.Collection.CreatedAt),
+            "name" => descending
+                ? query.OrderByDescending(x => x.Collection.Name)
+                : query.OrderBy(x => x.Collection.Name),
+            _ => descending
+                ? query.OrderByDescending(x => x.Collection.SortOrder).ThenByDescending(x => x.Collection.Name)
+                : query.OrderBy(x => x.Collection.SortOrder).ThenBy(x => x.Collection.Name),
+        };
+
+        return await query.ToListAsync();
     }
 
     public async Task<Collection?> GetByIdAndUserIdAsync(int id, string userId)
@@ -35,6 +72,11 @@ public class CollectionsRepository : ICollectionsRepository
     public async Task<int> GetItemCountAsync(int collectionId)
     {
         return await _db.CatalogItems.CountAsync(ci => ci.CollectionId == collectionId);
+    }
+
+    public async Task<int> GetOwnedCountAsync(int collectionId)
+    {
+        return await _db.OwnedCopies.CountAsync(oc => _db.CatalogItems.Any(ci => ci.Id == oc.CatalogItemId && ci.CollectionId == collectionId));
     }
 
     public Task AddAsync(Collection collection)
@@ -70,6 +112,13 @@ public class CollectionsRepository : ICollectionsRepository
                     .Where(oc => _db.CatalogItems.Any(ci => ci.Id == oc.CatalogItemId && ci.CollectionId == c.Id))
                     .Sum(oc => (decimal?)oc.PurchasePrice ?? 0m)
             })
+            .ToListAsync();
+    }
+
+    public async Task<List<Collection>> GetByIdsAndUserIdAsync(List<int> ids, string userId)
+    {
+        return await _db.Collections
+            .Where(c => ids.Contains(c.Id) && c.UserId == userId)
             .ToListAsync();
     }
 }

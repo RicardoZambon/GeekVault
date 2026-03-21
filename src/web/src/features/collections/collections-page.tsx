@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, type FormEvent } from "react"
+import { useState, useEffect, useRef, useCallback, type FormEvent } from "react"
 import { useNavigate, useSearchParams } from "react-router-dom"
 import { useTranslation } from "react-i18next"
 import { motion } from "framer-motion"
@@ -10,15 +10,17 @@ import {
   Search,
   Upload,
   Loader2,
-  Eye,
+  ArrowUpDown,
+  SlidersHorizontal,
+  ExternalLink,
+  MoreVertical,
+  LayoutGrid,
+  List,
+  GripVertical,
 } from "lucide-react"
 import {
   EmptyState,
   PageHeader,
-  Card,
-  CardContent,
-  CardFooter,
-  Badge,
   SkeletonRect,
   StaggerChildren,
   staggerItemVariants,
@@ -32,6 +34,12 @@ import {
   SelectValue,
   SelectContent,
   SelectItem,
+  DataTable,
+  Tooltip,
+  TooltipTrigger,
+  TooltipContent,
+  TooltipProvider,
+  SortableList,
 } from "@/components/ds"
 import { useAuth } from "@/components/auth-provider"
 import { Button } from "@/components/ui/button"
@@ -62,6 +70,10 @@ interface Collection {
   collectionTypeId: number
   collectionTypeName: string
   itemCount: number
+  ownedCount: number
+  completionPercentage: number
+  createdAt: string
+  updatedAt: string | null
 }
 
 export default function Collections() {
@@ -74,10 +86,21 @@ export default function Collections() {
   const [collectionTypes, setCollectionTypes] = useState<CollectionType[]>([])
   const [loading, setLoading] = useState(true)
 
-  // Search & filter
+  // Search, filter & sort
   const [searchQuery, setSearchQuery] = useState("")
   const [filterType, setFilterType] = useState<string>("all")
   const debouncedSearch = useDebounce(searchQuery, 300)
+  const [sortBy, setSortBy] = useState<string>(() => localStorage.getItem("collections-sortBy") ?? "sortOrder")
+  const [sortDir, setSortDir] = useState<string>(() => localStorage.getItem("collections-sortDir") ?? "asc")
+
+  // View mode (grid/list)
+  const [viewMode, setViewMode] = useState<"grid" | "list">(() => {
+    const saved = localStorage.getItem("collections-view-mode")
+    return saved === "list" ? "list" : "grid"
+  })
+
+  // Mobile filter toggle
+  const [filtersOpen, setFiltersOpen] = useState(false)
 
   // Dialog state
   const [dialogOpen, setDialogOpen] = useState(false)
@@ -102,9 +125,11 @@ export default function Collections() {
     "Content-Type": "application/json",
   }
 
-  async function fetchCollections() {
+  const fetchCollections = useCallback(async (sort?: { sortBy: string; sortDir: string }) => {
     try {
-      const res = await fetch("/api/collections", { headers })
+      const s = sort ?? { sortBy, sortDir }
+      const params = new URLSearchParams({ sortBy: s.sortBy, sortDir: s.sortDir })
+      const res = await fetch(`/api/collections?${params}`, { headers })
       if (!res.ok) throw new Error("Failed to fetch")
       const data = await res.json()
       setCollections(data)
@@ -113,7 +138,7 @@ export default function Collections() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [sortBy, sortDir]) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function fetchCollectionTypes() {
     try {
@@ -148,6 +173,70 @@ export default function Collections() {
       filterType === "all" || c.collectionTypeId === Number(filterType)
     return matchesSearch && matchesType
   })
+
+  function getRelativeTime(dateStr: string): string {
+    const now = Date.now()
+    const then = new Date(dateStr).getTime()
+    const diffSec = Math.round((now - then) / 1000)
+    const rtf = new Intl.RelativeTimeFormat(undefined, { numeric: "auto" })
+    if (diffSec < 60) return rtf.format(-diffSec, "second")
+    const diffMin = Math.round(diffSec / 60)
+    if (diffMin < 60) return rtf.format(-diffMin, "minute")
+    const diffHr = Math.round(diffMin / 60)
+    if (diffHr < 24) return rtf.format(-diffHr, "hour")
+    const diffDay = Math.round(diffHr / 24)
+    if (diffDay < 30) return rtf.format(-diffDay, "day")
+    const diffMonth = Math.round(diffDay / 30)
+    if (diffMonth < 12) return rtf.format(-diffMonth, "month")
+    return rtf.format(-Math.round(diffDay / 365), "year")
+  }
+
+  function getMetadataLine(c: Collection): string {
+    const parts: string[] = [t("collections.itemCount", { count: c.itemCount })]
+    if (c.itemCount > 0) {
+      parts.push(t("collections.complete", { percent: Math.round(c.completionPercentage) }))
+    }
+    if (c.updatedAt) {
+      parts.push(t("collections.updated", { timeAgo: getRelativeTime(c.updatedAt) }))
+    }
+    return parts.join(" · ")
+  }
+
+  function handleSortChange(value: string) {
+    // value format: "name:asc", "updatedAt:desc", "itemCount:desc", "createdAt:desc"
+    const [newSortBy, newSortDir] = value.split(":")
+    setSortBy(newSortBy)
+    setSortDir(newSortDir)
+    localStorage.setItem("collections-sortBy", newSortBy)
+    localStorage.setItem("collections-sortDir", newSortDir)
+    fetchCollections({ sortBy: newSortBy, sortDir: newSortDir })
+  }
+
+  function toggleViewMode() {
+    const next = viewMode === "grid" ? "list" : "grid"
+    setViewMode(next)
+    localStorage.setItem("collections-view-mode", next)
+  }
+
+  const isCustomSort = sortBy === "sortOrder"
+
+  /* v8 ignore start -- DnD reorder callback */
+  async function handleReorderCollections(newOrder: Collection[]) {
+    const previous = collections
+    setCollections(newOrder)
+    try {
+      const res = await fetch("/api/collections/reorder", {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ collectionIds: newOrder.map((c) => c.id) }),
+      })
+      if (!res.ok) throw new Error("Failed to reorder")
+    } catch {
+      toast.error(t("collections.reorderFailed"))
+      setCollections(previous)
+    }
+  }
+  /* v8 ignore stop */
 
   function openCreate() {
     setEditingId(null)
@@ -273,20 +362,16 @@ export default function Collections() {
       <div>
         <PageHeader
           title={t("collections.title")}
-          description={t("collections.description")}
         />
-        <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="mt-6 grid gap-6" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))" }}>
           {Array.from({ length: 6 }).map((_, i) => (
-            <Card key={i} variant="flat" className="overflow-hidden">
-              <SkeletonRect height={144} className="w-full rounded-none" />
-              <CardContent className="pt-4">
-                <SkeletonRect height={20} width="60%" />
-                <SkeletonRect height={14} width="30%" className="mt-2" />
-                <SkeletonRect height={14} width="90%" className="mt-3" />
-                <SkeletonRect height={14} width="75%" className="mt-1" />
-                <SkeletonRect height={12} width="20%" className="mt-3" />
-              </CardContent>
-            </Card>
+            <div key={i} className="relative overflow-hidden rounded-xl" style={{ aspectRatio: "4/3" }}>
+              <SkeletonRect height="100%" className="w-full rounded-xl" />
+              <div className="absolute inset-x-0 bottom-0 p-4">
+                <SkeletonRect height={20} width="60%" className="opacity-30" />
+                <SkeletonRect height={14} width="40%" className="mt-2 opacity-20" />
+              </div>
+            </div>
           ))}
         </div>
       </div>
@@ -295,19 +380,7 @@ export default function Collections() {
 
   return (
     <div>
-      <PageHeader
-        title={t("collections.title")}
-        description={t("collections.description")}
-        actions={
-          <Button
-            onClick={openCreate}
-            className="bg-accent text-accent-foreground hover:bg-accent/90"
-          >
-            <Plus className="mr-1.5 h-4 w-4" />
-            {t("collections.create")}
-          </Button>
-        }
-      />
+      <PageHeader title={t("collections.title")} />
 
       {collections.length === 0 ? (
         <EmptyState
@@ -319,154 +392,277 @@ export default function Collections() {
         />
       ) : (
         <>
-          {/* Search & Filter toolbar */}
-          <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder={t("collections.searchPlaceholder")}
-                className="pl-9"
-              />
+          {/* Toolbar: search, filters toggle (mobile), type filter, sort, new collection button */}
+          <div className="mt-6 flex flex-col gap-3">
+            {/* Top row: search + filters toggle (mobile) + new collection button */}
+            <div className="flex items-center gap-3">
+              <div className="relative flex-1 sm:max-w-[420px]">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder={t("collections.searchPlaceholder")}
+                  className="pl-9"
+                />
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                className="sm:hidden"
+                onClick={() => setFiltersOpen((v) => !v)}
+                aria-label={t("collections.toolbar.filters")}
+              >
+                <SlidersHorizontal className="mr-1.5 h-4 w-4" />
+                {t("collections.toolbar.filters")}
+              </Button>
+              {/* Desktop: inline filters */}
+              <div className="hidden sm:flex sm:items-center sm:gap-3">
+                <Select value={filterType} onValueChange={setFilterType}>
+                  <SelectTrigger className="w-[200px]">
+                    <SelectValue placeholder={t("collections.filterByType")} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">
+                      {t("collections.allTypes")}
+                    </SelectItem>
+                    {collectionTypes.map((ct) => (
+                      <SelectItem key={ct.id} value={String(ct.id)}>
+                        {ct.icon ? `${ct.icon} ` : ""}
+                        {ct.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Select value={`${sortBy}:${sortDir}`} onValueChange={handleSortChange}>
+                  <SelectTrigger className="w-[200px]" aria-label={t("collections.toolbar.sortBy")}>
+                    <ArrowUpDown className="mr-2 h-4 w-4 shrink-0 text-muted-foreground" />
+                    <SelectValue placeholder={t("collections.toolbar.sortBy")} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="sortOrder:asc">{t("collections.sort.customOrder")}</SelectItem>
+                    <SelectItem value="name:asc">{t("collections.sort.name")}</SelectItem>
+                    <SelectItem value="updatedAt:desc">{t("collections.sort.lastUpdated")}</SelectItem>
+                    <SelectItem value="itemCount:desc">{t("collections.sort.mostItems")}</SelectItem>
+                    <SelectItem value="createdAt:desc">{t("collections.sort.recentlyAdded")}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={toggleViewMode}
+                      aria-label={viewMode === "grid" ? t("collections.viewList") : t("collections.viewGrid")}
+                    >
+                      {viewMode === "grid" ? <List className="h-4 w-4" /> : <LayoutGrid className="h-4 w-4" />}
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    {viewMode === "grid" ? t("collections.viewList") : t("collections.viewGrid")}
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+              <Button
+                onClick={openCreate}
+                className="ml-auto bg-accent text-accent-foreground hover:bg-accent/90"
+              >
+                <Plus className="mr-1.5 h-4 w-4" />
+                {t("collections.create")}
+              </Button>
             </div>
-            <Select value={filterType} onValueChange={setFilterType}>
-              <SelectTrigger className="w-full sm:w-[200px]">
-                <SelectValue placeholder={t("collections.filterByType")} />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">
-                  {t("collections.allTypes")}
-                </SelectItem>
-                {collectionTypes.map((ct) => (
-                  <SelectItem key={ct.id} value={String(ct.id)}>
-                    {ct.icon ? `${ct.icon} ` : ""}
-                    {ct.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            {/* Mobile: collapsible filter row */}
+            <div
+              className={`grid transition-all duration-200 ease-in-out sm:hidden ${filtersOpen ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"}`}
+            >
+              <div className="overflow-hidden">
+                <div className="flex gap-3">
+                  <Select value={filterType} onValueChange={setFilterType}>
+                    <SelectTrigger className="flex-1">
+                      <SelectValue placeholder={t("collections.filterByType")} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">
+                        {t("collections.allTypes")}
+                      </SelectItem>
+                      {collectionTypes.map((ct) => (
+                        <SelectItem key={ct.id} value={String(ct.id)}>
+                          {ct.icon ? `${ct.icon} ` : ""}
+                          {ct.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Select value={`${sortBy}:${sortDir}`} onValueChange={handleSortChange}>
+                    <SelectTrigger className="flex-1" aria-label={t("collections.toolbar.sortBy")}>
+                      <ArrowUpDown className="mr-2 h-4 w-4 shrink-0 text-muted-foreground" />
+                      <SelectValue placeholder={t("collections.toolbar.sortBy")} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="sortOrder:asc">{t("collections.sort.customOrder")}</SelectItem>
+                    <SelectItem value="name:asc">{t("collections.sort.name")}</SelectItem>
+                      <SelectItem value="updatedAt:desc">{t("collections.sort.lastUpdated")}</SelectItem>
+                      <SelectItem value="itemCount:desc">{t("collections.sort.mostItems")}</SelectItem>
+                      <SelectItem value="createdAt:desc">{t("collections.sort.recentlyAdded")}</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </div>
           </div>
 
-          {/* Collection cards grid */}
+          {/* Collection cards grid / list */}
           {filteredCollections.length === 0 ? (
             <div className="mt-12 text-center text-muted-foreground">
               {t("collections.noResults")}
             </div>
-          ) : (
-            <StaggerChildren className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {filteredCollections.map((c) => (
-                <motion.div key={c.id} variants={staggerItemVariants}>
-                  <Card className="group cursor-pointer overflow-hidden">
-                    {/* Cover image */}
+          ) : viewMode === "grid" ? (
+            /* v8 ignore start -- grid view with optional drag-to-reorder */
+            isCustomSort ? (
+              <SortableList
+                items={filteredCollections}
+                keyExtractor={(c) => c.id}
+                layout="grid"
+                gridClassName="mt-6 grid gap-6 [grid-template-columns:repeat(auto-fill,minmax(320px,1fr))]"
+                onReorder={handleReorderCollections}
+                renderItem={(c, { dragHandleProps, isDragging }) => (
+                  <div
+                    className={`group relative cursor-pointer overflow-hidden rounded-xl transition-all duration-200 ease-out hover:-translate-y-1 hover:shadow-lg ${isDragging ? "ring-2 ring-accent shadow-lg" : ""}`}
+                    style={{ aspectRatio: "4/3" }}
+                    onClick={() => navigate(`/collections/${c.id}`)}
+                  >
+                    {/* Drag handle */}
+                    <button
+                      type="button"
+                      className="absolute top-2 left-2 z-10 cursor-grab touch-none rounded bg-black/40 p-1.5 text-white opacity-0 transition-opacity group-hover:opacity-100 max-[640px]:opacity-100"
+                      onClick={(e) => e.stopPropagation()}
+                      {...dragHandleProps}
+                    >
+                      <GripVertical className="h-4 w-4" />
+                    </button>
+
+                    {c.coverImage ? (
+                      <img src={c.coverImage} alt={c.name} loading="lazy" className="h-full w-full object-cover" />
+                    ) : (
+                      <div className="flex h-full items-center justify-center bg-gradient-to-br from-primary/20 to-accent/20">
+                        <Library className="h-12 w-12 text-muted-foreground/40" />
+                      </div>
+                    )}
+
+                    <div className="absolute inset-x-0 bottom-0 flex items-end p-4" style={{ background: "linear-gradient(transparent, rgba(0,0,0,0.7))" }}>
+                      <div className="min-w-0 flex-1">
+                        <h3 className="truncate text-lg font-semibold text-white">{c.name}</h3>
+                        <p className="text-[13px] text-white/85">{getMetadataLine(c)}</p>
+                      </div>
+                    </div>
+
                     <div
-                      className="relative aspect-video bg-muted"
+                      className="absolute right-2 top-2 flex items-center gap-1 opacity-0 transition-opacity duration-200 group-hover:opacity-100 max-[640px]:opacity-100"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full bg-black/30 text-white backdrop-blur-sm hover:bg-black/50" onClick={() => navigate(`/collections/${c.id}`)} aria-label={t("collections.view")}>
+                        <ExternalLink className="h-4 w-4" />
+                      </Button>
+                      <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full bg-black/30 text-white backdrop-blur-sm hover:bg-black/50" onClick={() => openEdit(c)} aria-label={t("collections.edit")}>
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full bg-black/30 text-white backdrop-blur-sm hover:bg-black/50" aria-label={t("collections.actions")}>
+                            <MoreVertical className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={(e) => { e.stopPropagation(); setDeleteId(c.id) }}>
+                            <Trash2 className="h-4 w-4" />
+                            {t("collections.delete")}
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+                  </div>
+                )}
+              />
+            ) : (
+              <StaggerChildren className="mt-6 grid gap-6" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))" }}>
+                {filteredCollections.map((c) => (
+                  <motion.div key={c.id} variants={staggerItemVariants}>
+                    <div
+                      className="group relative cursor-pointer overflow-hidden rounded-xl transition-all duration-200 ease-out hover:-translate-y-1 hover:shadow-lg"
+                      style={{ aspectRatio: "4/3" }}
                       onClick={() => navigate(`/collections/${c.id}`)}
                     >
                       {c.coverImage ? (
-                        <img
-                          src={c.coverImage}
-                          alt={c.name}
-                          loading="lazy"
-                          className="h-full w-full object-cover"
-                        />
+                        <img src={c.coverImage} alt={c.name} loading="lazy" className="h-full w-full object-cover" />
                       ) : (
-                        <div className="flex h-full items-center justify-center bg-gradient-to-br from-primary/10 to-accent/10">
-                          <Library className="h-10 w-10 text-muted-foreground/40" />
+                        <div className="flex h-full items-center justify-center bg-gradient-to-br from-primary/20 to-accent/20">
+                          <Library className="h-12 w-12 text-muted-foreground/40" />
                         </div>
                       )}
-                    </div>
 
-                    {/* Card body */}
-                    <CardContent className="pt-4">
-                      <div className="flex items-start justify-between gap-2">
-                        <div
-                          className="min-w-0 flex-1 cursor-pointer"
-                          onClick={() => navigate(`/collections/${c.id}`)}
-                        >
-                          <h3 className="truncate font-display font-semibold">
-                            {c.name}
-                          </h3>
-                          <Badge variant="outline" size="sm" className="mt-1">
-                            {c.collectionTypeName}
-                          </Badge>
+                      <div className="absolute inset-x-0 bottom-0 flex items-end p-4" style={{ background: "linear-gradient(transparent, rgba(0,0,0,0.7))" }}>
+                        <div className="min-w-0 flex-1">
+                          <h3 className="truncate text-lg font-semibold text-white">{c.name}</h3>
+                          <p className="text-[13px] text-white/85">{getMetadataLine(c)}</p>
                         </div>
-                        {/* Overflow menu */}
+                      </div>
+
+                      <div
+                        className="absolute right-2 top-2 flex items-center gap-1 opacity-0 transition-opacity duration-200 group-hover:opacity-100 max-[640px]:opacity-100"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full bg-black/30 text-white backdrop-blur-sm hover:bg-black/50" onClick={() => navigate(`/collections/${c.id}`)} aria-label={t("collections.view")}>
+                          <ExternalLink className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full bg-black/30 text-white backdrop-blur-sm hover:bg-black/50" onClick={() => openEdit(c)} aria-label={t("collections.edit")}>
+                          <Pencil className="h-4 w-4" />
+                        </Button>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8 shrink-0 opacity-0 transition-opacity group-hover:opacity-100 focus:opacity-100"
-                              onClick={(e) => e.stopPropagation()}
-                              aria-label={t("collections.actions")}
-                            >
-                              <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                width="16"
-                                height="16"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                strokeWidth="2"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                              >
-                                <circle cx="12" cy="12" r="1" />
-                                <circle cx="12" cy="5" r="1" />
-                                <circle cx="12" cy="19" r="1" />
-                              </svg>
+                            <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full bg-black/30 text-white backdrop-blur-sm hover:bg-black/50" aria-label={t("collections.actions")}>
+                              <MoreVertical className="h-4 w-4" />
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            <DropdownMenuItem
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                openEdit(c)
-                              }}
-                            >
-                              <Pencil className="h-4 w-4" />
-                              {t("collections.edit")}
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              className="text-destructive focus:text-destructive"
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                setDeleteId(c.id)
-                              }}
-                            >
+                            <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={(e) => { e.stopPropagation(); setDeleteId(c.id) }}>
                               <Trash2 className="h-4 w-4" />
                               {t("collections.delete")}
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </div>
-                      {c.description && (
-                        <p className="mt-2 line-clamp-2 text-sm text-muted-foreground">
-                          {c.description}
-                        </p>
-                      )}
-                    </CardContent>
-
-                    <CardFooter className="justify-between border-t px-6 py-3">
-                      <span className="text-xs font-medium text-muted-foreground">
-                        {t("collections.itemCount", { count: c.itemCount })}
-                      </span>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-7 text-xs"
-                        /* v8 ignore next */
-                        onClick={() => navigate(`/collections/${c.id}`)}
-                      >
-                        <Eye className="mr-1 h-3 w-3" />
-                        {t("collections.view")}
-                      </Button>
-                    </CardFooter>
-                  </Card>
-                </motion.div>
-              ))}
-            </StaggerChildren>
+                    </div>
+                  </motion.div>
+                ))}
+              </StaggerChildren>
+            )
+            /* v8 ignore stop */
+          ) : (
+            <div className="mt-6">
+              <DataTable<Collection>
+                columns={[
+                  {
+                    header: t("collections.nameLabel"),
+                    accessor: "name",
+                  },
+                  {
+                    header: t("collections.typeLabel"),
+                    accessor: "collectionTypeName",
+                  },
+                  {
+                    header: t("collections.listItems"),
+                    accessor: "itemCount",
+                  },
+                  {
+                    header: t("collections.listUpdated"),
+                    accessor: (row) => row.updatedAt ? getRelativeTime(row.updatedAt) : "—",
+                  },
+                ]}
+                data={filteredCollections}
+                onRowClick={(row) => navigate(`/collections/${row.id}`)}
+              />
+            </div>
           )}
         </>
       )}

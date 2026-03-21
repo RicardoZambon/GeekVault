@@ -102,7 +102,29 @@
     "dropCoverHere": "Solte uma imagem aqui ou clique para procurar",
     "saveSuccess": "Coleção salva com sucesso.",
     "createSuccess": "Coleção criada com sucesso.",
-    "deleteSuccess": "Coleção excluída com sucesso."
+    "deleteSuccess": "Coleção excluída com sucesso.",
+    "sort": {
+      "customOrder": "Ordem Personalizada",
+      "name": "Nome",
+      "lastUpdated": "Última Atualização",
+      "mostItems": "Mais Itens",
+      "recentlyAdded": "Adicionado Recentemente"
+    },
+    "toolbar": {
+      "filters": "Filtros",
+      "sortBy": "Ordenar por"
+    },
+    "viewGrid": "Visualização em grade",
+    "viewList": "Visualização em lista",
+    "listItems": "Itens",
+    "listUpdated": "Atualizado",
+    "updated": "Atualizado {{timeAgo}}",
+    "complete": "{{percent}}% completo",
+    "useAsCover": "Usar como Capa",
+    "useAsCoverSuccess": "Imagem de capa atualizada com sucesso",
+    "useAsCoverFailed": "Falha ao atualizar imagem de capa",
+    "itemActions": "Ações do item",
+    "reorderFailed": "Falha ao reordenar coleções"
   },
   "collectionTypes": {
     "title": "Tipos de Coleção",

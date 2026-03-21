@@ -146,6 +146,8 @@ public class CatalogItemsService : ICatalogItemsService
 
         item.SortOrder = await _catalogItemsRepository.GetMaxSortOrderAsync(collectionId) + 1;
 
+        collection.UpdatedAt = DateTime.UtcNow;
+
         await _catalogItemsRepository.AddAsync(item);
         await _catalogItemsRepository.SaveChangesAsync();
 
@@ -201,6 +203,8 @@ public class CatalogItemsService : ICatalogItemsService
         var item = await _catalogItemsRepository.GetByIdAndCollectionIdAsync(id, collectionId);
         if (item == null) return false;
 
+        collection.UpdatedAt = DateTime.UtcNow;
+
         _catalogItemsRepository.Remove(item);
         await _catalogItemsRepository.SaveChangesAsync();
         return true;
@@ -224,6 +228,8 @@ public class CatalogItemsService : ICatalogItemsService
         {
             itemsById[itemIds[i]].SortOrder = i;
         }
+
+        collection.UpdatedAt = DateTime.UtcNow;
 
         await _catalogItemsRepository.SaveChangesAsync();
         return (true, false, null);
