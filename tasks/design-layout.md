@@ -476,3 +476,401 @@ This is already implemented in `animated-outlet.tsx` and `ds/motion.tsx` — no 
 | Mobile sheet overlay | `z-50` | Via Radix UI Sheet |
 | Command palette overlay | `z-50` | Via cmdk dialog |
 | Toast notifications | `z-[100]` | Always on top (sonner) |
+
+---
+
+## Command Palette
+
+### Design Philosophy
+
+The command palette is the power user's front door — a keyboard-first interface that puts every action within two keystrokes. Visually, it should feel like a spotlight cutting through the page: a focused, elevated surface with a frosted glass backdrop that dims the world behind it. Warm Obsidian's amber accent lights up the selected result like a display case highlight.
+
+The design works within **cmdk's component model**: `CommandDialog` (overlay + container), `CommandInput`, `CommandList`, `CommandGroup`, `CommandItem`, `CommandSeparator`, and `CommandEmpty`. All styling is applied via className props — no structural changes to cmdk's DOM.
+
+---
+
+### Visual Design
+
+#### Backdrop
+
+- **Effect**: `backdrop-filter: blur(8px)` + semi-transparent overlay
+- **Light mode**: `rgba(28, 25, 23, 0.4)` (warm black at 40% — `--foreground` with alpha)
+- **Dark mode**: `rgba(0, 0, 0, 0.6)` (darker overlay needed on dark backgrounds)
+- **Z-index**: `z-50` (same layer as other overlays)
+- **Click outside**: Closes the palette
+
+#### Container
+
+- **Width**: `min(560px, calc(100vw - 2rem))` — generous width for comfortable scanning
+- **Max height**: `min(480px, 70vh)` — tall enough for results but never overwhelming
+- **Position**: Centered horizontally, offset **25% from top** of viewport (not dead-center — slightly high feels more intentional, like macOS Spotlight)
+- **Background**: `bg-popover` (`#FFFFFF` light / dark equivalent)
+- **Border**: `1px solid` `--border` (subtle, reinforces elevation)
+- **Border radius**: `--radius-xl` (16px) — larger radius than standard dialogs to feel special
+- **Shadow**: `--shadow-xl` (largest elevation token) — the palette floats above everything
+- **Overflow**: Hidden on container, scroll inside `CommandList`
+
+#### Search Input
+
+- **Height**: `52px` (h-13) — taller than standard inputs for visual importance
+- **Padding**: `px-4` with icon area
+- **Icon**: `Search` (Lucide, h-5 w-5) in `text-muted-foreground`, left-aligned
+- **Placeholder**: "Search pages, collections, actions..." (`commandPalette.placeholder` i18n key)
+- **Typography**: `text-base font-body` (16px — larger than typical inputs for readability)
+- **Color**: `text-foreground`, placeholder in `text-muted-foreground`
+- **Border**: Bottom only — `border-b border-border` separating input from results
+- **Background**: Transparent (inherits from container)
+- **Focus**: No visible focus ring (the entire palette IS the focused element)
+- **Clear behavior**: When input has text, show a subtle `X` button (h-4 w-4, `text-muted-foreground`) at the right edge, clickable to clear
+
+#### Result List
+
+- **Container**: `CommandList` with `overflow-y-auto`, `max-h-[360px]`
+- **Padding**: `p-2` (8px all around)
+- **Scroll behavior**: `scroll-smooth`, custom scrollbar styling:
+  - Width: `4px`
+  - Track: transparent
+  - Thumb: `--muted-foreground/20` with `--radius-full`
+  - Thumb hover: `--muted-foreground/40`
+
+#### Footer Hint Bar
+
+- **Position**: Below the result list, inside the container
+- **Height**: `36px`
+- **Background**: `bg-muted/50` (subtle differentiation from results area)
+- **Border**: `border-t border-border`
+- **Content**: Keyboard hints — `↑↓ Navigate` · `↵ Select` · `esc Dismiss`
+- **Typography**: `text-xs text-muted-foreground font-mono`
+- **Padding**: `px-4`
+- **Layout**: `flex items-center gap-4`
+- **Keyboard hint keys**: Styled as inline `<kbd>` elements with `bg-background border border-border rounded px-1 py-0.5 text-[10px] font-mono`
+
+---
+
+### Result Groups
+
+Results are organized into semantic groups using `CommandGroup`. Groups appear in a fixed order, but empty groups are hidden automatically by cmdk.
+
+| Group | Heading i18n Key | Icon Color | When Shown |
+|-------|-----------------|------------|------------|
+| **Navigation** | `commandPalette.navigation` | `text-muted-foreground` | Always (pages) |
+| **Collections** | `commandPalette.collections` | `text-accent` (amber) | When user has collections |
+| **Recent Items** | `commandPalette.recent` | `text-muted-foreground` | When user has recent history |
+| **Actions** | `commandPalette.actions` | `text-muted-foreground` | Always |
+| **Settings** | `commandPalette.settings` | `text-muted-foreground` | Always |
+
+#### Group Header
+
+- **Typography**: `text-xs font-semibold uppercase tracking-wider` (overline style from type scale)
+- **Color**: `text-muted-foreground`
+- **Padding**: `px-2 py-1.5`
+- **Letter spacing**: `0.05em`
+
+#### Group Separator
+
+- `CommandSeparator` — `h-px bg-border mx-2 my-1` between groups
+
+---
+
+### Result Items
+
+#### Navigation Group
+
+Static page links — always present regardless of search query.
+
+| Item | Icon | Label i18n Key | Shortcut Hint |
+|------|------|---------------|---------------|
+| Dashboard | `LayoutDashboard` | `nav.dashboard` | — |
+| Collections | `Library` | `nav.collections` | — |
+| Collection Types | `Layers` | `nav.collectionTypes` | — |
+| Wishlist | `Heart` | `nav.wishlist` | — |
+| Profile | `User` | `nav.profile` | — |
+
+#### Collections Group
+
+Dynamic — populated from the user's actual collections. Each item navigates to that collection's detail page.
+
+| Item | Icon | Label | Secondary |
+|------|------|-------|-----------|
+| [Collection Name] | `Library` (amber tint) | Collection name | Item count (e.g., "24 items") |
+
+- **Max items shown**: 5 (most recently accessed first)
+- **Source**: Fetch from API or cache on palette open (debounced, not on every keystroke)
+
+#### Recent Items Group
+
+Dynamic — shows the last 5 visited pages (stored in session or localStorage).
+
+| Item | Icon | Label | Secondary |
+|------|------|-------|-----------|
+| [Page/Item Name] | `Clock` | Name of page/item visited | Relative time ("2m ago", "1h ago") |
+
+- **Max items**: 5
+- **Storage**: `sessionStorage` key `"geekvault-recent-pages"` — array of `{ path, label, icon, timestamp }`
+- **Shown when**: No search query (default view) — hidden during active search to prioritize search results
+
+#### Actions Group
+
+Functional commands that do things rather than navigate.
+
+| Item | Icon | Label i18n Key | Shortcut Hint |
+|------|------|---------------|---------------|
+| Create Collection | `Plus` | `commandPalette.createCollection` | — |
+| Add to Wishlist | `HeartPlus` | `commandPalette.addToWishlist` | — |
+| Import Data | `Upload` | `commandPalette.importData` | — |
+
+#### Settings Group
+
+Preference toggles and configuration.
+
+| Item | Icon | Label i18n Key | Current Value |
+|------|------|---------------|---------------|
+| Toggle Theme | `Sun` / `Moon` | `commandPalette.toggleTheme` | "Light" / "Dark" |
+| Toggle Sidebar | `PanelLeftClose` | `commandPalette.toggleSidebar` | — |
+| Change Language | `Languages` | `commandPalette.changeLanguage` | "English" / "Português" |
+
+---
+
+### Result Item Layout
+
+Each `CommandItem` follows a consistent layout:
+
+```
+┌─────────────────────────────────────────────────────┐
+│  [icon]  Primary Label              Secondary  [⌘K] │
+│  16×16   text-sm font-medium        text-xs    kbd  │
+│          text-foreground            muted-fg        │
+└─────────────────────────────────────────────────────┘
+```
+
+**Dimensions:**
+- **Min height**: `44px` (WCAG target size)
+- **Padding**: `px-3 py-2.5`
+- **Border radius**: `--radius-md` (8px)
+- **Gap**: `gap-3` (12px) between icon and label
+- **Layout**: `flex items-center`
+
+**Icon:**
+- Size: `h-4 w-4` (16px)
+- Color: `text-muted-foreground` (default), `text-accent` for collection items
+- Flex: `shrink-0`
+
+**Primary Label:**
+- Typography: `text-sm font-medium`
+- Color: `text-foreground`
+- Overflow: `truncate` (single line, ellipsis)
+- Flex: `flex-1 min-w-0`
+
+**Secondary Description (optional):**
+- Typography: `text-xs`
+- Color: `text-muted-foreground`
+- Alignment: Right-aligned after primary label
+- Flex: `shrink-0 ml-auto`
+- Usage: Item counts for collections, relative times for recents, current value for settings
+
+**Keyboard Shortcut Hint (optional):**
+- Only on items with global shortcuts
+- Styled as `<kbd>` with `bg-muted border border-border rounded px-1.5 py-0.5 text-[10px] font-mono text-muted-foreground`
+- Flex: `shrink-0 ml-2`
+
+---
+
+### Result Item States
+
+| State | Visual Treatment |
+|-------|-----------------|
+| **Default** | `bg-transparent`, `text-foreground` |
+| **Selected** (`aria-selected`) | `bg-accent/10` (amber at 10% opacity), `text-accent-foreground`, icon shifts to `text-accent` (amber) |
+| **Selected + hover** | Same as selected (keyboard and pointer selection are unified in cmdk) |
+
+- Selection is managed by cmdk via arrow keys and mouse hover — both set `aria-selected="true"`
+- Only one item is selected at a time
+- No separate "hover" vs "keyboard focus" distinction — cmdk unifies them
+- Transition: `transition-colors` with `duration-instant` (50ms) — selection highlight should feel instant
+
+---
+
+### Keyboard Interactions
+
+| Key | Action |
+|-----|--------|
+| `Cmd/Ctrl + K` | Open palette (toggles if already open) |
+| `↑` / `↓` | Navigate between result items |
+| `Enter` | Execute selected item's action |
+| `Escape` | Close palette (clears search first if search has text, second press closes) |
+| `Cmd/Ctrl + Backspace` | Clear search input |
+| `Home` / `End` | Jump to first / last result |
+
+**Focus behavior:**
+- On open: Input is auto-focused (cmdk default)
+- On close: Focus returns to the element that was focused before opening
+- Tab key: Does NOT cycle through results — arrow keys are the navigation mechanism (cmdk convention)
+
+---
+
+### Search Behavior
+
+#### What Gets Indexed
+
+cmdk handles matching against `CommandItem`'s `value` prop. Each item's `value` should be a searchable string combining its label and keywords:
+
+- **Navigation items**: Page name + aliases (e.g., value="dashboard home overview")
+- **Collections**: Collection name + type name (e.g., value="Vinyl Records music collection")
+- **Actions**: Action name + verb aliases (e.g., value="create collection new add")
+- **Settings**: Setting name + aliases (e.g., value="toggle theme dark light mode appearance")
+
+#### Matching
+
+- cmdk uses **substring matching** by default (not fuzzy) — it matches against the `value` prop
+- Case-insensitive
+- Items that don't match are hidden automatically
+- Groups with no visible items are hidden automatically
+
+#### Result Ranking
+
+cmdk preserves the DOM order of items. Ranking is achieved through group ordering:
+
+1. Navigation (pages — most common intent)
+2. Collections (user's data — personal and relevant)
+3. Actions (things to do)
+4. Settings (least common)
+
+Within each group, items maintain their defined order. Recent Items group only appears when there's no active search query.
+
+---
+
+### Empty State (No Search Query)
+
+When the palette opens with no search text, show:
+
+1. **Recent Items group** (if any recent history exists) — "Pick up where you left off" feel
+2. **Navigation group** — full list of pages
+3. **Actions group** — quick actions
+4. **Settings group** — preference toggles
+
+This gives users immediate value without typing — the palette doubles as a quick launcher.
+
+### No Results State
+
+When search text matches nothing:
+
+```
+┌─────────────────────────────────────────────────────┐
+│                                                     │
+│          [SearchX icon, h-10 w-10, muted]           │
+│                                                     │
+│          No results for "query text"                │
+│          text-sm text-muted-foreground              │
+│                                                     │
+│          Try searching for a page, collection,      │
+│          or action                                  │
+│          text-xs text-muted-foreground/70            │
+│                                                     │
+└─────────────────────────────────────────────────────┘
+```
+
+- **Icon**: `SearchX` from Lucide (h-10 w-10, `text-muted-foreground/30`)
+- **Primary text**: "No results for "[query]"" — `text-sm text-muted-foreground`
+- **Helper text**: "Try searching for a page, collection, or action" — `text-xs text-muted-foreground/70`
+- **Layout**: `flex flex-col items-center justify-center py-10 gap-2`
+- **i18n keys**: `commandPalette.noResults` (with `{{query}}` interpolation) and `commandPalette.noResultsHint`
+
+---
+
+### Entrance / Exit Animation
+
+Aligned with the **Modal / Dialog** pattern from `design-motion.md`:
+
+#### Entrance
+
+| Element | Animation | Duration | Easing |
+|---------|-----------|----------|--------|
+| **Backdrop** | `opacity: 0 → 1` | `200ms` | `ease-enter` |
+| **Container** | `opacity: 0 → 1, scale: 0.95 → 1, y: -8px → 0` | `250ms` | `springGentle` |
+
+- Backdrop and container enter simultaneously
+- Container slides **down** slightly (y: -8px → 0) rather than up — it enters from above like a dropdown spotlight, matching its top-biased positioning
+- Input auto-focuses after container animation begins (no delay — instant keyboard readiness)
+
+#### Exit
+
+| Element | Animation | Duration | Easing |
+|---------|-----------|----------|--------|
+| **Container** | `opacity: 1 → 0, scale: 1 → 0.97` | `150ms` | `ease-exit` |
+| **Backdrop** | `opacity: 1 → 0` | `150ms` | `ease-exit` |
+
+- Container exits first, backdrop follows (slight overlap is fine)
+- Exit is faster than entrance (150ms vs 250ms) — closing should feel instant
+
+#### Framer Motion Implementation
+
+```typescript
+const commandPaletteVariants = {
+  initial: { opacity: 0, scale: 0.95, y: -8 },
+  animate: { opacity: 1, scale: 1, y: 0 },
+  exit: { opacity: 0, scale: 0.97 },
+}
+
+const commandPaletteTransition = {
+  enter: { type: "spring", stiffness: 300, damping: 28 },  // springGentle
+  exit: { duration: 0.15, ease: [0.4, 0.0, 1.0, 1.0] },   // ease-exit
+}
+
+const backdropVariants = {
+  initial: { opacity: 0 },
+  animate: { opacity: 1 },
+  exit: { opacity: 0 },
+}
+
+const backdropTransition = {
+  enter: { duration: 0.2, ease: [0.0, 0.0, 0.2, 1.0] },   // ease-enter
+  exit: { duration: 0.15, ease: [0.4, 0.0, 1.0, 1.0] },    // ease-exit
+}
+```
+
+#### Reduced Motion
+
+- All `transform` animations (scale, y) removed
+- Opacity transitions reduced to `50ms` (duration-instant)
+- Palette appears/disappears with a quick fade — still readable, just no spatial motion
+
+---
+
+### Responsive Behavior
+
+#### Desktop (≥768px)
+
+- Full 560px width, 25% from top
+- Footer hint bar visible
+- Keyboard shortcut hints shown on items
+
+#### Mobile (<768px)
+
+- Width: `calc(100vw - 2rem)` (16px margin on each side)
+- Position: `top-4` (16px from top, not percentage-based — avoids keyboard overlap)
+- Max height: `min(480px, 60vh)` (shorter to account for virtual keyboard)
+- Footer hint bar **hidden** (keyboard hints irrelevant on touch)
+- Shortcut hint `<kbd>` elements **hidden** on items
+- Search input height stays at 52px (large touch target)
+- Close on item select (same as desktop)
+
+---
+
+### Implementation Notes for cmdk
+
+The current implementation uses `CommandDialog` which wraps cmdk's `Command` in a Radix dialog. Key considerations:
+
+1. **Overlay**: The `overlayClassName` prop on `CommandDialog` controls the backdrop — apply blur and warm overlay colors there
+2. **Content**: The `contentClassName` prop controls the container — apply positioning, shadow, and border radius there
+3. **Animation**: cmdk's `CommandDialog` uses Radix Dialog internally, which has its own open/close states. Framer Motion animation should be applied by wrapping the dialog content or using Radix's `forceMount` + AnimatePresence pattern
+4. **Filtering**: cmdk handles filtering internally via the `value` prop on `CommandItem` — no custom filter logic needed for basic substring matching
+5. **Groups**: Empty `CommandGroup` components are automatically hidden when no children match the search query — no conditional rendering needed
+6. **i18n**: All user-facing strings (headings, placeholders, empty states) must use `useTranslation()` with keys in both `en.json` and `pt.json`
+
+### Accessibility
+
+- **Role**: cmdk provides `role="listbox"` on the list and `role="option"` on items — this is correct for a command palette pattern
+- **aria-label**: The `CommandDialog` `label` prop sets `aria-label` on the combobox — use `t("commandPalette.label")`
+- **Live region**: cmdk announces result count changes via an `aria-live="polite"` region — no custom implementation needed
+- **Escape key**: Returns focus to the previously focused element (managed by Radix Dialog's focus trap)
+- **Reduced motion**: Animations respect `prefers-reduced-motion` via the `getVariants()` pattern from `motion.tsx`
