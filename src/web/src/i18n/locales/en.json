@@ -469,14 +469,21 @@
   },
   "commandPalette": {
     "label": "Command palette",
-    "placeholder": "Type a command or search...",
+    "placeholder": "Search pages, collections, actions...",
     "noResults": "No results found.",
+    "noResultsHint": "Try searching for a page, collection, or action",
     "navigation": "Navigation",
     "actions": "Actions",
+    "settings": "Settings",
+    "recent": "Recent",
     "createCollection": "Create Collection",
+    "importData": "Import Data",
     "toggleTheme": "Toggle Theme",
     "toggleSidebar": "Toggle Sidebar",
-    "changeLanguage": "Change Language"
+    "changeLanguage": "Change Language",
+    "hintNavigate": "Navigate",
+    "hintSelect": "Select",
+    "hintDismiss": "Dismiss"
   },
   "emptyStates": {
     "dashboard": {

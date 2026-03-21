@@ -469,14 +469,21 @@
   },
   "commandPalette": {
     "label": "Paleta de comandos",
-    "placeholder": "Digite um comando ou pesquise...",
+    "placeholder": "Buscar páginas, coleções, ações...",
     "noResults": "Nenhum resultado encontrado.",
+    "noResultsHint": "Tente buscar uma página, coleção ou ação",
     "navigation": "Navegação",
     "actions": "Ações",
+    "settings": "Configurações",
+    "recent": "Recentes",
     "createCollection": "Criar Coleção",
+    "importData": "Importar Dados",
     "toggleTheme": "Alternar Tema",
     "toggleSidebar": "Alternar Barra Lateral",
-    "changeLanguage": "Mudar Idioma"
+    "changeLanguage": "Mudar Idioma",
+    "hintNavigate": "Navegar",
+    "hintSelect": "Selecionar",
+    "hintDismiss": "Fechar"
   },
   "emptyStates": {
     "dashboard": {
