@@ -268,7 +268,7 @@
         "Document appended to tasks/design-pages.md under 'Wishlist' section"
       ],
       "priority": 13,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {

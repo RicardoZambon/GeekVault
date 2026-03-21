@@ -51,6 +51,11 @@
 - Dashed border = incomplete/missing slot; solid border = owned/acquired — visual language for sets
 - Missing items use `bg-card/50` to visually recede; owned items get `border-l-3 border-l-success` left stripe
 - Wishlist quick-add: optimistic "Added" → "In Wishlist" (disabled) — no toast on success, toast on error only
+- Wishlist cards get subtle `hover:shadow-md` (no translate lift) — data cards, not navigable destinations (same as copy cards)
+- Chevron rotation animation (single icon + Framer Motion rotate) is smoother than swapping ChevronDown/ChevronRight icons
+- Notes fields should use Textarea (not Input) for multi-line content — `rows={3} resize-y`
+- Priority color dots in Select options: `w-2 h-2 rounded-full` inline with flex layout inside SelectItem
+- Date-range client-side filtering: use `item.id` descending as creation-order proxy when `createdAt` is unavailable
 
 ---
 
@@ -275,4 +280,20 @@
   - Wishlist quick-add uses optimistic update: button → "Added" (success) for 2s → "In Wishlist" (disabled)
   - Set detail filter tabs are local state, not URL params — sets are small enough for client-side filtering
   - Set items determine owned/missing by cross-referencing `catalogItemId` with collection's owned items
+---
+
+## 2026-03-21 - US-013
+- Designed wishlist page with full visual specification
+- Appended "Wishlist" section to `tasks/design-pages.md`
+- Sections: Design Philosophy, Overall Page Layout, Grouped Layout (collapsible collection headers with chevron rotation animation), Priority Badge Design (3-tier color system with semantic badges), Wishlist Item Card (compact data card with drag handle, name, priority badge, target price, notes preview, catalog link), Actions Dropdown (hover-reveal 3-dot menu), Filter and Sort Toolbar (priority filter, sort by, date added filter, item count), Create/Edit Dialog (collection select, name input, priority+price grid, notes textarea upgrade, catalog item search), Delete Confirmation, Drag-to-Reorder, Empty State (Heart icon, encouraging copy), No Results State (Search icon, filter hint), Loading Skeleton, Responsive Summary, Implementation Notes
+- Key decisions: cards use subtle `hover:shadow-md` without translate lift (data cards, not destinations — matches copy card pattern); notes upgraded from Input to Textarea for multi-line editing; chevron rotation via single icon + Framer Motion rotate (smoother than icon swap); priority badges use existing semantic color system (destructive/accent/default); new date-added filter for frequent wishlisting users; currency prefix pattern on price input matches owned copy forms; catalog link as "View in catalog →" text link within card
+- New enhancements beyond current implementation: date added filter (client-side), notes textarea (was Input), priority color dots in filter selects, no-results state with Search icon (was plain text), catalog link in card body (was icon only in header)
+- **Learnings for future iterations:**
+  - Wishlist cards should NOT lift on hover (no translateY) — they are data cards like copy cards, not navigable destinations like collection gallery cards
+  - Chevron animation: rotate a single ChevronDown icon (-90° collapsed, 0° expanded) instead of swapping ChevronDown/ChevronRight — one icon is smoother
+  - Notes fields benefit from Textarea over Input — collectors write multi-line notes about condition requirements, pricing history, etc.
+  - Priority color dots in Select options require inline flex layout inside SelectItem — can't rely on text-only content
+  - Date-range client-side filtering can use `item.id` ordering as creation-date proxy when API doesn't return `createdAt`
+  - Group collapse state should NOT be persisted to localStorage — wishlist groups are small and should default to all-expanded on each visit
+  - Filter "no results" state needs visual treatment (icon + hint text) distinct from "empty" state (EmptyState component + action CTA)
 ---

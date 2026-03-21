@@ -2769,3 +2769,442 @@ On screens <640px, the hero header stacks the progress ring above the text:
 9. **Sort order display** — show `#{sortOrder}` only if the set has a defined order (items sorted by `sortOrder`). If all sort orders are 0 or sequential, show position index instead.
 10. **Test strategy** — set cards: `data-testid="set-card"` with `data-set-id`. Progress ring: `data-testid="progress-ring"` with `data-percentage`. Item cards in detail: `data-testid="set-item-card"` with `data-owned="true|false"`. Wishlist button: `data-testid="wishlist-quick-add"`.
 11. **i18n keys needed:** `sets.emptyTitle`, `sets.emptyDescription`, `sets.noItemsTitle`, `sets.noItemsDescription`, `sets.allOwnedTitle`, `sets.allOwnedDescription`, `sets.addToWishlist`, `sets.inWishlist`, `sets.addItems`, `sets.backToCollection`, `sets.detailSubtitle`, `sets.percentComplete`, `sets.complete`, `sets.itemCount`, `sets.filterAll`, `sets.filterOwned`, `sets.filterMissing`, `sets.createSet`, `sets.editSet`, `sets.deleteSet`, `sets.deleteConfirmation`, `sets.sortPosition`.
+
+---
+
+## Wishlist
+
+### Design Philosophy
+
+The wishlist is the collector's **aspiration board** — a curated list of desired items organized by collection, reflecting the anticipation and excitement of future acquisitions. Where owned copies celebrate what you *have*, the wishlist celebrates what you *want*. The design leans into the Warm Obsidian identity's warmth: amber glows on priority badges like display-case spotlights, collapsible collection groups feel like opening drawers in a collector's cabinet, and drag-to-reorder gives tactile control over priorities.
+
+**Key aesthetic decisions:**
+- **Grouped by collection** with collapsible headers — creates visual hierarchy and lets collectors focus on one collection at a time
+- **Priority badges are the hero visual element** — color-coded with distinct semantic meaning (high = urgent warmth, medium = steady neutral, low = subtle muted)
+- **Cards are compact but information-rich** — name, priority, price, notes, and catalog link all visible without expanding
+- **Drag-to-reorder within groups** — gives collectors direct control over their acquisition order
+- **Filter and sort toolbar** sits between header and content — always accessible, never hidden
+- **Empty state is encouraging** — "Your wish is our command" energy, not "Nothing here yet"
+- **Staggered entrance per group** — groups animate in sequentially, items within groups stagger for a cascading reveal
+
+---
+
+### Overall Page Layout
+
+```
+┌──────────────────────────────────────────────────────────────┐
+│  PageHeader: "Wishlist" + description + [+ Add Item] button  │
+│  gap: --space-6 (24px)                                       │
+├──────────────────────────────────────────────────────────────┤
+│  Filter/Sort Toolbar                                         │
+│  [Priority ▾]  [Sort by ▾]  [Date Added ▾]          12 items│
+│  gap: --space-6 (24px)                                       │
+├──────────────────────────────────────────────────────────────┤
+│  Collection Group: "Marvel Comics" (5)             [▼]       │
+│  ┌──────────┐ ┌──────────┐ ┌──────────┐                     │
+│  │ HIGH     │ │ MEDIUM   │ │ LOW      │                      │
+│  │ Item A   │ │ Item B   │ │ Item C   │                      │
+│  │ $25.00   │ │ $15.00   │ │          │                      │
+│  │ Notes... │ │          │ │ Notes... │                      │
+│  └──────────┘ └──────────┘ └──────────┘                      │
+│  gap: --space-6 (24px)                                       │
+├──────────────────────────────────────────────────────────────┤
+│  Collection Group: "Pokémon TCG" (3)               [▼]       │
+│  ┌──────────┐ ┌──────────┐ ┌──────────┐                     │
+│  │ Item D   │ │ Item E   │ │ Item F   │                      │
+│  └──────────┘ └──────────┘ └──────────┘                      │
+└──────────────────────────────────────────────────────────────┘
+```
+
+**Spacing rhythm:**
+- Page header to toolbar: `--space-6` (24px)
+- Toolbar to first group: `--space-6` (24px)
+- Between groups: `--space-6` (24px)
+- Group header to card grid: `--space-3` (12px)
+- Card grid gap: `--space-4` (16px)
+
+---
+
+### Grouped Layout — Collection Section Headers
+
+Each collection forms a collapsible group with a section header that acts as a toggle button.
+
+**Header layout:**
+```
+┌──────────────────────────────────────────────────────────────┐
+│  [▼]  Marvel Comics                                (5)       │
+│  chevron + collection name (font-display semibold) + count   │
+└──────────────────────────────────────────────────────────────┘
+```
+
+**Header container:**
+- Full-width `button` element for accessibility (clickable entire row)
+- `flex items-center gap-2`
+- Padding: `px-2 py-2.5`
+- Border radius: `--radius-lg` (12px) — `rounded-xl`
+- Background: transparent → `bg-muted/50` on hover
+- Transition: `transition-colors duration-[--duration-fast]`
+
+**Chevron icon:**
+- `ChevronDown` when expanded, `ChevronRight` when collapsed
+- Size: `h-4 w-4`
+- Color: `text-muted-foreground`
+- Rotation animation: use Framer Motion `animate={{ rotate: isExpanded ? 0 : -90 }}` on a single `ChevronDown` icon, `transition={{ duration: 0.15 }}` — smoother than swapping icons
+
+**Collection name:**
+- `font-display text-lg font-semibold text-foreground`
+- Truncate on overflow with `truncate` class
+
+**Item count badge:**
+- Uses `Badge` component with `variant="default"` and `size="sm"`
+- Shows filtered count (not total) when filters are active
+- Subtle `bg-secondary text-secondary-foreground` — not accent-colored (avoids visual competition with priority badges)
+
+**Collapse/expand animation:**
+- Use Framer Motion `AnimatePresence` wrapping the group content
+- `initial={{ height: 0, opacity: 0 }}`
+- `animate={{ height: "auto", opacity: 1 }}`
+- `exit={{ height: 0, opacity: 0 }}`
+- `transition={{ duration: 0.25, ease: [0.25, 0.1, 0.25, 1.0] }}` (matches `--ease-standard`)
+- `overflow-hidden` on the motion container
+
+**Default state:** All groups expanded on initial load. Collapse state is local (not persisted to localStorage — wishlist groups are typically small enough to keep open).
+
+---
+
+### Priority Badge Design
+
+Priority is the most important visual signal on each wishlist card. Badges use the semantic color system from design-tokens.md.
+
+**Three priority levels:**
+
+| Priority | Label | Badge Variant | Background (light) | Background (dark) | Text Color | Icon (optional) |
+|----------|-------|---------------|--------------------|--------------------|------------|-----------------|
+| **High** (1) | "High" | `destructive` | `bg-destructive/10` | `bg-destructive/15` | `text-destructive` | `ArrowUp` (lucide) |
+| **Medium** (2) | "Medium" | `accent` | `bg-accent/10` | `bg-accent/15` | `text-accent` | `Minus` (lucide) |
+| **Low** (3) | "Low" | `default` | `bg-muted` | `bg-muted` | `text-muted-foreground` | `ArrowDown` (lucide) |
+
+**Badge styling:**
+- Size: `size="sm"` from Badge component
+- Padding: `px-2 py-0.5`
+- Border radius: `--radius-md` (8px) — `rounded-lg`
+- Font: `text-xs font-semibold uppercase tracking-wide`
+- The priority icon (ArrowUp/Minus/ArrowDown) sits before the label text at `h-3 w-3`
+- Icons are optional — include only if the badge has enough horizontal space (desktop yes, mobile cards may omit)
+
+**Priority in filter selects:**
+- Each SelectItem shows a small color dot before the priority label
+- Dot: `w-2 h-2 rounded-full` with the matching priority background color
+- Filter value "all" has no dot
+
+---
+
+### Wishlist Item Card
+
+Each wishlist item is a compact card within the collection group grid.
+
+**Card container:**
+- `Card` component with `group relative h-full` classes
+- Padding: `p-4`
+- Border radius: `--radius-lg` (12px)
+- Hover: `hover:shadow-md transition-shadow duration-[--duration-fast]` — subtle lift, no translate (these are data cards, not navigable destinations — same pattern as copy cards)
+- Drag active state: `ring-2 ring-accent shadow-xl scale-[1.02]`
+
+**Card layout (top to bottom):**
+
+```
+┌──────────────────────────────────────────┐
+│  ⠿  Item Name                     [···]  │
+│     [HIGH]                                │
+│                                           │
+│  $ Target: $25.00                         │
+│  📄 Looking for graded copy...            │
+│                                           │
+│  🔗 Linked to catalog                     │
+└──────────────────────────────────────────┘
+```
+
+**Row 1: Header (drag handle + name + actions)**
+- `flex items-start justify-between gap-2`
+- Left side: `min-w-0 flex-1`
+  - Inner row: `flex items-center gap-2`
+    - **Drag handle**: `GripVertical` icon, `h-4 w-4`, `cursor-grab touch-none`, `text-muted-foreground hover:text-foreground`, `shrink-0`
+    - **Item name**: `truncate font-semibold text-foreground text-sm` — single line, truncates with ellipsis
+    - **Catalog link indicator**: `Link` icon, `h-3.5 w-3.5 shrink-0 text-accent` — only shown when `catalogItemId` is not null
+  - Below name: priority badge with `mt-1.5 ml-6` (aligns under name, past drag handle)
+- Right side: Actions dropdown (see Actions section below)
+
+**Row 2: Target price (conditional)**
+- Only shown when `targetPrice != null`
+- `mt-3 flex items-center gap-1.5 text-sm`
+- Dollar icon: `DollarSign h-3.5 w-3.5 text-muted-foreground`
+- Price text: `text-muted-foreground` with value in `font-semibold text-foreground` and `font-variant-numeric: tabular-nums`
+- Format: "Target: $25.00" — use `tabular-nums` for decimal alignment across cards
+
+**Row 3: Notes preview (conditional)**
+- Only shown when `notes` is not null/empty
+- `mt-2 flex items-start gap-1.5 text-sm text-muted-foreground`
+- Notes icon: `FileText mt-0.5 h-3.5 w-3.5 shrink-0`
+- Notes text: `line-clamp-2` — max 2 lines, then ellipsis
+- Reduced opacity compared to name: communicates secondary information
+
+**Row 4: Catalog link (conditional, new enhancement)**
+- Only shown when `catalogItemId` is not null
+- `mt-2 text-xs text-accent hover:text-accent/80 cursor-pointer`
+- Clicking navigates to the catalog item detail page
+- Text: i18n key `wishlist.viewCatalogItem` — e.g., "View in catalog →"
+
+---
+
+### Actions Dropdown
+
+Each card has a 3-dot actions menu in the top-right corner.
+
+**Trigger button:**
+- `Button variant="ghost" size="icon"` — `h-8 w-8 shrink-0`
+- Icon: `MoreVertical h-4 w-4`
+- Visibility: `sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100 transition-opacity` — always visible on mobile, hover/focus-reveal on desktop (matches copy card pattern)
+
+**Dropdown items:**
+1. **Edit**: `Pencil` icon + i18n `wishlist.edit` — opens edit dialog
+2. **Delete**: `Trash2` icon + i18n `wishlist.delete` — `text-destructive focus:text-destructive`, opens delete confirmation
+
+**Dropdown container:**
+- `DropdownMenuContent align="end"`
+- Standard dropdown styling from design system
+
+---
+
+### Filter and Sort Toolbar
+
+The toolbar sits between the page header and the first collection group.
+
+**Layout:**
+- `flex flex-wrap items-center gap-3`
+- Responsive: selects go full-width on mobile (`w-full sm:w-[160px]`)
+
+**Priority filter:**
+- `Select` component with trigger width `w-full sm:w-[160px]`
+- Options: All (no dot), High (red dot), Medium (amber dot), Low (gray dot)
+- Each option: `flex items-center gap-2` → color dot `w-2 h-2 rounded-full` + label text
+- Default: "All"
+
+**Sort by:**
+- `Select` component with trigger width `w-full sm:w-[160px]`
+- Options: Priority (default), Target Price, Name, Date Added
+- "Date Added" is a new sort option (sort by `id` descending as proxy for creation order)
+
+**Date added filter (new):**
+- `Select` component with trigger width `w-full sm:w-[160px]`
+- Options: Any time (default), Last 7 days, Last 30 days, Last 90 days
+- This helps collectors who add wishlist items frequently to see recent additions
+
+**Item count:**
+- `ml-auto text-sm text-muted-foreground`
+- Shows: `"{count} items"` using i18n interpolation `wishlist.itemCount`
+- Updates reactively when filters change (shows filtered count, not total)
+
+---
+
+### Create/Edit Dialog
+
+A modal dialog for adding new wishlist items or editing existing ones.
+
+**Dialog container:**
+- `DialogContent className="sm:max-w-lg"`
+- Standard dialog with `DialogHeader` containing `DialogTitle` + `DialogDescription`
+- Title: "Add to Wishlist" (create) / "Edit Wishlist Item" (edit)
+- Description: brief helper text, i18n keyed
+
+**Form layout (top to bottom):**
+
+**1. Error banner (conditional):**
+- `rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive`
+- Only visible when `formError` is set
+
+**2. Collection select (create only):**
+- `Label` + `Select` component
+- Shows all user collections
+- Disabled when editing (collection is fixed)
+- When changing collection, resets catalog item search
+
+**3. Name input:**
+- `Label` + `Input`
+- `id="wl-name"`, placeholder from i18n
+- Auto-filled when selecting a linked catalog item
+
+**4. Priority + Target Price (side by side):**
+- `grid grid-cols-2 gap-4`
+- **Priority select**: `Select` with 3 options (High, Medium, Low)
+  - Each option has a color indicator dot matching the badge colors (same as filter)
+  - Default: High (priority 1)
+- **Target price input**: `Input type="number" step="0.01" min={0}`
+  - **Currency prefix**: `relative` wrapper with `absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground pointer-events-none` dollar sign + `pl-7` on input
+  - Placeholder: "0.00"
+
+**5. Notes textarea (upgraded from Input):**
+- `Label` + `Textarea` (not Input — notes deserve multi-line)
+- `rows={3}` — provides enough space for notes
+- Placeholder from i18n: "e.g., Looking for near-mint condition..."
+- `resize-y` to allow vertical resize only
+
+**6. Catalog item link (searchable dropdown):**
+- `Label` + conditional content:
+  - **If no collection selected**: muted text "Select a collection first"
+  - **If linked**: `flex items-center gap-2 rounded-md border px-3 py-2 text-sm` showing `Link` icon + linked item name + "Unlink" ghost button
+  - **If not linked**: `Input` for search with debounced results dropdown
+    - Results: `max-h-32 overflow-y-auto rounded-md border bg-popover shadow-md`
+    - Each result: `flex w-full items-center gap-2 px-3 py-2 text-sm hover:bg-accent/10 cursor-pointer`
+    - Identifier in `text-muted-foreground` + name in `text-foreground`
+    - Clicking auto-fills the name field if empty
+
+**7. Action buttons:**
+- `flex justify-end gap-2 pt-2`
+- Cancel: `Button variant="outline"` — dismisses dialog
+- Submit: `Button variant="default"` — "Add" (create) / "Save" (edit)
+  - Loading state: `Loader2 animate-spin mr-2 h-4 w-4` + "Saving..."
+
+---
+
+### Delete Confirmation Dialog
+
+Uses the `ConfirmDialog` component.
+
+**Content:**
+- Title: i18n `wishlist.deleteTitle` — "Delete wishlist item?"
+- Description: i18n `wishlist.deleteConfirm` — "This item will be removed from your wishlist. This cannot be undone."
+- Confirm button: `variant="destructive"`, label from i18n
+- Loading state: `loadingLabel` shows "Deleting..."
+- Cancel button: `variant="outline"`
+
+---
+
+### Drag-to-Reorder
+
+Reordering is always available (no conditional "custom sort" mode — wishlist items are inherently priority-ordered).
+
+**Drag handle:**
+- `GripVertical` icon in each card's header row
+- `cursor-grab` at rest, `cursor-grabbing` when dragging
+- `touch-none` for mobile touch handling via @dnd-kit
+
+**Visual feedback during drag:**
+- Active card: `ring-2 ring-accent shadow-xl scale-[1.02]` — amber ring glow + elevation + slight scale
+- Drop placeholder: not needed with @dnd-kit's SortableList (items reflow in real-time)
+- Other cards: slightly dimmed during active drag (`opacity-75`)
+
+**Reorder scope:** Items reorder within their collection group only, not across groups.
+
+**Persistence:**
+- Optimistic: immediately update local state with new order
+- POST `/api/collections/{collectionId}/wishlist/reorder` with `{ itemIds: [...] }`
+- On failure: revert to previous order + `toast.error`
+
+---
+
+### Empty State
+
+Shown when the user has no wishlist items at all (total items === 0).
+
+**Layout:**
+- Uses `EmptyState` component from `components/ds/`
+- Icon: `Heart` from lucide-react — warm, inviting, matches the aspirational tone
+- Title: i18n `emptyStates.wishlist.title` — "Nothing on your wishlist yet"
+- Description: i18n `emptyStates.wishlist.description` — "Start adding items you'd love to own. Browse your collections to discover what's missing."
+- Action: `Button` with accent styling + `Plus` icon — "Add to Wishlist"
+- `onAction` opens the create dialog
+
+**Animation:** `StaggerChildren` from motion.tsx wrapping the empty state for a gentle reveal.
+
+---
+
+### No Results State (Filter Active)
+
+Shown when filters are active but no items match.
+
+**Layout:**
+- Centered within the groups area
+- `py-12 text-center`
+- Icon: `Search` from lucide-react, `h-10 w-10 text-muted-foreground/50 mx-auto`
+- Text: `text-muted-foreground mt-3` — i18n `wishlist.noResults` — "No items match your current filters"
+- Subtext: `text-sm text-muted-foreground/70 mt-1` — "Try adjusting your priority or sort filters"
+- No action button — the user already knows how to change filters
+
+---
+
+### Loading State — Skeleton
+
+Matches the final layout structure: page header, toolbar, then 2 collection groups with cards.
+
+**Skeleton structure:**
+```
+PageHeader (skeleton disabled button)
+│
+├── Toolbar skeleton
+│   flex items-center gap-3
+│   SkeletonRect w-[160px] h-9 rounded-md  × 2 (filters)
+│   ml-auto: SkeletonRect w-16 h-4 rounded
+│
+├── Group 1
+│   flex items-center gap-2 px-2 py-2.5
+│   SkeletonRect w-4 h-4 rounded (chevron)
+│   SkeletonRect w-32 h-5 rounded (name)
+│   SkeletonRect w-6 h-5 rounded-full (count badge)
+│   └── grid gap-4 sm:grid-cols-2 lg:grid-cols-3 mt-3
+│       └── Card skeleton × 3
+│           p-4 space-y-3
+│           flex items-center gap-2:
+│             SkeletonRect w-4 h-4 (grip)
+│             SkeletonRect w-24 h-4 (name)
+│           SkeletonRect w-16 h-5 rounded-lg (priority badge)
+│           SkeletonRect w-20 h-3.5 (price)
+│           SkeletonText lines={1} (notes)
+│
+├── Group 2 (same structure, 3 cards)
+```
+
+---
+
+### Responsive Summary
+
+| Element | Desktop (≥1024px) | Tablet (≥640px) | Mobile (<640px) |
+|---------|-------------------|-----------------|-----------------|
+| **Card grid** | `lg:grid-cols-3` | `sm:grid-cols-2` | `grid-cols-1` |
+| **Card padding** | `p-4` | `p-4` | `p-4` |
+| **Action buttons** | Hover-reveal | Hover-reveal | Always visible |
+| **Filter selects** | Inline, `w-[160px]` | Inline, `w-[160px]` | Full width, stacked |
+| **Item count** | `ml-auto` same row | `ml-auto` same row | Separate row below filters, `w-full text-right` |
+| **Group header** | Standard | Standard | Standard (full width is fine) |
+| **Priority badge icons** | Show ArrowUp/Minus/ArrowDown | Show icons | Omit icons (text only) |
+| **Notes preview** | `line-clamp-2` | `line-clamp-2` | `line-clamp-1` |
+| **Drag handle** | Show | Show | Show (touch-friendly via @dnd-kit) |
+| **Catalog link text** | "View in catalog →" | "View in catalog →" | Icon only (`ExternalLink h-3.5 w-3.5`) |
+
+**Mobile filter stacking:**
+On screens <640px, the filter toolbar stacks vertically:
+```
+┌────────────────────────────┐
+│  [Priority ▾            ]  │
+│  [Sort by ▾             ]  │
+│  [Date Added ▾          ]  │
+│                   12 items │
+└────────────────────────────┘
+```
+Each select takes full width (`w-full`), the item count right-aligns below.
+
+---
+
+### Implementation Notes
+
+1. **Notes input upgrades to Textarea** — the current implementation uses `Input` for notes. The redesign uses `Textarea` with `rows={3}` and `resize-y` for better notes editing experience. Import `Textarea` from `components/ds/`.
+2. **Currency prefix on target price input** — wrap the input in a `relative` div, add `absolute left-3` dollar sign, add `pl-7` to the input. Same pattern used in owned copy price inputs.
+3. **Priority badge color dots in Select options** — requires custom `SelectItem` content: `<div className="flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-destructive" /><span>High</span></div>`. This doesn't exist in the current Select component — the content is just text. The new Select items will need inline flex layouts.
+4. **Catalog link navigation** — when `catalogItemId` is set, the "View in catalog →" link uses `useNavigate()` to go to `/collections/{collectionId}/items/{catalogItemId}`. Requires knowing the `collectionId` from the group context.
+5. **Date added filter** — the current API doesn't support date-range filtering for wishlist items. This filter should be client-side: compare `item.id` ordering as a proxy for creation date (higher ID = newer). Alternatively, if the API returns `createdAt`, use that directly.
+6. **Staggered group entrance** — use `StaggerChildren` from motion.tsx wrapping the groups container. Each group gets `FadeIn` for individual entrance. Stagger delay: `60ms` between groups (the standard stagger delay from design-motion.md).
+7. **Action button hover-reveal** — use `sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100 transition-opacity` (not plain `opacity-0`) to ensure buttons are always visible on mobile touch devices.
+8. **Chevron rotation** — instead of swapping `ChevronDown` and `ChevronRight` icons (current implementation), use a single `ChevronDown` with Framer Motion `animate={{ rotate: isExpanded ? 0 : -90 }}`. Smoother transition.
+9. **SortableList is already used** — the current implementation already uses `SortableList` from `components/ds/` with `layout="grid"`. Keep this pattern; only update the card design within `renderItem`.
+10. **No-results state is different from empty state** — empty state (0 total items) uses `EmptyState` component with action. No-results state (filters active, 0 matches) uses a simpler centered text block with `Search` icon. The current implementation uses a plain text div for no-results — upgrade to include the icon.
+11. **Test strategy** — wishlist cards: `data-testid="wishlist-card"` with `data-item-id`. Priority badge: `data-testid="priority-badge"` with `data-priority="high|medium|low"`. Group headers: `data-testid="wishlist-group"` with `data-collection-id`. Filter selects: standard select test patterns. Empty state: `data-testid="wishlist-empty"`.
+12. **i18n keys needed:** `wishlist.title`, `wishlist.description`, `wishlist.add`, `wishlist.addTitle`, `wishlist.addDescription`, `wishlist.editTitle`, `wishlist.editDescription`, `wishlist.nameLabel`, `wishlist.namePlaceholder`, `wishlist.priorityLabel`, `wishlist.targetPriceLabel`, `wishlist.notesLabel`, `wishlist.notesPlaceholder`, `wishlist.collectionLabel`, `wishlist.selectCollection`, `wishlist.selectCollectionFirst`, `wishlist.linkCatalogItem`, `wishlist.searchCatalogPlaceholder`, `wishlist.linked`, `wishlist.unlink`, `wishlist.viewCatalogItem`, `wishlist.cancel`, `wishlist.save`, `wishlist.saving`, `wishlist.edit`, `wishlist.delete`, `wishlist.deleteTitle`, `wishlist.deleteConfirm`, `wishlist.deleting`, `wishlist.itemCount`, `wishlist.priorityAll`, `wishlist.priorityHigh`, `wishlist.priorityMedium`, `wishlist.priorityLow`, `wishlist.sortPriority`, `wishlist.sortPrice`, `wishlist.sortName`, `wishlist.sortDateAdded`, `wishlist.filterDateAll`, `wishlist.filterDate7d`, `wishlist.filterDate30d`, `wishlist.filterDate90d`, `wishlist.noResults`, `wishlist.noResultsHint`, `emptyStates.wishlist.title`, `emptyStates.wishlist.description`, `emptyStates.wishlist.action`.
