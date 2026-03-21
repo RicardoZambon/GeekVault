@@ -70,6 +70,15 @@
 - Admin differentiation uses 3 signals: sidebar badge, toolbar pill badge, mobile header text — no color shift
 - Admin routes: `/admin` → redirect to `/admin/users`, silent redirect for non-admins (no toast)
 - Admin pages in `src/web/src/features/admin/` with `components/` subfolder
+- User detail uses Sheet (side panel) not page navigation — keeps admin in list context
+- Settings use card-per-section pattern with independent save per section — same as Profile page
+- Unsaved changes tracked via form state diffing — amber dot indicator next to section title
+- Admin data tables: 56px row height (taller than dashboard's 48px) to accommodate avatar + 2-line text
+- Role badge: Admin = accent (amber), User = secondary (muted) — admin badges pop via contrast
+- Status dot (not badge): `w-2 h-2 rounded-full` inline with label — status is secondary to role
+- Delete user requires typed name confirmation — prevents accidental destructive action
+- Settings page max-width: `max-w-3xl mx-auto` — narrow focused layout for forms
+- Toggle switches: label+help left, switch right, `flex items-start justify-between gap-4`
 
 ---
 
@@ -348,4 +357,23 @@
   - Admin pages live in `src/web/src/features/admin/` with co-located components/ subfolder
   - `/admin` root redirects to `/admin/users` (most common admin task)
   - Command palette should index admin pages under an "Admin" group, conditional on user role
+---
+
+## 2026-03-21 - US-016
+- Designed admin user management and system settings pages with full visual specification
+- Appended "User Management" and "System Settings" sections to `tasks/design-admin.md`
+- USER MANAGEMENT: Data table with avatar+name+email cell, role badges (Admin=accent, User=secondary), status dot indicators (Active=green, Disabled=muted), hover-reveal actions dropdown, search+filter toolbar (name/email search, role filter, status filter), user detail Sheet (side panel) with profile, stats, and action buttons, confirmation dialogs for role change/disable/enable/delete (delete requires typed name), pagination with page controls
+- SYSTEM SETTINGS: Card-per-section pattern (General, Security, Features, Storage), independent save per section with unsaved changes amber dot indicator, toggle switches for boolean settings (password policy, feature flags), checkbox grid for file types, narrow layout (max-w-3xl), loading skeletons per card, beforeunload prompt for unsaved changes
+- Files changed: `tasks/design-admin.md`, `ralph/prd.json`, `ralph/progress.txt`
+- **Learnings for future iterations:**
+  - User detail as Sheet (side panel) keeps admin in list context — avoids full page navigation for quick lookups
+  - Admin data table rows are taller (56px) than dashboard rows (48px) to accommodate avatar + 2-line text
+  - Role badge uses accent variant for Admin (amber pops) and secondary for User (intentionally muted — most rows are users)
+  - Status uses colored dot (not badge) — status is secondary to role and should be glanceable
+  - Delete user confirmation input (type name to confirm) is the strongest safeguard for destructive admin actions
+  - Settings card-per-section with independent save prevents accidental changes to unrelated settings
+  - Unsaved changes indicator (amber dot) is a simple isDirty check per section — no external library needed
+  - Settings page uses narrow max-w-3xl layout — settings forms should be focused, not stretched
+  - Toggle switch layout: label+help stacked left, switch right, `flex items-start justify-between gap-4`
+  - Feature flag toggles separated by `border-b` dividers — creates visual rhythm in long toggle lists
 ---

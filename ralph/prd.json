@@ -328,7 +328,7 @@
         "Document appended to tasks/design-admin.md under 'User Management' and 'System Settings' sections"
       ],
       "priority": 16,
-      "passes": false,
+      "passes": true,
       "notes": "Group these two since they share admin data-table and form patterns."
     },
     {
