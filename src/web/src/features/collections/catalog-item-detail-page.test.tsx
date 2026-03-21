@@ -16,7 +16,11 @@ vi.mock("@/components/auth-provider", () => ({
 
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({
-    t: (key: string, opts?: Record<string, unknown>) => (opts?.name ? `${key}:${opts.name}` : key),
+    t: (key: string, opts?: Record<string, unknown>) => {
+      if (opts?.name) return `${key}:${opts.name}`
+      if (opts?.count != null) return `${key}:${opts.count}`
+      return key
+    },
     i18n: { language: "en", changeLanguage: vi.fn() },
   }),
 }))
@@ -1318,6 +1322,77 @@ describe("CatalogItemDetail", () => {
 
     await waitFor(() => {
       expect(fetchCalls.some(c => c.url.includes("/images") && c.method === "POST")).toBe(true)
+    })
+  })
+
+  it("shows mobile-visible action buttons on copy cards", async () => {
+    mockFetch()
+    renderWithRoute()
+    await waitFor(() => screen.getByText("Near Mint"))
+    const copyCard = findCopyCard()
+    const actionContainer = copyCard.querySelector(".sm\\:opacity-0")
+    expect(actionContainer).toBeInTheDocument()
+    expect(actionContainer?.className).toContain("group-focus-within:opacity-100")
+  })
+
+  it("shows tabular-nums on financial values", async () => {
+    mockFetch()
+    renderWithRoute()
+    await waitFor(() => screen.getByText("$50.00"))
+    const price = screen.getByText("$50.00")
+    expect(price.className).toContain("tabular-nums")
+  })
+
+  it("shows thumbnail overflow badge when more than 4 images", async () => {
+    const copiesWithImages = [{
+      ...copies[0],
+      images: ["img1.jpg", "img2.jpg", "img3.jpg", "img4.jpg", "img5.jpg", "img6.jpg"],
+    }]
+    vi.spyOn(global, "fetch").mockImplementation((url) => {
+      const urlStr = String(url)
+      if (urlStr.includes("/copies")) return Promise.resolve({ ok: true, json: () => Promise.resolve(copiesWithImages) } as Response)
+      if (urlStr.includes("/sets")) return Promise.resolve({ ok: true, json: () => Promise.resolve([]) } as Response)
+      if (urlStr.includes("/collection-types/")) return Promise.resolve({ ok: true, json: () => Promise.resolve(collectionType) } as Response)
+      if (urlStr.match(/\/collections\/\d+$/)) return Promise.resolve({ ok: true, json: () => Promise.resolve(collection) } as Response)
+      if (urlStr.includes("/items/")) return Promise.resolve({ ok: true, json: () => Promise.resolve(item) } as Response)
+      return Promise.resolve({ ok: true, json: () => Promise.resolve({}) } as Response)
+    })
+    renderWithRoute()
+    await waitFor(() => screen.getByText("+2"))
+    // Should show exactly 4 images, not 6
+    const images = screen.getAllByRole("button", { name: /ownedCopy\.viewImage/ })
+    expect(images).toHaveLength(4)
+  })
+
+  it("shows copy card hover border class", async () => {
+    mockFetch()
+    renderWithRoute()
+    await waitFor(() => screen.getByText("Near Mint"))
+    const copyCard = findCopyCard()
+    expect(copyCard.className).toContain("hover:border-accent/20")
+  })
+
+  it("shows delete confirmation with image count warning", async () => {
+    const copiesWithImages = [{
+      ...copies[0],
+      images: ["img1.jpg", "img2.jpg", "img3.jpg"],
+    }]
+    vi.spyOn(global, "fetch").mockImplementation((url) => {
+      const urlStr = String(url)
+      if (urlStr.includes("/copies")) return Promise.resolve({ ok: true, json: () => Promise.resolve(copiesWithImages) } as Response)
+      if (urlStr.includes("/sets")) return Promise.resolve({ ok: true, json: () => Promise.resolve([]) } as Response)
+      if (urlStr.includes("/collection-types/")) return Promise.resolve({ ok: true, json: () => Promise.resolve(collectionType) } as Response)
+      if (urlStr.match(/\/collections\/\d+$/)) return Promise.resolve({ ok: true, json: () => Promise.resolve(collection) } as Response)
+      if (urlStr.includes("/items/")) return Promise.resolve({ ok: true, json: () => Promise.resolve(item) } as Response)
+      return Promise.resolve({ ok: true, json: () => Promise.resolve({}) } as Response)
+    })
+    renderWithRoute()
+    await waitFor(() => screen.getByText("Near Mint"))
+    const copyCard = findCopyCard()
+    const buttons = copyCard.querySelectorAll("button")
+    fireEvent.click(buttons[1]) // delete button
+    await waitFor(() => {
+      expect(screen.getByText("ownedCopy.deleteConfirmWithImages:3")).toBeInTheDocument()
     })
   })
 

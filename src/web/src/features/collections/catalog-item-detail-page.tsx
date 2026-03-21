@@ -791,7 +791,7 @@ export default function CatalogItemDetail() {
             <StaggerChildren className="grid gap-4 sm:grid-cols-2">
               {copies.map((copy) => (
                 <motion.div key={copy.id} variants={staggerItemVariants}>
-                  <Card variant="flat" className="group h-full">
+                  <Card variant="flat" className="group h-full hover:border-accent/20 transition-colors duration-150">
                     <CardContent className="p-5">
                       {/* Header: condition badge + actions */}
                       <div className="flex items-start justify-between mb-4">
@@ -807,7 +807,7 @@ export default function CatalogItemDetail() {
                         >
                           {formatCondition(copy.condition)}
                         </Badge>
-                        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div className="flex gap-1 sm:opacity-0 sm:group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity duration-150">
                           <Button variant="ghost" size="sm" onClick={() => openEditCopy(copy)}>
                             <Pencil className="h-3.5 w-3.5" />
                           </Button>
@@ -829,7 +829,7 @@ export default function CatalogItemDetail() {
                             <DollarSign className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
                             <div>
                               <span className="text-xs font-medium text-muted-foreground">{t("itemDetail.purchasePrice")}</span>
-                              <p className="text-sm font-semibold">${copy.purchasePrice.toFixed(2)}</p>
+                              <p className="text-sm font-semibold tabular-nums">${copy.purchasePrice.toFixed(2)}</p>
                             </div>
                           </div>
                         )}
@@ -838,7 +838,7 @@ export default function CatalogItemDetail() {
                             <Tag className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
                             <div>
                               <span className="text-xs font-medium text-muted-foreground">{t("itemDetail.estimatedValue")}</span>
-                              <p className="text-sm font-semibold">${copy.estimatedValue.toFixed(2)}</p>
+                              <p className="text-sm font-semibold tabular-nums">${copy.estimatedValue.toFixed(2)}</p>
                             </div>
                           </div>
                         )}
@@ -874,21 +874,35 @@ export default function CatalogItemDetail() {
                       )}
 
                       {/* Thumbnail gallery */}
-                      {copy.images.length > 0 && (
-                        <div className="mt-3 pt-3 border-t border-border">
-                          <div className="flex gap-2 flex-wrap">
-                            {copy.images.map((img, idx) => (
-                              <img
-                                key={idx}
-                                src={img}
-                                alt={`${t("ownedCopy.imageAlt")} ${idx + 1}`}
-                                className="h-16 w-16 rounded-md border object-cover hover:ring-2 hover:ring-accent transition-shadow"
-                                loading="lazy"
-                              />
-                            ))}
+                      {copy.images.length > 0 && (() => {
+                        const maxThumbs = 4
+                        const visibleImages = copy.images.slice(0, maxThumbs)
+                        const overflowCount = copy.images.length - maxThumbs
+                        return (
+                          <div className="mt-3 pt-3 border-t border-border">
+                            <div className="flex gap-2 flex-wrap">
+                              {visibleImages.map((img, idx) => (
+                                <div key={idx} className="relative">
+                                  <img
+                                    src={img}
+                                    alt={`${t("ownedCopy.imageAlt")} ${idx + 1}`}
+                                    className="h-16 w-16 rounded-md border border-border object-cover hover:ring-2 hover:ring-accent transition-shadow duration-150 cursor-pointer"
+                                    loading="lazy"
+                                    tabIndex={0}
+                                    role="button"
+                                    aria-label={`${t("ownedCopy.viewImage")} ${idx + 1}`}
+                                  />
+                                  {idx === maxThumbs - 1 && overflowCount > 0 && (
+                                    <div className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-md text-white text-sm font-semibold cursor-pointer">
+                                      +{overflowCount}
+                                    </div>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
                           </div>
-                        </div>
-                      )}
+                        )
+                      })()}
                     </CardContent>
                   </Card>
                 </motion.div>
@@ -1238,7 +1252,11 @@ export default function CatalogItemDetail() {
         open={deleteCopyOpen}
         onOpenChange={setDeleteCopyOpen}
         title={t("ownedCopy.deleteTitle")}
-        description={t("ownedCopy.deleteConfirm")}
+        description={
+          copyToDelete && copyToDelete.images.length > 0
+            ? t("ownedCopy.deleteConfirmWithImages", { count: copyToDelete.images.length })
+            : t("ownedCopy.deleteConfirm")
+        }
         confirmLabel={t("itemDetail.delete")}
         cancelLabel={t("collectionDetail.cancel")}
         loadingLabel={t("ownedCopy.deleting")}
