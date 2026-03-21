@@ -14,10 +14,12 @@
     "logout": "Sair",
     "expandSidebar": "Expandir barra lateral",
     "collapseSidebar": "Recolher barra lateral",
+    "admin": "Painel Admin",
     "groups": {
       "overview": "Visão Geral",
       "collections": "Coleções",
-      "account": "Conta"
+      "account": "Conta",
+      "admin": "Admin"
     },
     "userMenu": {
       "settings": "Configurações",

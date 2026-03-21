@@ -14,10 +14,12 @@
     "logout": "Logout",
     "expandSidebar": "Expand sidebar",
     "collapseSidebar": "Collapse sidebar",
+    "admin": "Admin Panel",
     "groups": {
       "overview": "Overview",
       "collections": "Collections",
-      "account": "Account"
+      "account": "Account",
+      "admin": "Admin"
     },
     "userMenu": {
       "settings": "Settings",

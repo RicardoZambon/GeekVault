@@ -9,7 +9,7 @@ vi.mock("react-router-dom", async () => {
 })
 
 const mocks = vi.hoisted(() => ({
-  user: { displayName: "John Doe", email: "john@test.com", avatar: null as string | null },
+  user: { displayName: "John Doe", email: "john@test.com", avatar: null as string | null, role: null as string | null },
 }))
 
 vi.mock("@/components/auth-provider", () => ({
@@ -57,7 +57,7 @@ describe("Sidebar", () => {
   beforeEach(() => {
     vi.clearAllMocks()
     localStorage.clear()
-    mocks.user = { displayName: "John Doe", email: "john@test.com", avatar: null }
+    mocks.user = { displayName: "John Doe", email: "john@test.com", avatar: null, role: null }
   })
 
   it("renders navigation items", () => {
@@ -163,7 +163,7 @@ describe("Sidebar", () => {
   })
 
   it("renders user avatar image when avatar url exists", () => {
-    mocks.user = { displayName: "John Doe", email: "john@test.com", avatar: "/uploads/avatar.jpg" }
+    mocks.user = { displayName: "John Doe", email: "john@test.com", avatar: "/uploads/avatar.jpg", role: null }
     const { container } = render(
       <MemoryRouter>
         <Sidebar />
@@ -182,6 +182,27 @@ describe("Sidebar", () => {
     )
     expect(screen.getByLabelText("nav.collapseSidebar")).toBeInTheDocument()
   })
+
+  it("does not render admin group for non-admin users", () => {
+    render(
+      <MemoryRouter>
+        <Sidebar />
+      </MemoryRouter>
+    )
+    expect(screen.queryByText("nav.groups.admin")).not.toBeInTheDocument()
+    expect(screen.queryByText("nav.admin")).not.toBeInTheDocument()
+  })
+
+  it("renders admin group when user is admin", () => {
+    mocks.user = { displayName: "Admin User", email: "admin@test.com", avatar: null, role: "admin" }
+    render(
+      <MemoryRouter>
+        <Sidebar />
+      </MemoryRouter>
+    )
+    expect(screen.getByText("nav.groups.admin")).toBeInTheDocument()
+    expect(screen.getByText("nav.admin")).toBeInTheDocument()
+  })
 })
 
 describe("MobileSidebarContent", () => {
@@ -189,7 +210,7 @@ describe("MobileSidebarContent", () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
-    mocks.user = { displayName: "John Doe", email: "john@test.com", avatar: null }
+    mocks.user = { displayName: "John Doe", email: "john@test.com", avatar: null, role: null }
   })
 
   it("renders all nav items", () => {
@@ -235,7 +256,7 @@ describe("MobileSidebarContent", () => {
   })
 
   it("renders user avatar image when avatar url exists", () => {
-    mocks.user = { displayName: "John Doe", email: "john@test.com", avatar: "/uploads/avatar.jpg" }
+    mocks.user = { displayName: "John Doe", email: "john@test.com", avatar: "/uploads/avatar.jpg", role: null }
     const { container } = render(
       <MemoryRouter>
         <MobileSidebarContent onClose={onClose} />
@@ -246,12 +267,33 @@ describe("MobileSidebarContent", () => {
   })
 
   it("renders fallback initials when displayName is missing", () => {
-    mocks.user = { displayName: "", email: "john@test.com", avatar: null }
+    mocks.user = { displayName: "", email: "john@test.com", avatar: null, role: null }
     render(
       <MemoryRouter>
         <MobileSidebarContent onClose={onClose} />
       </MemoryRouter>
     )
     expect(screen.getByText("?")).toBeInTheDocument()
+  })
+
+  it("does not render admin group for non-admin users", () => {
+    render(
+      <MemoryRouter>
+        <MobileSidebarContent onClose={onClose} />
+      </MemoryRouter>
+    )
+    expect(screen.queryByText("nav.groups.admin")).not.toBeInTheDocument()
+    expect(screen.queryByText("nav.admin")).not.toBeInTheDocument()
+  })
+
+  it("renders admin group when user is admin", () => {
+    mocks.user = { displayName: "Admin User", email: "admin@test.com", avatar: null, role: "admin" }
+    render(
+      <MemoryRouter>
+        <MobileSidebarContent onClose={onClose} />
+      </MemoryRouter>
+    )
+    expect(screen.getByText("nav.groups.admin")).toBeInTheDocument()
+    expect(screen.getByText("nav.admin")).toBeInTheDocument()
   })
 })

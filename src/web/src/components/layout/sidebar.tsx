@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { NavLink } from "react-router-dom"
 import { useTranslation } from "react-i18next"
 import {
@@ -7,6 +7,7 @@ import {
   Layers,
   Heart,
   User,
+  Shield,
   ChevronLeft,
   ChevronRight,
 } from "lucide-react"
@@ -31,7 +32,7 @@ interface NavGroup {
   items: NavItem[]
 }
 
-export const navGroups: NavGroup[] = [
+export const baseNavGroups: NavGroup[] = [
   {
     labelKey: "nav.groups.overview",
     items: [
@@ -54,6 +55,18 @@ export const navGroups: NavGroup[] = [
   },
 ]
 
+const adminNavGroup: NavGroup = {
+  labelKey: "nav.groups.admin",
+  items: [
+    { to: "/admin", labelKey: "nav.admin", icon: Shield },
+  ],
+}
+
+function getNavGroups(isAdmin: boolean): NavGroup[] {
+  if (!isAdmin) return baseNavGroups
+  return [...baseNavGroups, adminNavGroup]
+}
+
 function getDefaultCollapsed(isDesktop: boolean): boolean {
   const stored = localStorage.getItem(STORAGE_KEY)
   if (stored !== null) return stored === "true"
@@ -66,6 +79,9 @@ export function Sidebar() {
   const { user } = useAuth()
   const isDesktop = useMediaQuery("(min-width: 1024px)")
   const [collapsed, setCollapsed] = useState(() => getDefaultCollapsed(isDesktop))
+
+  const isAdmin = user?.role === "admin"
+  const navGroups = useMemo(() => getNavGroups(isAdmin), [isAdmin])
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, String(collapsed))
@@ -138,7 +154,7 @@ export function Sidebar() {
                     end={item.to === "/"}
                     className={({ isActive }) =>
                       cn(
-                        "font-medium transition-colors relative block",
+                        "font-medium transition-colors duration-150 relative block focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sidebar-ring",
                         collapsed
                           ? "rounded-md"
                           : cn(
@@ -153,7 +169,7 @@ export function Sidebar() {
                     {({ isActive }) =>
                       collapsed ? (
                         <div className={cn(
-                          "flex items-center justify-center h-[48px] rounded-md transition-colors hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground",
+                          "flex items-center justify-center h-[48px] rounded-md transition-colors duration-150 hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground",
                           isActive
                             ? "bg-sidebar-accent text-sidebar-accent-foreground"
                             : "hover:bg-sidebar-accent/50"
@@ -161,7 +177,7 @@ export function Sidebar() {
                           <item.icon className={cn("h-6 w-6", isActive ? "text-sidebar-primary" : "text-sidebar-foreground/70")} />
                         </div>
                       ) : (
-                        <div className={cn("flex items-center gap-3 px-3 min-h-[44px] text-sm border-l-[3px] rounded-lg hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground", isActive ? "border-sidebar-primary" : "border-transparent")}>
+                        <div className={cn("flex items-center gap-3 px-3 min-h-[44px] text-sm border-l-[3px] rounded-lg hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground transition-colors duration-150", isActive ? "border-sidebar-primary" : "border-transparent")}>
                           <item.icon className={cn("h-5 w-5 shrink-0", isActive && "text-sidebar-primary")} />
                           <span>{t(item.labelKey)}</span>
                         </div>
@@ -237,6 +253,9 @@ export function MobileSidebarContent({ onClose }: { onClose: () => void }) {
   const { t } = useTranslation()
   const { user } = useAuth()
 
+  const isAdmin = user?.role === "admin"
+  const navGroups = useMemo(() => getNavGroups(isAdmin), [isAdmin])
+
   const initials = user?.displayName
     ? user.displayName
         .split(" ")
@@ -269,7 +288,7 @@ export function MobileSidebarContent({ onClose }: { onClose: () => void }) {
                   onClick={onClose}
                   className={({ isActive }) =>
                     cn(
-                      "flex items-center gap-3 rounded-lg px-3 text-sm font-medium transition-colors min-h-[44px]",
+                      "flex items-center gap-3 rounded-lg px-3 text-sm font-medium transition-colors duration-150 min-h-[44px] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sidebar-ring",
                       isActive
                         ? "bg-sidebar-accent text-sidebar-accent-foreground border-l-[3px] border-sidebar-primary"
                         : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground"

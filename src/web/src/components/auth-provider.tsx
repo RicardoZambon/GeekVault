@@ -5,6 +5,7 @@ interface AuthUser {
   email: string
   displayName: string
   avatar: string | null
+  role: string | null
 }
 
 interface AuthContextType {
@@ -45,7 +46,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return res.json()
       })
       .then((data) => {
-        setUser({ id: data.userId, email: data.email, displayName: data.displayName ?? '', avatar: data.avatar ?? null })
+        setUser({ id: data.userId, email: data.email, displayName: data.displayName ?? '', avatar: data.avatar ?? null, role: data.role ?? null })
       })
       .catch(() => {
         clearAuth()
@@ -70,7 +71,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const data = await res.json()
     localStorage.setItem(TOKEN_KEY, data.token)
     setToken(data.token)
-    setUser({ id: data.userId, email: data.email, displayName: '', avatar: null })
+    setUser({ id: data.userId, email: data.email, displayName: '', avatar: null, role: null })
   }, [])
 
   const register = useCallback(async (email: string, password: string, displayName: string) => {
@@ -88,7 +89,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const data = await res.json()
     localStorage.setItem(TOKEN_KEY, data.token)
     setToken(data.token)
-    setUser({ id: data.userId, email: data.email, displayName, avatar: null })
+    setUser({ id: data.userId, email: data.email, displayName, avatar: null, role: null })
   }, [])
 
   const logout = useCallback(() => {
