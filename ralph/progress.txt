@@ -67,6 +67,10 @@
 - Profile page uses card-per-section layout with 2-column grid (avatar left, form cards right)
 - Theme toggle applies immediately via context — does NOT require Save button click
 - Auth decorative panel: radial gradient layers on stone-900, NOT flat/linear gradient — creates depth and warmth
+- Implementation PRD lives at `tasks/prd-saas-redesign-implementation.md` — 34 stories in 8 phases, all referencing design-*.md specs
+- Phase dependency order: tokens → motion → shell → command palette → core pages → secondary pages → admin → polish
+- Admin feature directory (`src/web/src/features/admin/`) is NEW — must be created during implementation
+- Two new ds/ components needed: `image-gallery-lightbox.tsx` and `set-progress-ring.tsx` — create before pages that use them
 - Auth floating shapes: pure CSS `@keyframes float` with 20s duration and staggered `animation-delay` — no JS needed
 - Auth layout: decorative panel hidden below lg breakpoint — replaced by compact brand header above form
 - Disabled/read-only inputs: `opacity-60` + lock icon positioned absolutely in input wrapper
@@ -399,4 +403,28 @@
   - Changes section in detail panel uses `line-through` on "Before" values and `font-mono` on field names — creates visual diff feel
   - CSV export downloads ALL filtered entries (not just current page) — compliance requirement for audit data
   - Time range state stored in URL search params (`?range=30d`) for bookmarkability
+---
+
+## 2026-03-21 - US-018
+- Compiled comprehensive implementation PRD from all 6 design specification documents
+- Read all design docs (audit, tokens, motion, layout, pages, admin) and current frontend file structure
+- Created `tasks/prd-saas-redesign-implementation.md` with full PRD structure:
+  - Introduction, Goals, Non-Goals, Functional Requirements, Technical Considerations, Design Considerations, Success Metrics
+  - 34 implementation user stories (US-IMPL-001 through US-IMPL-034)
+  - Organized in 8 phases by dependency: Foundation (tokens/CSS) → Motion → App Shell → Command Palette → Core Pages → Secondary Pages → Admin → Polish
+  - Every story references its design spec document, includes typecheck and browser verification criteria
+  - Stories with UI strings include i18n requirement for both en.json and pt.json
+  - Large pages split into sub-stories (dashboard: 4 stories, collection detail: 3 stories, catalog item: 2 stories)
+  - 2 new components identified for creation: ImageGalleryLightbox, SetProgressRing
+  - 5 admin pages: layout/nav, users, settings, analytics, audit log
+  - Final phase includes accessibility audit and cross-page consistency review
+- Files created: `tasks/prd-saas-redesign-implementation.md`
+- Files changed: `ralph/prd.json`, `ralph/progress.txt`
+- **Learnings for future iterations:**
+  - Implementation stories should reference design docs rather than duplicating visual specs — keeps stories actionable without bloat
+  - Splitting pages into sub-stories by visual section (header, content tabs, dialogs) produces better-sized stories than splitting by component type
+  - Phase ordering matters: tokens → motion → shell → pages ensures each layer builds on the previous
+  - Admin pages are new files (not redesigns) since the admin feature directory doesn't exist yet
+  - Two new ds/ components (lightbox, progress ring) should be created as standalone stories before the pages that use them
+  - Final polish phase (accessibility audit + consistency review) catches cross-cutting concerns that per-page stories miss
 ---
