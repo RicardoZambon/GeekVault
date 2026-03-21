@@ -126,7 +126,7 @@
         "Document appended to tasks/design-layout.md under 'Command Palette' section"
       ],
       "priority": 6,
-      "passes": false,
+      "passes": true,
       "notes": "This uses cmdk library. Design should work within cmdk's component model."
     },
     {

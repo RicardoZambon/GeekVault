@@ -28,6 +28,8 @@
 - Motion: Reduced-motion check is module-level in motion.tsx — all new animation wrappers must use `getVariants()`
 - Motion: Skeleton pulse must use custom CSS keyframe, NOT Tailwind `animate-pulse` (no reduced-motion respect)
 - Motion: Page transitions use AnimatePresence `mode="wait"` — sequential exit→enter, no crossfade
+- cmdk `CommandDialog` wraps Radix Dialog — animate via `forceMount` + AnimatePresence, not direct Framer Motion
+- Command palette recent items use `sessionStorage` key `"geekvault-recent-pages"` — resets per session
 
 ---
 
@@ -119,4 +121,17 @@
   - Breadcrumbs were deliberately excluded — use back links on detail pages instead (Linear/Notion pattern)
   - User menu placement differs by context: side="top" from sidebar, side="bottom" from toolbar
   - Theme toggle stays open after toggling (users may want multiple settings changes) — don't auto-close
+---
+
+## 2026-03-21 - US-006
+- Designed enhanced command palette with full visual spec, result groups, animations, and responsive behavior
+- Appended "Command Palette" section to `tasks/design-layout.md`
+- Sections: Design Philosophy, Visual Design (backdrop/container/input/list/footer), Result Groups (Navigation/Collections/Recent/Actions/Settings), Result Item Layout, Item States, Keyboard Interactions, Search Behavior, Empty/No-Results States, Entrance/Exit Animation (Framer Motion), Responsive Behavior, Implementation Notes, Accessibility
+- **Learnings for future iterations:**
+  - cmdk's `CommandDialog` wraps Radix Dialog — animation needs `forceMount` + AnimatePresence pattern, not direct Framer Motion on CommandDialog
+  - cmdk uses substring matching on `value` prop, not fuzzy — to get fuzzy, you'd need a custom filter function
+  - Command palette positioned 25% from top (not centered) — matches Spotlight/Raycast convention and feels more intentional
+  - Recent items should use `sessionStorage` (not localStorage) — recents should reset per session, not persist forever
+  - Footer hint bar hidden on mobile — keyboard shortcut hints irrelevant on touch devices
+  - Container uses `--radius-xl` (16px), larger than standard dialogs — the palette is a special surface that deserves extra polish
 ---
