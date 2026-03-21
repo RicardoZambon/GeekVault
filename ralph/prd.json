@@ -82,7 +82,7 @@
         "Document saved to tasks/design-motion.md with sections for each pattern type"
       ],
       "priority": 4,
-      "passes": false,
+      "passes": true,
       "notes": "Use Framer Motion syntax for spring/transition configs where applicable — makes implementation easier."
     },
     {

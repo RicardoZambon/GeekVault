@@ -23,6 +23,11 @@
 - Border radius scale tightened: --radius-md now 8px (was 10px), --radius-lg now 12px (was 16px)
 - `--radius` base variable being removed — all radius tokens are now explicit values
 - Spacing scale adds --space-0.5, --space-1.5, --space-16, --space-20, --space-24 (new tokens)
+- Motion: 5 duration tokens (instant 50ms, fast 150ms, normal 250ms, slow 400ms, deliberate 600ms)
+- Motion: 4 spring configs (default, gentle, bouncy, stiff) — always specify `type: "spring"` in Framer Motion
+- Motion: Reduced-motion check is module-level in motion.tsx — all new animation wrappers must use `getVariants()`
+- Motion: Skeleton pulse must use custom CSS keyframe, NOT Tailwind `animate-pulse` (no reduced-motion respect)
+- Motion: Page transitions use AnimatePresence `mode="wait"` — sequential exit→enter, no crossfade
 
 ---
 
@@ -76,4 +81,20 @@
   - `--radius` base variable (currently 0.625rem) used by `--radius-xl` calc — removing it requires making all radius tokens explicit
   - Current spacing tokens only go up to --space-12; page-level layout needs --space-16/20/24 for generous breathing room
   - Use `font-variant-numeric: tabular-nums` on numeric data columns — Inter supports this natively
+---
+
+## 2026-03-21 - US-004
+- Defined complete animation and motion language for the redesign
+- Files created: `tasks/design-motion.md`
+- Sections: Animation Principles, Duration Tokens, Easing Curves (CSS + Framer Motion springs), Page Transitions, Component Entrance Patterns, Hover/Press Micro-Interactions, Loading Patterns (skeleton/spinner/progress), Overlay & Panel Animations (modal/sheet/toast/dropdown), Drag-and-Drop Feedback, Reduced Motion Strategy
+- 5 animation principles aligned with Warm Obsidian identity (purposeful, fast, physics-based, consistent directionality, warm and grounded)
+- 5 duration tokens (50ms–600ms), 4 CSS easing curves, 4 Framer Motion spring configs
+- **Learnings for future iterations:**
+  - Current motion.tsx already has a solid reduced-motion pattern (module-level check + noopVariants) — extend it, don't replace
+  - Page transition uses `mode="wait"` in AnimatePresence — exit completes before enter starts (no crossfade)
+  - Current stagger delay is 60ms — keeping that as default; add 40ms fast variant for dense lists
+  - Framer Motion springs need explicit `type: "spring"` — omitting it defaults to tween
+  - CSS `transition-duration` override in reduced-motion media query needs `!important` to beat inline styles
+  - Skeleton pulse should NOT use Tailwind's `animate-pulse` — it doesn't respect `prefers-reduced-motion` (noted in audit)
+  - Toast animations (sonner) may need custom configuration to match the motion system — sonner has its own animation props
 ---
