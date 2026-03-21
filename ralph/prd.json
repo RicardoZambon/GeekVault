@@ -149,7 +149,7 @@
         "Document saved to tasks/design-pages.md under 'Dashboard' section (create the file if it doesn't exist)"
       ],
       "priority": 7,
-      "passes": false,
+      "passes": true,
       "notes": "Dashboard uses recharts for charts. Design should work with recharts component model."
     },
     {

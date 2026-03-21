@@ -30,6 +30,10 @@
 - Motion: Page transitions use AnimatePresence `mode="wait"` — sequential exit→enter, no crossfade
 - cmdk `CommandDialog` wraps Radix Dialog — animate via `forceMount` + AnimatePresence, not direct Framer Motion
 - Command palette recent items use `sessionStorage` key `"geekvault-recent-pages"` — resets per session
+- Page section spacing: `--space-8` (32px) desktop, `--space-6` (24px) mobile — consistent across all pages
+- Chart fills must use `hsl(var(--chart-N))` syntax, never hardcoded hex — automatic dark mode support
+- Collection cards with onClick on divs need `tabIndex={0}` + `role="link"` + `onKeyDown` for keyboard access
+- design-pages.md is the central file for all page-level designs — append new page sections to it
 
 ---
 
@@ -134,4 +138,25 @@
   - Recent items should use `sessionStorage` (not localStorage) — recents should reset per session, not persist forever
   - Footer hint bar hidden on mobile — keyboard shortcut hints irrelevant on touch devices
   - Container uses `--radius-xl` (16px), larger than standard dialogs — the palette is a special surface that deserves extra polish
+---
+
+## 2026-03-21 - US-007
+- Designed dashboard / home screen with full visual specification
+- Created `tasks/design-pages.md` with "Dashboard" section
+- Sections: Design Philosophy, Overall Page Layout, Greeting/Welcome Section, Stats Row (5 cards), Charts Section (pie + bar), Collection Summaries grid, Recent Acquisitions table, Empty State onboarding CTA, Loading State skeletons, Responsive Behavior Summary, Implementation Notes
+- Time-aware greeting (morning/afternoon/evening) with dynamic subtitle
+- Stats row: 5 stat cards with icon containers, animated numbers, hover lift, trend indicator placeholder
+- Charts: donut pie (not full pie — modern feel) with custom legend + amber bar chart, both using CSS variable chart colors
+- Collection summaries: 3-column card grid with gradient fallback covers, hover lift, keyboard accessibility
+- Recent acquisitions: DataTable with 6 columns, condition badges, responsive column hiding
+- Empty state: Sparkles icon with staggered reveal animation, CTA to create first collection
+- Skeletons: Section-by-section layout matching final content structure
+- **Learnings for future iterations:**
+  - Charts must use `hsl(var(--chart-N))` for fills, not hardcoded hex — this is the dark mode fix for the audit finding
+  - Donut chart (innerRadius + outerRadius) looks more modern than full pie — use for all future pie charts
+  - Stats grid responsive: 5-col → 3-col → 2-col (not 5→2→1) to avoid orphan cards
+  - Collection summary cards need `tabIndex={0}` + `role="link"` + `onKeyDown` for keyboard accessibility (audit gap)
+  - Empty state should use `Sparkles` icon (inviting) not `Lock` icon (restrictive) — tone matters for onboarding
+  - Max 6 collection cards on dashboard, max 8 recent acquisition rows — keeps page scannable
+  - Section spacing is consistently `--space-8` (32px) desktop, `--space-6` (24px) mobile — use this as pattern for all pages
 ---
