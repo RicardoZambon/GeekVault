@@ -394,7 +394,7 @@
         "Document saved to tasks/design-review-summary.md"
       ],
       "priority": 19,
-      "passes": false,
+      "passes": true,
       "notes": "This replaces the interactive sign-off story — it prepares everything for the stakeholder to review asynchronously."
     }
   ]

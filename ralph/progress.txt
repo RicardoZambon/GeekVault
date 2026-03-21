@@ -428,3 +428,18 @@
   - Two new ds/ components (lightbox, progress ring) should be created as standalone stories before the pages that use them
   - Final polish phase (accessibility audit + consistency review) catches cross-cutting concerns that per-page stories miss
 ---
+
+## 2026-03-21 - US-019
+- Created design review summary for stakeholder async review
+- Files created: `tasks/design-review-summary.md`
+- Sections: Executive Summary (3 paragraphs), Key Design Decisions (6 decisions with rationale and alternatives), Trade-offs and Alternatives Considered (6 trade-offs), Risk Areas (6 risks with mitigations), Implementation Scope (34 stories, 8 phases, complexity breakdown, new/modified files), Open Items (5 requiring stakeholder input, 8 deferred to future work)
+- Key decisions documented: Warm Obsidian palette, persistent sidebar layout, Plus Jakarta Sans typography, physics-based motion system, admin sidebar context switch, no breadcrumbs (except item detail)
+- Risk areas identified: dark mode shadows, font rendering, chart legibility, admin API readiness, test coverage, i18n completeness
+- Open items requiring stakeholder input: admin API status, Portuguese translations, font licensing, browser targets, performance budget
+- Files changed: `ralph/prd.json`, `ralph/progress.txt`
+- **Learnings for future iterations:**
+  - Review summaries should lead with decisions and rationale, not process — stakeholders care about "what and why", not "how we got here"
+  - Risk areas should pair each risk with a concrete mitigation — unmitigated risks cause stakeholder anxiety
+  - Open items should distinguish "blocking" (need answer before implementation) from "non-blocking" (can proceed, answer later)
+  - Scope breakdown by phase with complexity ratings helps stakeholders estimate timeline without asking for time estimates
+---
