@@ -302,7 +302,19 @@
     "importClickToChange": "Clique para escolher outro arquivo",
     "importConfirmCount": "Importar {{count}} itens",
     "importCompleteToast": "Importação concluída com sucesso",
-    "reorderFailed": "Falha ao reordenar itens"
+    "reorderFailed": "Falha ao reordenar itens",
+    "statItems": "{{count}} itens",
+    "statOwned": "{{count}} possuídos",
+    "statCompletion": "{{pct}}% completo",
+    "edit": "Editar",
+    "moreActions": "Mais ações",
+    "deleteCollection": "Excluir Coleção",
+    "tabsLabel": "Abas da coleção",
+    "tabAllItems": "Todos os Itens",
+    "tabStats": "Estatísticas",
+    "statsItems": "Total de Itens",
+    "statsOwned": "Cópias Possuídas",
+    "statsCompletion": "Conclusão"
   },
   "itemDetail": {
     "fetchError": "Falha ao carregar item",

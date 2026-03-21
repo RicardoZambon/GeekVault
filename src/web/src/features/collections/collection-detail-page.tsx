@@ -2,11 +2,10 @@ import { useState, useEffect, useCallback, type FormEvent } from "react"
 import { useParams, useNavigate, useSearchParams } from "react-router-dom"
 import { useTranslation } from "react-i18next"
 import { motion, AnimatePresence } from "framer-motion"
-import { Plus, ArrowLeft, Image, Package, Check, Trash2, Pencil, Search, CheckCircle2, Circle, ArrowUp, ArrowDown, Download, Upload, LayoutGrid, List, ChevronDown, GripVertical, MoreVertical } from "lucide-react"
+import { Plus, ArrowLeft, Image, Package, Check, Trash2, Pencil, Search, CheckCircle2, Circle, ArrowUp, ArrowDown, Download, Upload, LayoutGrid, List, ChevronDown, GripVertical, MoreVertical, DollarSign, Target } from "lucide-react"
 import { ImportWizard } from "./components/import-wizard"
 import {
   EmptyState,
-  PageHeader,
   Badge,
   Card,
   CardContent,
@@ -60,7 +59,10 @@ interface Collection {
   coverImage: string | null
   visibility: string
   collectionTypeId: number
+  collectionTypeName: string
   itemCount: number
+  ownedCount: number
+  completionPercentage: number
 }
 
 interface CustomFieldValue {
@@ -117,6 +119,13 @@ interface SetDetail {
   items: SetItem[]
 }
 
+const WARM_GRADIENTS = [
+  "from-[hsl(var(--chart-1))] to-[hsl(var(--chart-2))]",
+  "from-[hsl(var(--chart-3))] to-[hsl(var(--chart-4))]",
+  "from-[hsl(var(--chart-5))] to-[hsl(var(--chart-6))]",
+  "from-[hsl(var(--chart-7))] to-[hsl(var(--chart-8))]",
+]
+
 export default function CollectionDetail() {
   const { id } = useParams()
   const { t } = useTranslation()
@@ -133,7 +142,7 @@ export default function CollectionDetail() {
   const [error, setError] = useState("")
 
   // Tab state
-  const [activeTab, setActiveTab] = useState<"items" | "sets">("items")
+  const [activeTab, setActiveTab] = useState<"items" | "sets" | "stats">("items")
 
   // View toggle state (grid/table), persisted per collection
   const viewKey = `geekvault-view-${id}`
@@ -726,18 +735,17 @@ export default function CollectionDetail() {
   if (loading) {
     return (
       <div className="space-y-6">
-        <div className="flex items-center gap-3">
-          <SkeletonRect width="32px" height="32px" className="rounded" />
-          <div className="space-y-2">
-            <SkeletonRect width="200px" height="28px" />
-            <SkeletonRect width="120px" height="16px" />
-          </div>
+        {/* Back button skeleton */}
+        <SkeletonRect width="160px" height="32px" className="rounded-md" />
+        {/* Banner skeleton */}
+        <SkeletonRect width="100%" height="0" className="rounded-[var(--radius-xl)]" style={{ paddingBottom: "min(240px, 33%)" }} />
+        {/* Tabs skeleton */}
+        <div className="flex gap-4 border-b border-border pb-2">
+          <SkeletonRect width="80px" height="20px" />
+          <SkeletonRect width="80px" height="20px" />
+          <SkeletonRect width="60px" height="20px" />
         </div>
-        <div className="flex gap-2">
-          <SkeletonRect width="100%" height="36px" className="flex-1" />
-          <SkeletonRect width="140px" height="36px" />
-          <SkeletonRect width="140px" height="36px" />
-        </div>
+        {/* Content skeleton */}
         <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
           {Array.from({ length: 8 }).map((_, i) => (
             <div key={i} className="overflow-hidden rounded-lg border bg-card">
@@ -767,6 +775,8 @@ export default function CollectionDetail() {
   }
   /* v8 ignore stop */
 
+  const gradientClass = WARM_GRADIENTS[(collection?.id ?? 0) % 4]
+
   return (
     <div>
       {/* Back button */}
@@ -780,33 +790,99 @@ export default function CollectionDetail() {
         {t("collectionDetail.backToCollections")}
       </Button>
 
-      {/* PageHeader with collection name, type badge, and action buttons */}
-      <PageHeader
-        title={collection.name}
-        description={collection.description ?? undefined}
-        actions={
-          <div className="flex items-center gap-2">
-            {collectionType && (
-              <Badge variant="primary" size="sm">{collectionType.name}</Badge>
-            )}
-            <span className="text-sm text-muted-foreground">
-              {t("collections.itemCount", { count: totalCount })}
-            </span>
-          </div>
-        }
-      />
-
-      {/* Cover image */}
-      {collection.coverImage && (
-        <div className="mt-4 overflow-hidden rounded-lg">
+      {/* Cover image banner */}
+      <div className="relative overflow-hidden rounded-[var(--radius-xl)] h-40 md:h-48 lg:h-60" data-testid="cover-banner">
+        {collection.coverImage ? (
           <img
             src={collection.coverImage}
             alt={collection.name}
-            className="h-48 w-full object-cover sm:h-56"
+            className="h-full w-full object-cover"
             loading="lazy"
           />
+        ) : (
+          <div className={`h-full w-full bg-gradient-to-br ${gradientClass} opacity-15 flex items-center justify-center`}>
+            <Package className="h-16 w-16 text-foreground/20" />
+          </div>
+        )}
+        {/* Gradient overlay for text readability */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent" />
+
+        {/* Metadata overlay */}
+        <div className="absolute bottom-0 left-0 right-0 p-4 lg:p-6">
+          {collection.collectionTypeName && (
+            <Badge variant="primary" size="sm" className="mb-2">{collection.collectionTypeName}</Badge>
+          )}
+          <h1 className="font-display text-2xl font-bold text-white drop-shadow-lg lg:text-4xl" style={{ letterSpacing: "-0.02em" }}>
+            {collection.name}
+          </h1>
+          {collection.description && (
+            <p className="mt-1 text-base text-white/80 line-clamp-2">{collection.description}</p>
+          )}
+          <div className="mt-3 flex items-center gap-4 flex-wrap">
+            <span className="flex items-center gap-1.5 text-sm font-medium text-white/90">
+              <Package className="h-3.5 w-3.5" />
+              {t("collectionDetail.statItems", { count: totalCount })}
+            </span>
+            {collection.ownedCount > 0 && (
+              <>
+                <span className="text-white/50">&middot;</span>
+                <span className="flex items-center gap-1.5 text-sm font-medium text-white/90">
+                  <DollarSign className="h-3.5 w-3.5" />
+                  {t("collectionDetail.statOwned", { count: collection.ownedCount })}
+                </span>
+              </>
+            )}
+            {sets.length > 0 && collection.completionPercentage > 0 && (
+              <>
+                <span className="text-white/50">&middot;</span>
+                <span className="flex items-center gap-1.5 text-sm font-medium text-white/90">
+                  <Target className="h-3.5 w-3.5" />
+                  {t("collectionDetail.statCompletion", { pct: Math.round(collection.completionPercentage) })}
+                </span>
+              </>
+            )}
+          </div>
         </div>
-      )}
+
+        {/* Action buttons (frosted glass) */}
+        <div className="absolute bottom-4 right-4 flex items-center gap-2 lg:bottom-6 lg:right-6">
+          <Button
+            variant="secondary"
+            size="sm"
+            className="bg-white/20 backdrop-blur-sm border-white/30 text-white hover:bg-white/30"
+            onClick={() => navigate(`/collections/${id}/edit`)}
+          >
+            <Pencil className="h-3.5 w-3.5" />
+            {t("collectionDetail.edit")}
+          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="secondary"
+                size="icon"
+                className="h-8 w-8 bg-white/20 backdrop-blur-sm border-white/30 text-white hover:bg-white/30"
+                aria-label={t("collectionDetail.moreActions")}
+              >
+                <MoreVertical className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={openImportDialog}>
+                <Upload className="mr-2 h-4 w-4" />
+                {t("collectionDetail.import")}
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => { setExportError(""); setExportDialogOpen(true) }}>
+                <Download className="mr-2 h-4 w-4" />
+                {t("collectionDetail.export")}
+              </DropdownMenuItem>
+              <DropdownMenuItem className="text-destructive focus:text-destructive focus:bg-destructive/10" onClick={() => {/* delete handled by confirm dialog */}}>
+                <Trash2 className="mr-2 h-4 w-4" />
+                {t("collectionDetail.deleteCollection")}
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      </div>
 
       {error && (
         <div className="mt-4 rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive-foreground">
@@ -814,33 +890,73 @@ export default function CollectionDetail() {
         </div>
       )}
 
-      {/* Tab switcher */}
-      <div className="mt-6 flex border-b">
+      {/* Tab navigation */}
+      <div className="mt-6 flex border-b border-border" role="tablist" aria-label={t("collectionDetail.tabsLabel")}>
         <button
-          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+          role="tab"
+          aria-selected={activeTab === "items"}
+          tabIndex={activeTab === "items" ? 0 : -1}
+          className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${
             activeTab === "items"
               ? "border-accent text-foreground"
-              : "border-transparent text-muted-foreground hover:text-foreground"
+              : "border-transparent text-muted-foreground hover:text-foreground hover:border-border"
           }`}
           onClick={() => setActiveTab("items")}
+          onKeyDown={(e) => {
+            if (e.key === "ArrowRight") { e.preventDefault(); setActiveTab("sets") }
+          }}
         >
-          {t("collectionDetail.catalogItems")}
+          {t("collectionDetail.tabAllItems")}
         </button>
         <button
-          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+          role="tab"
+          aria-selected={activeTab === "sets"}
+          tabIndex={activeTab === "sets" ? 0 : -1}
+          className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${
             activeTab === "sets"
               ? "border-accent text-foreground"
-              : "border-transparent text-muted-foreground hover:text-foreground"
+              : "border-transparent text-muted-foreground hover:text-foreground hover:border-border"
           }`}
           onClick={() => setActiveTab("sets")}
+          onKeyDown={(e) => {
+            if (e.key === "ArrowLeft") { e.preventDefault(); setActiveTab("items") }
+            if (e.key === "ArrowRight" && totalCount > 0) { e.preventDefault(); setActiveTab("stats") }
+          }}
         >
           {t("sets.title")} ({sets.length})
         </button>
+        {totalCount > 0 && (
+          <button
+            role="tab"
+            aria-selected={activeTab === "stats"}
+            tabIndex={activeTab === "stats" ? 0 : -1}
+            className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${
+              activeTab === "stats"
+                ? "border-accent text-foreground"
+                : "border-transparent text-muted-foreground hover:text-foreground hover:border-border"
+            }`}
+            onClick={() => setActiveTab("stats")}
+            onKeyDown={(e) => {
+              if (e.key === "ArrowLeft") { e.preventDefault(); setActiveTab("sets") }
+            }}
+          >
+            {t("collectionDetail.tabStats")}
+          </button>
+        )}
       </div>
+
+      {/* Tab content with animation */}
+      <AnimatePresence mode="wait">
 
       {/* Items Tab */}
       {activeTab === "items" && (
-        <>
+        <motion.div
+          key="tab-items"
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.25 }}
+        >
           {/* Toolbar: actions row */}
           <div className="mt-4 flex flex-wrap items-center justify-between gap-2">
             <div className="flex items-center gap-2">
@@ -1088,12 +1204,19 @@ export default function CollectionDetail() {
             </div>
           )}
           {/* v8 ignore stop */}
-        </>
+        </motion.div>
       )}
 
       {/* Sets Tab */}
       {activeTab === "sets" && (
-        <div className="mt-4">
+        <motion.div
+          key="tab-sets"
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.25 }}
+          className="mt-4"
+        >
           {/* Sets toolbar */}
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-semibold font-display">{t("sets.title")}</h2>
@@ -1256,8 +1379,66 @@ export default function CollectionDetail() {
               })}
             </div>
           )}
-        </div>
+        </motion.div>
       )}
+
+      {/* Stats Tab */}
+      {activeTab === "stats" && totalCount > 0 && (
+        <motion.div
+          key="tab-stats"
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.25 }}
+          className="mt-4"
+        >
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <Card>
+              <CardContent className="p-5">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-accent/10">
+                    <Package className="h-5 w-5 text-accent" />
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold tabular-nums">{totalCount}</p>
+                    <p className="text-sm text-muted-foreground">{t("collectionDetail.statsItems")}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="p-5">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-accent/10">
+                    <Check className="h-5 w-5 text-accent" />
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold tabular-nums">{collection.ownedCount}</p>
+                    <p className="text-sm text-muted-foreground">{t("collectionDetail.statsOwned")}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            {sets.length > 0 && (
+              <Card>
+                <CardContent className="p-5">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-accent/10">
+                      <Target className="h-5 w-5 text-accent" />
+                    </div>
+                    <div>
+                      <p className="text-2xl font-bold tabular-nums">{Math.round(collection.completionPercentage)}%</p>
+                      <p className="text-sm text-muted-foreground">{t("collectionDetail.statsCompletion")}</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+        </motion.div>
+      )}
+
+      </AnimatePresence>
 
       {/* Add Item Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>

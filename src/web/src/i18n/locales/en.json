@@ -302,7 +302,19 @@
     "importClickToChange": "Click to choose a different file",
     "importConfirmCount": "Import {{count}} items",
     "importCompleteToast": "Import completed successfully",
-    "reorderFailed": "Failed to reorder items"
+    "reorderFailed": "Failed to reorder items",
+    "statItems": "{{count}} items",
+    "statOwned": "{{count}} owned",
+    "statCompletion": "{{pct}}% complete",
+    "edit": "Edit",
+    "moreActions": "More actions",
+    "deleteCollection": "Delete Collection",
+    "tabsLabel": "Collection tabs",
+    "tabAllItems": "All Items",
+    "tabStats": "Stats",
+    "statsItems": "Total Items",
+    "statsOwned": "Owned Copies",
+    "statsCompletion": "Completion"
   },
   "itemDetail": {
     "fetchError": "Failed to load item",

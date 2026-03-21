@@ -16,7 +16,7 @@ vi.mock("@/components/auth-provider", () => ({
 
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({
-    t: (key: string, opts?: Record<string, unknown>) => (opts?.name ? `${key}:${opts.name}` : opts?.count !== undefined ? `${key}:${opts.count}` : key),
+    t: (key: string, opts?: Record<string, unknown>) => (opts?.name ? `${key}:${opts.name}` : opts?.count !== undefined ? `${key}:${opts.count}` : opts?.pct !== undefined ? `${key}:${opts.pct}` : key),
     i18n: { language: "en", changeLanguage: vi.fn() },
   }),
 }))
@@ -68,7 +68,7 @@ vi.mock("./components/import-wizard", () => ({
   },
 }))
 
-const collection = { id: 1, name: "Comics", description: "My comics", coverImage: null, visibility: "Private", collectionTypeId: 1, itemCount: 2 }
+const collection = { id: 1, name: "Comics", description: "My comics", coverImage: null, visibility: "Private", collectionTypeId: 1, collectionTypeName: "Comic Books", itemCount: 2, ownedCount: 1, completionPercentage: 50 }
 const collectionType = { id: 1, name: "Comic Books", description: null, icon: "📚", customFields: [{ name: "Grade", type: "text", required: false, options: [] }] }
 const items = {
   items: [
@@ -218,7 +218,7 @@ describe("CollectionDetail", () => {
     mockFetch()
     renderWithRoute()
     await waitFor(() => screen.getByText("Comics"))
-    fireEvent.click(screen.getByText("collectionDetail.export"))
+    fireEvent.click(screen.getAllByText("collectionDetail.export")[0])
     expect(await screen.findByText("collectionDetail.exportTitle")).toBeInTheDocument()
   })
 
@@ -226,7 +226,7 @@ describe("CollectionDetail", () => {
     mockFetch()
     renderWithRoute()
     await waitFor(() => screen.getByText("Comics"))
-    fireEvent.click(screen.getByText("collectionDetail.import"))
+    fireEvent.click(screen.getAllByText("collectionDetail.import")[0])
     await waitFor(() => {
       expect(screen.getByText("collectionDetail.importTitle")).toBeInTheDocument()
     })
@@ -755,7 +755,7 @@ describe("CollectionDetail", () => {
     renderWithRoute()
     await waitFor(() => screen.getByText("Comics"))
 
-    fireEvent.click(screen.getByText("collectionDetail.export"))
+    fireEvent.click(screen.getAllByText("collectionDetail.export")[0])
     await screen.findByText("collectionDetail.exportTitle")
 
     // Click download button
@@ -793,7 +793,7 @@ describe("CollectionDetail", () => {
     renderWithRoute()
     await waitFor(() => screen.getByText("Comics"))
 
-    fireEvent.click(screen.getByText("collectionDetail.export"))
+    fireEvent.click(screen.getAllByText("collectionDetail.export")[0])
     await screen.findByText("collectionDetail.exportTitle")
 
     fireEvent.click(screen.getByText("collectionDetail.exportDownload"))
@@ -808,7 +808,7 @@ describe("CollectionDetail", () => {
     renderWithRoute()
     await waitFor(() => screen.getByText("Comics"))
 
-    fireEvent.click(screen.getByText("collectionDetail.export"))
+    fireEvent.click(screen.getAllByText("collectionDetail.export")[0])
     await screen.findByText("collectionDetail.exportTitle")
 
     fireEvent.click(screen.getByText("collectionDetail.exportJSON"))
@@ -821,7 +821,7 @@ describe("CollectionDetail", () => {
     renderWithRoute()
     await waitFor(() => screen.getByText("Comics"))
 
-    fireEvent.click(screen.getByText("collectionDetail.import"))
+    fireEvent.click(screen.getAllByText("collectionDetail.import")[0])
     await waitFor(() => {
       expect(screen.getByText("collectionDetail.importTitle")).toBeInTheDocument()
     })
@@ -1048,7 +1048,7 @@ describe("CollectionDetail", () => {
     renderWithRoute()
     await waitFor(() => screen.getByText("Comics"))
 
-    fireEvent.click(screen.getByText("collectionDetail.import"))
+    fireEvent.click(screen.getAllByText("collectionDetail.import")[0])
     await waitFor(() => {
       expect(screen.getByText("collectionDetail.importTitle")).toBeInTheDocument()
     })
@@ -1119,7 +1119,7 @@ describe("CollectionDetail", () => {
     await waitFor(() => screen.getByText("Comics"))
 
     // Open
-    fireEvent.click(screen.getByText("collectionDetail.import"))
+    fireEvent.click(screen.getAllByText("collectionDetail.import")[0])
     await waitFor(() => {
       expect(screen.getByText("collectionDetail.importTitle")).toBeInTheDocument()
     })
@@ -1241,7 +1241,7 @@ describe("CollectionDetail", () => {
     renderWithRoute()
     await waitFor(() => screen.getByText("Comics"))
 
-    fireEvent.click(screen.getByText("collectionDetail.export"))
+    fireEvent.click(screen.getAllByText("collectionDetail.export")[0])
     await screen.findByText("collectionDetail.exportTitle")
 
     // Click cancel button
@@ -1256,7 +1256,7 @@ describe("CollectionDetail", () => {
     renderWithRoute()
     await waitFor(() => screen.getByText("Comics"))
 
-    fireEvent.click(screen.getByText("collectionDetail.import"))
+    fireEvent.click(screen.getAllByText("collectionDetail.import")[0])
     await screen.findByText("collectionDetail.importTitle")
 
     // Click cancel in upload step
@@ -1272,12 +1272,12 @@ describe("CollectionDetail", () => {
     await waitFor(() => screen.getByText("Comics"))
 
     // Open, close, re-open
-    fireEvent.click(screen.getByText("collectionDetail.import"))
+    fireEvent.click(screen.getAllByText("collectionDetail.import")[0])
     await waitFor(() => screen.getByText("collectionDetail.importTitle"))
     fireEvent.click(screen.getByText("collectionDetail.importCancel"))
     await waitFor(() => expect(screen.queryByText("collectionDetail.importTitle")).not.toBeInTheDocument())
 
-    fireEvent.click(screen.getByText("collectionDetail.import"))
+    fireEvent.click(screen.getAllByText("collectionDetail.import")[0])
     await waitFor(() => {
       expect(screen.getByText("collectionDetail.importTitle")).toBeInTheDocument()
     })
@@ -1428,7 +1428,7 @@ describe("CollectionDetail", () => {
     renderWithRoute()
     await waitFor(() => screen.getByText("Comics"))
 
-    fireEvent.click(screen.getByText("collectionDetail.export"))
+    fireEvent.click(screen.getAllByText("collectionDetail.export")[0])
     await screen.findByText("collectionDetail.exportTitle")
 
     // Switch to JSON first
@@ -1460,8 +1460,8 @@ describe("CollectionDetail", () => {
     renderWithRoute()
     await waitFor(() => screen.getByText("Comics"))
 
-    // Items tab should be active (border-primary) - find the tab button specifically
-    const tabButtons = document.querySelectorAll(".flex.border-b button")
+    // Items tab should be active - find the tab buttons via role
+    const tabButtons = document.querySelectorAll("[role='tab']")
     const itemsTab = tabButtons[0] as HTMLElement
     const setsTab = tabButtons[1] as HTMLElement
     expect(itemsTab.className).toContain("border-accent")
@@ -1900,5 +1900,100 @@ describe("CollectionDetail", () => {
     await waitFor(() => {
       expect(screen.queryByText("sets.deleteTitle")).not.toBeInTheDocument()
     })
+  })
+
+  // --- US-016: Banner, tabs, and stats ---
+
+  it("renders cover banner with gradient fallback when no cover image", async () => {
+    mockFetch()
+    renderWithRoute()
+    await waitFor(() => screen.getByText("Comics"))
+    const banner = document.querySelector("[data-testid='cover-banner']")
+    expect(banner).toBeInTheDocument()
+    // Should have gradient overlay
+    expect(banner?.querySelector(".bg-gradient-to-t")).toBeInTheDocument()
+  })
+
+  it("renders cover banner with image when coverImage exists", async () => {
+    const collectionWithCover = { ...collection, coverImage: "/uploads/cover.jpg" }
+    vi.spyOn(global, "fetch").mockImplementation((url) => {
+      const urlStr = String(url)
+      if (urlStr.includes("/collection-types/")) {
+        return Promise.resolve({ ok: true, json: () => Promise.resolve(collectionType) } as Response)
+      }
+      if (urlStr.includes("/items?")) {
+        return Promise.resolve({ ok: true, json: () => Promise.resolve(items) } as Response)
+      }
+      if (urlStr.includes("/copies")) {
+        return Promise.resolve({ ok: true, json: () => Promise.resolve([]) } as Response)
+      }
+      if (urlStr.includes("/sets")) {
+        return Promise.resolve({ ok: true, json: () => Promise.resolve([]) } as Response)
+      }
+      if (urlStr.match(/\/collections\/\d+$/)) {
+        return Promise.resolve({ ok: true, json: () => Promise.resolve(collectionWithCover) } as Response)
+      }
+      return Promise.resolve({ ok: true, json: () => Promise.resolve(items) } as Response)
+    })
+    renderWithRoute()
+    await waitFor(() => screen.getByText("Comics"))
+    const banner = document.querySelector("[data-testid='cover-banner']")
+    const img = banner?.querySelector("img")
+    expect(img).toBeInTheDocument()
+    expect(img?.getAttribute("src")).toBe("/uploads/cover.jpg")
+  })
+
+  it("displays metadata overlay with collection type badge and stats", async () => {
+    mockFetch()
+    renderWithRoute()
+    await waitFor(() => screen.getByText("Comics"))
+    expect(screen.getByText("Comic Books")).toBeInTheDocument()
+    expect(screen.getByText("collectionDetail.statItems:2")).toBeInTheDocument()
+    expect(screen.getByText("collectionDetail.statOwned:1")).toBeInTheDocument()
+  })
+
+  it("shows action buttons on banner (edit and more actions)", async () => {
+    mockFetch()
+    renderWithRoute()
+    await waitFor(() => screen.getByText("Comics"))
+    expect(screen.getByText("collectionDetail.edit")).toBeInTheDocument()
+    expect(screen.getByLabelText("collectionDetail.moreActions")).toBeInTheDocument()
+  })
+
+  it("has accessible tab navigation with role=tablist", async () => {
+    mockFetch()
+    renderWithRoute()
+    await waitFor(() => screen.getByText("Comics"))
+    const tablist = document.querySelector("[role='tablist']")
+    expect(tablist).toBeInTheDocument()
+    const tabs = tablist?.querySelectorAll("[role='tab']")
+    expect(tabs?.length).toBeGreaterThanOrEqual(2)
+    // First tab (items) should be selected
+    expect(tabs?.[0]?.getAttribute("aria-selected")).toBe("true")
+  })
+
+  it("renders Stats tab when items exist and shows stat cards", async () => {
+    mockFetch()
+    renderWithRoute()
+    await waitFor(() => screen.getByText("Comics"))
+    // Stats tab should be visible since items exist
+    const statsTab = screen.getByText("collectionDetail.tabStats")
+    expect(statsTab).toBeInTheDocument()
+    fireEvent.click(statsTab)
+    // Should show stats cards
+    await waitFor(() => {
+      expect(screen.getByText("collectionDetail.statsItems")).toBeInTheDocument()
+      expect(screen.getByText("collectionDetail.statsOwned")).toBeInTheDocument()
+    })
+  })
+
+  it("renders responsive banner heights via CSS classes", async () => {
+    mockFetch()
+    renderWithRoute()
+    await waitFor(() => screen.getByText("Comics"))
+    const banner = document.querySelector("[data-testid='cover-banner']")
+    expect(banner?.className).toContain("h-40")
+    expect(banner?.className).toContain("md:h-48")
+    expect(banner?.className).toContain("lg:h-60")
   })
 })
