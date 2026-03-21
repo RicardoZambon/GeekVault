@@ -1729,3 +1729,560 @@ If the item fails to load or doesn't exist:
 8. **Breadcrumb vs back links** — this page uses breadcrumbs unlike most other pages (which use sidebar highlight + back links). Breadcrumbs are warranted here because the user is 3 levels deep and needs to navigate to either the collection or the collections list.
 9. **Edit item dialog** uses `sm:max-w-2xl` (wider than copy dialog) because it has more fields including custom fields, which need space for the 2-column grid layout.
 10. **Delete flows** are consistent: item deletion navigates back to collection; copy deletion stays on the page and refreshes the copies list.
+
+---
+
+## Owned Copies
+
+### Design Philosophy
+
+Owned copies are the **provenance records** of a collector's vault — each copy is a tangible proof of ownership, a story of acquisition, and a financial data point. This section elevates copy management from basic CRUD to a premium experience that makes collectors feel like curators documenting their treasures.
+
+**Key aesthetic decisions:**
+- **Copy cards feel like museum provenance cards** — structured layout with condition as the hero visual element, financial data in tabular alignment, and images as proof-of-condition thumbnails
+- **Condition badge is the emotional anchor** — large, color-coded, immediately communicating quality tier at a glance. Green for pristine, neutral for solid, warm amber for worn
+- **Image gallery is a first-class feature** — not just thumbnails; a full lightbox with navigation, zoom, and keyboard support. Collectors photograph their items meticulously; the UI should honor that care
+- **Inline editing reduces friction** — quick-edit condition or price without opening a full dialog; respects the collector's flow when cataloging many copies
+- **Multi-image upload feels modern** — drag-and-drop zone with instant preview grid, individual removal, and reorder capability. Not a bare file input
+- **Financial values use tabular figures** — Inter's `font-variant-numeric: tabular-nums` ensures prices align in columns, creating the precision feel of an appraisal sheet
+
+---
+
+### Copy Card Design (Detailed)
+
+The copy card is the primary representation of an owned copy. It appears in the Owned Copies section of the Catalog Item Detail page in a staggered 2-column grid.
+
+#### Card Layout
+
+```
+┌─────────────────────────────────────────────────┐
+│  ┌──────────┐                    [Edit] [Delete] │
+│  │  MINT    │ ← condition badge (large)          │
+│  └──────────┘                                    │
+│                                                  │
+│  ┌─────────────────┐ ┌─────────────────┐        │
+│  │ 💰 Purchase Price│ │ 🏷️ Est. Value    │        │
+│  │ $125.00         │ │ $180.00         │        │
+│  ├─────────────────┤ ├─────────────────┤        │
+│  │ 📅 Acquired      │ │ 🛍️ Source        │        │
+│  │ Mar 15, 2024    │ │ eBay            │        │
+│  └─────────────────┘ └─────────────────┘        │
+│                                                  │
+│  ─────────────────────────────────────────────   │
+│  📝 Notes                                        │
+│  "Original packaging, slight shelf wear on box"  │
+│                                                  │
+│  ─────────────────────────────────────────────   │
+│  ┌────┐ ┌────┐ ┌────┐ ┌────┐              [+N]  │
+│  │img1│ │img2│ │img3│ │img4│                     │
+│  └────┘ └────┘ └────┘ └────┘                     │
+└─────────────────────────────────────────────────┘
+```
+
+#### Card Container
+
+- `Card variant="flat"` with `group h-full` — enables hover-reveal for action buttons
+- `CardContent` with `p-5` padding
+- Hover state: `hover:border-accent/20 transition-colors duration-150` — subtle amber border hint
+- No lift effect on copy cards (unlike collection gallery cards) — copies are data records, not navigable cards
+
+#### Condition Badge (Hero Element)
+
+The condition badge is the first thing the eye hits — large, color-coded, immediately communicating quality.
+
+**Size:** `Badge` with custom size `md` — `px-3 py-1 text-sm font-semibold`
+
+**Color mapping by condition tier:**
+
+| Condition | Variant | Light BG | Light Text | Dark BG | Dark Text | Semantic |
+|-----------|---------|----------|------------|---------|-----------|----------|
+| **Mint** | `success` | `bg-success/15` | `text-success` | `bg-success/20` | `text-success` | Pristine, untouched |
+| **Near Mint** | `success` | `bg-success/15` | `text-success` | `bg-success/20` | `text-success` | Excellent with minimal wear |
+| **Excellent** | `primary` | `bg-primary/10` | `text-foreground` | `bg-primary/10` | `text-foreground` | High quality, minor imperfections |
+| **Good** | `primary` | `bg-primary/10` | `text-foreground` | `bg-primary/10` | `text-foreground` | Solid condition, visible wear |
+| **Fair** | `warning` | `bg-warning/15` | `text-warning` | `bg-warning/20` | `text-warning` | Significant wear, functional |
+| **Poor** | `warning` | `bg-warning/15` | `text-warning` | `bg-warning/20` | `text-warning` | Heavy wear or damage |
+
+**Badge rendering:** Uses `formatCondition()` to convert `"NearMint"` → `"Near Mint"` for display.
+
+**Placement:** Top-left of card. `flex items-start justify-between mb-4` — badge left, action buttons right.
+
+#### Action Buttons (Hover-Reveal)
+
+- **Container:** `flex gap-1`
+- **Visibility:** `sm:opacity-0 sm:group-hover:opacity-100 transition-opacity duration-150` — always visible on mobile (touch devices), hover-reveal on desktop
+- **Edit button:** `Button variant="ghost" size="sm"` — `Pencil` icon, `h-3.5 w-3.5`
+- **Delete button:** `Button variant="ghost" size="sm"` — `Trash2` icon, `h-3.5 w-3.5`, `text-destructive hover:text-destructive hover:bg-destructive/10`
+- **Focus behavior:** Buttons receive focus via keyboard tab even when visually hidden — `opacity-0` doesn't affect tab order. When focused, the parent `group-focus-within:opacity-100` makes them visible.
+
+#### Copy Details Grid
+
+- **Layout:** `grid gap-3 sm:grid-cols-2` — 2 columns on sm+, stacked on mobile
+- **Each detail cell:** `flex items-start gap-2`
+  - **Icon:** `h-4 w-4 text-muted-foreground mt-0.5 shrink-0` — vertical alignment with first line of text
+  - **Text container:** `min-w-0` (prevents flex overflow)
+    - **Label:** `text-xs font-medium text-muted-foreground` — overline style
+    - **Value:** `text-sm text-foreground` — default, or `text-sm font-semibold` for financial values
+
+**Fields displayed (conditional — only when value exists):**
+
+| Field | Icon | Value Format | Extra Styling |
+|-------|------|-------------|---------------|
+| Purchase Price | `DollarSign` (h-4 w-4) | `$XX.XX` | `font-semibold`, `font-variant-numeric: tabular-nums`, `cursor-pointer` (inline edit affordance) |
+| Estimated Value | `Tag` (h-4 w-4) | `$XX.XX` | `font-semibold`, `font-variant-numeric: tabular-nums`, `cursor-pointer` (inline edit affordance) |
+| Acquisition Date | `Calendar` (h-4 w-4) | `toLocaleDateString({ year: "numeric", month: "short", day: "numeric" })` — e.g., "Mar 15, 2024" | — |
+| Acquisition Source | `ShoppingBag` (h-4 w-4) | Plain text | — |
+
+**Currency formatting:** Prices use a simple `$` prefix. Future: use `Intl.NumberFormat` with user's currency preference from profile. `font-variant-numeric: tabular-nums` ensures decimal points align when multiple copies are visible in the grid.
+
+**Date formatting:** Locale-aware via `toLocaleDateString()`. Calendar icon inline with `flex items-center gap-1.5`.
+
+**Empty field behavior:** Fields with null/undefined values are not rendered — no "N/A" placeholders. The grid naturally collapses (fewer cells = less visual noise).
+
+#### Notes Section (Conditional)
+
+Only rendered when `copy.notes` exists and is non-empty.
+
+- **Separator:** `mt-3 pt-3 border-t border-border` — thin divider separating notes from details grid
+- **Layout:** `flex items-start gap-2`
+  - Icon: `FileText` (h-4 w-4), `text-muted-foreground mt-0.5 shrink-0`
+  - Text container:
+    - Label: `text-xs font-medium text-muted-foreground` — "Notes"
+    - Value: `text-sm leading-relaxed text-foreground` — natural wrapping, no truncation
+- **Max height:** None — notes can be any length. The card grows to accommodate.
+
+#### Thumbnail Gallery (Conditional)
+
+Only rendered when `copy.images.length > 0`.
+
+- **Separator:** `mt-3 pt-3 border-t border-border` — thin divider
+- **Layout:** `flex gap-2 flex-wrap` — wrapping row
+- **Each thumbnail:**
+  - Container: `relative group/thumb` (nested group for individual hover)
+  - Size: `h-16 w-16` (64×64px)
+  - Image: `h-full w-full rounded-md border border-border object-cover`
+  - Loading: `loading="lazy"` for performance
+  - Alt text: `t("ownedCopy.imageAlt", { index: N })` — e.g., "Copy image 1"
+  - **Hover state:** `hover:ring-2 hover:ring-accent transition-shadow duration-150` — amber ring signals clickability
+  - **Click action:** Opens image gallery lightbox at the clicked image index
+  - **Cursor:** `cursor-pointer`
+  - **Keyboard:** `tabIndex={0}`, `role="button"`, `aria-label="View image N"`, `onKeyDown` for Enter/Space
+
+- **Overflow indicator:** When more than 4 images exist, show first 4 thumbnails + an overflow badge:
+  - `+N` badge: `absolute inset-0 flex items-center justify-center bg-black/50 rounded-md text-white text-sm font-semibold` on the 4th thumbnail position
+  - Click on overflow badge opens lightbox at image 4
+  - This prevents copy cards from becoming excessively tall with many images
+  - On mobile (< sm), show max 3 thumbnails + overflow
+
+---
+
+### Image Gallery Lightbox
+
+The lightbox is a full-screen overlay that displays copy images at full resolution with navigation, zoom, and keyboard support. It activates when a user clicks any thumbnail in the copy card gallery.
+
+#### Visual Design
+
+**Backdrop:**
+- `fixed inset-0 z-50`
+- `bg-black/90` (near-opaque dark — images need maximum contrast)
+- `backdrop-filter: blur(8px)` — blurs content behind for depth
+- Click backdrop to close
+
+**Image container:**
+- `fixed inset-0 z-50 flex items-center justify-center`
+- Image: `max-h-[85vh] max-w-[90vw] object-contain` — fills viewport while maintaining aspect ratio
+- `rounded-lg` on the image for subtle softness
+- `select-none` to prevent accidental text selection on image
+
+**Entrance animation (Framer Motion):**
+```typescript
+const lightboxVariants = {
+  backdrop: {
+    initial: { opacity: 0 },
+    animate: { opacity: 1 },
+    exit: { opacity: 0 },
+  },
+  image: {
+    initial: { opacity: 0, scale: 0.9 },
+    animate: { opacity: 1, scale: 1 },
+    exit: { opacity: 0, scale: 0.95 },
+  },
+}
+
+const lightboxTransition = {
+  backdrop: { duration: 0.2, ease: [0.0, 0.0, 0.2, 1.0] },
+  image: { type: "spring", stiffness: 300, damping: 28 }, // springGentle
+  exit: { duration: 0.15, ease: [0.4, 0.0, 1.0, 1.0] },
+}
+```
+
+- Backdrop fades in over 200ms
+- Image scales up from 0.9 with gentle spring — feels like the image "expands" from the thumbnail
+- Exit is faster (150ms) — snappy dismissal
+
+**Image transition between slides:**
+- `AnimatePresence mode="wait"` wrapping the image
+- Direction-aware: sliding right → `x: 100 → 0` enter, `x: 0 → -100` exit. Sliding left → reverse.
+- Duration: 200ms with `ease-enter` / `ease-exit`
+- `key={currentImageIndex}` on the motion wrapper triggers re-animation
+
+#### Navigation Controls
+
+**Arrow buttons:**
+- Left: `ChevronLeft` icon, `absolute left-4 top-1/2 -translate-y-1/2`
+- Right: `ChevronRight` icon, `absolute right-4 top-1/2 -translate-y-1/2`
+- Button style: `h-10 w-10 rounded-full bg-white/10 hover:bg-white/20 text-white backdrop-blur-sm border border-white/10 transition-colors`
+- Icon size: `h-5 w-5`
+- Hidden when at first/last image (no wrap-around)
+- **Focus-visible:** `focus-visible:ring-2 focus-visible:ring-white`
+
+**Close button:**
+- `X` icon, `absolute top-4 right-4`
+- Same frosted glass style as arrows: `h-10 w-10 rounded-full bg-white/10 hover:bg-white/20 text-white backdrop-blur-sm border border-white/10`
+- Icon size: `h-5 w-5`
+
+**Image counter:**
+- `absolute bottom-4 left-1/2 -translate-x-1/2`
+- `bg-black/60 text-white text-sm px-3 py-1.5 rounded-full backdrop-blur-sm`
+- Content: `"2 / 5"` (current / total)
+- Hidden when only 1 image (no counter needed)
+
+**Dot indicators (below counter, when ≤ 8 images):**
+- `flex gap-1.5 justify-center mt-2`
+- Each dot: `h-1.5 w-1.5 rounded-full`
+- Active: `bg-white`
+- Inactive: `bg-white/40`
+- Transition: `transition-colors duration-150`
+
+#### Keyboard Interactions
+
+| Key | Action |
+|-----|--------|
+| `Escape` | Close lightbox |
+| `ArrowLeft` | Previous image |
+| `ArrowRight` | Next image |
+| `Home` | First image |
+| `End` | Last image |
+
+- Keyboard listener attached on mount, removed on unmount
+- Focus trapped within lightbox (no tabbing to background content)
+- `aria-modal="true"`, `role="dialog"`, `aria-label="Image gallery"`
+
+#### Touch/Swipe (Mobile)
+
+- Swipe left → next image
+- Swipe right → previous image
+- Swipe down → close lightbox
+- Minimum swipe distance: 50px (prevents accidental triggers)
+- Use `onTouchStart` / `onTouchEnd` with delta calculation (or a lightweight gesture lib if already available)
+
+#### Zoom Interaction
+
+- **Double-tap / double-click** toggles between fit-to-screen and 2× zoom
+- When zoomed: pan by dragging (touch) or mouse move
+- Zoom state: `scale: 1` (fit) ↔ `scale: 2` (zoomed)
+- Transition: `springDefault` — snappy zoom feel
+- When zoomed in, navigation arrows are hidden (panning takes priority)
+- Pinch-to-zoom on touch devices (if gesture support available)
+
+#### Responsive Behavior
+
+| Element | Desktop | Mobile |
+|---------|---------|--------|
+| Image max size | `max-h-[85vh] max-w-[90vw]` | Same (viewport-relative) |
+| Navigation arrows | Side-positioned, always visible | Hidden (swipe instead) |
+| Close button | Top-right | Top-right, slightly larger (`h-11 w-11`) for touch targets |
+| Counter | Bottom center | Bottom center |
+| Zoom | Double-click + scroll wheel | Double-tap + pinch |
+
+---
+
+### Create/Edit Owned Copy Form (Enhanced)
+
+The add/edit owned copy uses an enhanced **dialog** that elevates the basic form with color-coded condition selection, currency-prefixed inputs, and a modern multi-image upload zone.
+
+#### Dialog Container
+
+- `DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto"`
+- **Add mode header:**
+  - Title: "Add Owned Copy" (translated)
+  - Description: "Record a new copy of this item in your collection" (translated)
+- **Edit mode header:**
+  - Title: "Edit Owned Copy" (translated)
+  - Description: "Update the details of this copy" (translated)
+
+#### Error Banner
+
+- Placement: top of form, below dialog description
+- Style: `rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive border border-destructive/20`
+- Icon: `AlertCircle` (h-4 w-4) inline with text
+- Shows API error message or validation error
+
+#### Form Layout
+
+`form className="space-y-4"`
+
+**1. Condition Select (Full Width) — With Color Indicators**
+
+Enhanced over the basic native select: uses a custom select component (or styled native select) with color dots indicating condition tier.
+
+- **Container:** full width
+- **Label:** "Condition" — `text-sm font-medium`
+- **Select styling:** `h-10 w-full rounded-md border border-input bg-transparent px-3 text-sm`
+- **Options with color indicators:**
+
+```
+  ● Mint              (green dot — success)
+  ● Near Mint         (green dot — success)
+  ● Excellent         (neutral dot — foreground)
+  ● Good              (neutral dot — foreground)
+  ● Fair              (amber dot — warning)
+  ● Poor              (amber dot — warning)
+```
+
+- Color dot: `h-2 w-2 rounded-full inline-block mr-2` with the semantic color
+- **Implementation note:** If using a native `<select>`, color dots aren't possible — fall back to text-only. If using a custom `Select` component (Radix-based), each `SelectItem` can include the dot as a prefix element.
+- **Default value:** "Mint" for new copies (optimistic default for collectors)
+
+**2. Financial Fields — Purchase Price + Estimated Value (2-Column Grid)**
+
+`grid gap-4 sm:grid-cols-2`
+
+Each field:
+- **Label:** "Purchase Price" / "Estimated Value" — `text-sm font-medium`
+- **Input container:** `relative` wrapper for currency prefix
+- **Currency prefix:** `absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground pointer-events-none` — shows `$` (or user's preferred currency symbol)
+- **Input:** `type="number" step="0.01" min="0"` with `pl-7` (padding-left to accommodate currency prefix)
+- Placeholder: `"0.00"` in muted color
+- **Styling:** Standard input: `h-10 w-full rounded-md border border-input bg-transparent px-3 text-sm`
+- **Tabular nums:** `font-variant-numeric: tabular-nums` on the input for aligned decimal entry
+
+**3. Date + Source (2-Column Grid)**
+
+`grid gap-4 sm:grid-cols-2`
+
+- **Acquisition Date:**
+  - Label: "Acquisition Date" — `text-sm font-medium`
+  - Input: `type="date"` — native date picker
+  - `h-10 w-full rounded-md border border-input bg-transparent px-3 text-sm`
+  - Default: empty (not required)
+
+- **Acquisition Source:**
+  - Label: "Source" — `text-sm font-medium`
+  - Input: `type="text"`
+  - Placeholder: `"eBay, Local store, Gift..."` (translated)
+  - `h-10 w-full rounded-md border border-input bg-transparent px-3 text-sm`
+
+**4. Notes (Full Width)**
+
+- **Label:** "Notes" — `text-sm font-medium`
+- **Input:** `<Textarea>` component (not single-line text input)
+  - `min-h-[80px] resize-y` — allows vertical resize, minimum 2-3 lines
+  - Placeholder: `"Condition details, packaging, provenance..."` (translated)
+  - `w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm`
+- **Rationale:** Upgrading from text input to textarea — collectors often write detailed condition notes, packaging descriptions, or provenance information
+
+**5. Image Upload Zone (Full Width — Enhanced)**
+
+This is the most significant upgrade from the current bare `<input type="file">`.
+
+**Upload zone container:**
+- `rounded-lg border-2 border-dashed border-border bg-muted/30 p-6 text-center`
+- `hover:border-accent/50 hover:bg-accent/5 transition-colors duration-150` — amber tint on hover
+- `cursor-pointer` — entire zone is clickable
+
+**Drag-and-drop states:**
+- **Default:** Dashed border, upload icon, instructional text
+- **Drag over (file hovering):** `border-accent bg-accent/10 border-solid` — solid amber border, stronger amber tint. `scale(1.01)` subtle scale via CSS transition.
+- **Uploading:** Pulsing border animation (uses skeleton-pulse keyframe on border-color)
+
+**Upload zone content (when no images selected):**
+- `Upload` icon (lucide): `h-8 w-8 text-muted-foreground mx-auto mb-2`
+- Primary text: `text-sm font-medium text-foreground` — "Drop images here or click to browse"
+- Secondary text: `text-xs text-muted-foreground mt-1` — "PNG, JPG up to 5MB each"
+- Hidden `<input type="file" accept="image/*" multiple>` triggered by zone click
+
+**Image preview grid (when images are selected/exist):**
+
+Below the upload zone, existing and newly selected images appear in a preview grid.
+
+- **Layout:** `grid grid-cols-4 sm:grid-cols-5 gap-2 mt-3`
+- **Each preview item:** `relative group/preview aspect-square`
+  - Image: `h-full w-full rounded-md object-cover border border-border`
+  - **Remove button:** `absolute -top-1.5 -right-1.5 h-5 w-5 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center opacity-0 group-hover/preview:opacity-100 transition-opacity`
+    - Icon: `X` (h-3 w-3)
+    - Always visible on touch: `sm:opacity-0 sm:group-hover/preview:opacity-100`
+  - **New image indicator:** For newly added (not yet uploaded) images, show a subtle `ring-2 ring-accent` border to differentiate from existing images
+  - **Existing image indicator:** No special ring — they're already part of the copy
+
+**Image reorder (drag-and-drop):**
+- Uses `@dnd-kit` `SortableContext` with `rectSortingStrategy`
+- Each preview item wrapped in `useSortable` hook
+- **Drag handle:** Entire image is draggable (small targets are hard on mobile)
+- **Drag feedback:** Uses established drag-and-drop feedback from design-motion.md — `scale: 1.03`, `shadow-lg`, `rotate: 1deg`
+- **Placeholder:** Dashed border rect matching preview item size
+- **Reorder saves order:** Image order in the array determines display order
+
+**File validation:**
+- Max file size: 5MB per image (validated client-side, show toast error if exceeded)
+- Accepted types: `image/jpeg`, `image/png`, `image/webp`
+- Max images per copy: 10 (show disabled upload zone with message when reached)
+- Validation error: `text-xs text-destructive mt-1` below the upload zone
+
+#### Dialog Actions
+
+- **Container:** `flex justify-end gap-2 pt-4 border-t border-border mt-2` — separated from form by divider
+- **Cancel:** `Button variant="outline"` — "Cancel" (translated), closes dialog, resets form
+- **Save:** `Button` with accent styling — "Add Copy" (add mode) or "Save Changes" (edit mode)
+  - Loading state: `disabled`, `Loader2 animate-spin h-4 w-4 mr-2` spinner prefix
+  - Text changes to "Adding..." / "Saving..." during submission
+
+#### Form Behavior
+
+- **Add mode:** All fields empty, condition defaults to "Mint"
+- **Edit mode:** Fields pre-populated from existing copy data. Existing images shown in preview grid. New images can be added alongside existing ones.
+- **Submit flow:**
+  1. Validate required fields (condition is the only required field)
+  2. POST/PUT the copy entity (JSON body)
+  3. Upload new images sequentially to `/api/items/{itemId}/copies/{copyId}/images`
+  4. Show progress: "Uploading images... (2/5)" in a toast or inline indicator
+  5. On complete: close dialog, refresh copy list, show success toast
+- **Image deletion in edit mode:** Clicking remove on an existing image shows a mini confirmation (tooltip or small popover: "Remove this image?" with Yes/No) — prevents accidental removal. New (unsaved) images remove instantly without confirmation.
+
+---
+
+### Delete Confirmation (Owned Copies)
+
+Specific delete confirmation dialog for owned copies.
+
+#### Dialog Design
+
+- `DialogContent className="sm:max-w-md"`
+- **Title:** "Delete Owned Copy" (translated)
+- **Description:** `text-sm text-muted-foreground`
+  - Content: "Are you sure you want to delete this [Condition] copy? This action cannot be undone." — condition is dynamically inserted and styled with the appropriate badge variant inline
+  - If copy has images: additional line: "All [N] associated images will also be deleted."
+- **Visual emphasis:** The condition badge is rendered inline in the description to help the user confirm they're deleting the right copy (important when multiple copies exist)
+
+#### Dialog Actions
+
+- `flex justify-end gap-2 pt-2`
+- **Cancel:** `Button variant="outline"` — "Cancel"
+- **Delete:** `Button variant="destructive"` — "Delete Copy"
+  - Loading state: `disabled`, spinner, text changes to "Deleting..."
+  - Uses `--destructive` background, `--destructive-foreground` text
+
+#### Behavior
+
+- Triggered by the delete button on a copy card
+- On success: dialog closes, copy list refreshes, success toast: "Copy deleted"
+- On error: dialog stays open, error banner appears in dialog
+- Focus returns to the copy section after deletion (not the deleted card, which no longer exists)
+
+---
+
+### Inline Editing Pattern
+
+For frequently adjusted fields, inline editing allows quick updates without opening the full edit dialog. This reduces friction when a collector is doing a valuation pass across multiple copies.
+
+#### Editable Fields
+
+Only two fields support inline editing — the most commonly updated values:
+
+| Field | Trigger | Rationale |
+|-------|---------|-----------|
+| **Condition** | Click on condition badge | Condition changes as items age or are regraded |
+| **Purchase Price** | Click on price value | Price corrections, currency adjustments |
+
+Other fields (estimated value, date, source, notes, images) require the full edit dialog — they're less frequently changed and benefit from the full form context.
+
+#### Inline Edit Trigger
+
+- **Visual affordance:** Editable values show `cursor-pointer` and a subtle `hover:bg-accent/5 rounded px-1 -mx-1 transition-colors` highlight on hover — signals clickability without cluttering the default view
+- **Click:** Transforms the display value into an inline editor
+- **Keyboard:** `Enter` or `Space` on a focused editable value activates inline edit mode
+
+#### Condition Inline Editor
+
+When the condition badge is clicked:
+
+- **Badge transforms** into a compact dropdown positioned below/beside the badge
+- **Dropdown:** Uses `DropdownMenu` component from Radix
+- **Menu items:** Each condition option with color dot prefix (matching the select in the create/edit form)
+  - `DropdownMenuItem className="gap-2"`
+  - Color dot: `h-2 w-2 rounded-full` with semantic color
+  - Label: condition name
+  - Check icon on currently selected condition: `Check` (h-4 w-4) on the right
+- **Selection:** Click on a condition option immediately saves via API (`PUT /api/items/{itemId}/copies/{copyId}`)
+- **Loading:** Badge shows a subtle pulse animation while saving
+- **Success:** Badge updates to new condition with new color. No toast (inline feedback is sufficient).
+- **Error:** Badge reverts to previous condition, toast error: "Failed to update condition"
+- **Dismiss:** Click outside or `Escape` closes without saving
+
+#### Price Inline Editor
+
+When the price value is clicked:
+
+- **Value transforms** into a compact inline input
+- **Input:** `h-7 w-24` — small, fitting within the card layout
+  - `type="number" step="0.01" min="0"`
+  - `text-sm font-semibold font-variant-numeric: tabular-nums`
+  - `border border-input rounded px-2 bg-transparent`
+  - Pre-populated with current value, text selected for easy replacement
+  - Currency prefix `$` shown inline (same as dialog pattern)
+- **Auto-focus:** Input receives focus immediately on render
+- **Save triggers:**
+  - `Enter` key: saves and exits inline edit
+  - `blur` (click outside): saves and exits inline edit
+  - `Tab`: saves, exits, and moves focus to next focusable element
+- **Cancel:** `Escape` key reverts to original value and exits inline edit
+- **Loading:** Input border pulses while saving
+- **Success:** Value updates inline. No toast.
+- **Error:** Value reverts, toast error displayed
+- **Validation:** Must be ≥ 0 or empty (null). Non-numeric input rejected by `type="number"`.
+
+#### Inline Edit Animation
+
+- **Enter:** Display value crossfades to editor — `opacity: 1 → 0` on display (50ms), then `opacity: 0 → 1` on editor (50ms). Uses `duration-instant` from motion tokens.
+- **Exit:** Reverse crossfade. Editor fades out, updated display value fades in.
+- Both animations use `ease-standard` curve.
+
+#### Accessibility
+
+- Inline editable values have `role="button"` and `aria-label="Edit [field name]"` when in display mode
+- When editor is active: proper `<input>` with `<label>` (visually hidden) and `aria-describedby` pointing to the field label
+- Screen reader announcement on save: `aria-live="polite"` region announces "Condition updated to [value]" or "Price updated to [value]"
+
+---
+
+### Responsive Summary
+
+| Element | Desktop (≥1024px) | Tablet (≥640px) | Mobile (<640px) |
+|---------|-------------------|-----------------|-----------------|
+| **Copy grid** | 2 columns | 2 columns | 1 column |
+| **Copy card padding** | `p-5` | `p-5` | `p-4` |
+| **Details grid** | 2 columns | 2 columns | 1 column |
+| **Action buttons** | Hover-reveal | Hover-reveal | Always visible |
+| **Thumbnails shown** | 4 + overflow | 4 + overflow | 3 + overflow |
+| **Lightbox arrows** | Side-positioned | Side-positioned | Hidden (swipe) |
+| **Lightbox close** | `h-10 w-10` | `h-10 w-10` | `h-11 w-11` (larger touch target) |
+| **Upload zone** | Full layout | Full layout | Compact (smaller icon, shorter text) |
+| **Preview grid** | 5 columns | 4 columns | 4 columns |
+| **Dialog width** | `sm:max-w-lg` | Full with padding | Full width |
+| **Inline editing** | Supported | Supported | Supported (tap instead of click) |
+
+---
+
+### Implementation Notes
+
+1. **Lightbox is a new component** — `ImageGalleryLightbox` in `components/ds/`. It takes `images: string[]`, `initialIndex: number`, `open: boolean`, `onClose: () => void`. Uses Framer Motion `AnimatePresence` for enter/exit. Portal-rendered via `createPortal` to escape any overflow containers.
+2. **Image upload zone is a new component** — `ImageUploadZone` in `components/ds/`. It encapsulates the drag-and-drop zone, file validation, preview grid, and reorder logic. Accepts `existingImages: string[]`, `newFiles: File[]`, `onFilesChange`, `onExistingRemove`, `onReorder`, `maxFiles`, `maxSizeMB`.
+3. **Inline editing uses optimistic updates** — the UI updates immediately on save, then rolls back if the API call fails. This makes the interaction feel instant. Use a `useMutation` pattern or simple state + fetch with rollback.
+4. **Image upload is sequential after copy save** — the current API pattern (POST copy, then POST each image separately) is maintained. Show progress feedback during multi-image upload.
+5. **Thumbnail overflow count** — calculate `const overflowCount = copy.images.length - maxThumbnails` where `maxThumbnails` is 4 (desktop) or 3 (mobile via `useMediaQuery`). Show `+{overflowCount}` on the last visible thumbnail.
+6. **Condition color mapping** should be a shared utility function — `getConditionVariant(condition: string): "success" | "primary" | "warning"` — used by both the copy card badge and the inline editor dropdown.
+7. **Focus management after lightbox close** — return focus to the thumbnail that opened the lightbox. Store the trigger element ref and call `.focus()` on close.
+8. **Image gallery keyboard trap** — when lightbox is open, `Tab` cycles between close button and navigation arrows only. Use `FocusTrap` component or manual `keydown` listener.
+9. **Drag-and-drop in upload preview** — `@dnd-kit` is already a project dependency (used for sortable lists). Reuse `SortableContext` + `useSortable` pattern from existing codebase.
+10. **Copy card test strategy** — copy cards should have `data-testid="owned-copy-card"` with `data-copy-id={copy.id}` for integration test targeting. Inline editors should have `data-testid="inline-edit-{field}"`. Lightbox should have `data-testid="image-lightbox"`.
+11. **i18n keys needed:** `ownedCopy.addTitle`, `ownedCopy.addDescription`, `ownedCopy.editTitle`, `ownedCopy.editDescription`, `ownedCopy.deleteTitle`, `ownedCopy.deleteConfirmation`, `ownedCopy.deleteImagesWarning`, `ownedCopy.uploadPrompt`, `ownedCopy.uploadHint`, `ownedCopy.imageCounter`, `ownedCopy.removeImageConfirm`, `ownedCopy.inlineEditCondition`, `ownedCopy.inlineEditPrice`, `ownedCopy.uploadProgress`.
