@@ -170,7 +170,7 @@
         "Document appended to tasks/design-pages.md under 'Collections List' section"
       ],
       "priority": 8,
-      "passes": false,
+      "passes": true,
       "notes": "Grid view is the primary view. Make it visually impressive — this is the page users see most."
     },
     {

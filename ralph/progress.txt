@@ -34,6 +34,10 @@
 - Chart fills must use `hsl(var(--chart-N))` syntax, never hardcoded hex — automatic dark mode support
 - Collection cards with onClick on divs need `tabIndex={0}` + `role="link"` + `onKeyDown` for keyboard access
 - design-pages.md is the central file for all page-level designs — append new page sections to it
+- Grid cards on collections page use `--radius-xl` (16px) for gallery feel — other pages use `--radius-lg` (12px)
+- Gradient fallback rotation: `index % 4` for visual variety when cover images are missing
+- Continuous hover effects (image zoom) should use CSS transitions, NOT Framer Motion — smoother for mouse-tracking states
+- List view tables with image-heavy data should include small thumbnails (40×40px) in the primary column
 
 ---
 
@@ -159,4 +163,25 @@
   - Empty state should use `Sparkles` icon (inviting) not `Lock` icon (restrictive) — tone matters for onboarding
   - Max 6 collection cards on dashboard, max 8 recent acquisition rows — keeps page scannable
   - Section spacing is consistently `--space-8` (32px) desktop, `--space-6` (24px) mobile — use this as pattern for all pages
+---
+
+## 2026-03-21 - US-008
+- Designed collections list page with full visual specification for grid view, list view, toolbar, dialogs, and responsive behavior
+- Appended "Collections List" section to `tasks/design-pages.md`
+- Sections: Design Philosophy, Grid View Card Design (container/image/overlay/badge/hover/press/actions/drag), List View Design (table/columns/states), Toolbar Design (search/filters/sort/view toggle/create), Create/Edit Dialog (form/dropzone/preview/error/buttons), Delete Confirmation, Empty State, Drag-to-Reorder, No Results State, Loading Skeleton, Responsive Summary, Implementation Notes
+- Grid cards use 4:3 cinematic ratio with cover images as full-bleed backgrounds and gradient metadata overlay
+- Added collection type badge (new element) for at-a-glance type identification in grid
+- Hover state: -4px lift, shadow-lg, amber border glow, subtle image zoom
+- Action buttons: frosted glass circles, hover-reveal with mobile always-visible override
+- List view adds 40×40px thumbnail in name column (new enhancement)
+- Drag-to-reorder visual: ring-2 ring-accent, shadow-xl, scale 1.02
+- Create/edit dialog: cover image dropzone with live preview thumbnail (new)
+- **Learnings for future iterations:**
+  - Grid cards use `--radius-xl` (16px) not `--radius-lg` (12px) — collections page cards are intentionally larger radius for gallery feel
+  - Gradient fallback rotation: `index % 4` cycles through 4 warm gradients from chart palette — prevents monotony when covers are missing
+  - Collection type badge is always visible (not hover-dependent) — unlike action buttons which reveal on hover
+  - Cover image zoom on hover should use CSS `transition: transform 400ms`, NOT Framer Motion — CSS handles continuous hover states more smoothly
+  - List view thumbnail (40×40px) in name column is a new pattern — adds visual context not present in the current text-only DataTable
+  - Drag handle and collection type badge share the top-left corner — when drag handle is present (custom sort), badge shifts to `left-12`
+  - Card lift on hover is -4px (stronger than dashboard's -2px) — this is the hero page, cards should feel more responsive
 ---
