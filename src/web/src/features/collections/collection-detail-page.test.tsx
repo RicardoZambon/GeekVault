@@ -211,7 +211,7 @@ describe("CollectionDetail", () => {
     // The sets tab text is "sets.title (0)"
     const setsTab = screen.getByText(/sets\.title/)
     fireEvent.click(setsTab)
-    expect(screen.getByText("sets.empty")).toBeInTheDocument()
+    expect(screen.getByText("sets.emptyTitle")).toBeInTheDocument()
   })
 
   it("opens export dialog", async () => {
@@ -877,10 +877,13 @@ describe("CollectionDetail", () => {
       expect(screen.getByText("Uncatalogued Item")).toBeInTheDocument()
     })
 
-    // The set item linked to catalog item 1 should have a "view item" link
+    // The set item linked to catalog item 1 should be a clickable button (navigable)
     await waitFor(() => {
-      expect(screen.getByText("sets.viewItem")).toBeInTheDocument()
+      const spiderManButton = screen.getByRole("button", { name: "Spider-Man #1" })
+      expect(spiderManButton).toBeInTheDocument()
     })
+    // Uncatalogued items should not be clickable buttons
+    expect(screen.queryByRole("button", { name: "Uncatalogued Item" })).not.toBeInTheDocument()
   })
 
   it("navigates to item from set item view link", async () => {
@@ -919,8 +922,8 @@ describe("CollectionDetail", () => {
     await waitFor(() => screen.getByText("Series A"))
     fireEvent.click(screen.getByText("Series A"))
 
-    await waitFor(() => screen.getByText("sets.viewItem"))
-    fireEvent.click(screen.getByText("sets.viewItem"))
+    await waitFor(() => screen.getByRole("button", { name: "Spider-Man #1" }))
+    fireEvent.click(screen.getByRole("button", { name: "Spider-Man #1" }))
     expect(mockNavigate).toHaveBeenCalledWith("/collections/1/items/1")
   })
 
@@ -1719,11 +1722,11 @@ describe("CollectionDetail", () => {
     fireEvent.click(screen.getByText("Series A"))
     await waitFor(() => screen.getByText("Item B"))
 
-    // Find the delete button for "Item B" set item
+    // Find the delete button for "Item B" set item — it's the last button in the li
     const allLis = document.querySelectorAll("li")
     const itemBLi = Array.from(allLis).find((li) => li.textContent?.includes("Item B"))
-    // The trash button is inside the li
-    const trashBtn = itemBLi?.querySelector("button")
+    const buttons = itemBLi?.querySelectorAll("button")
+    const trashBtn = buttons?.[buttons.length - 1]
     fireEvent.click(trashBtn!)
 
     await waitFor(() => screen.getByText("sets.removeItemTitle"))
@@ -2098,7 +2101,7 @@ describe("CollectionDetail", () => {
 
   // --- US-018: Sets tab and Stats tab redesign ---
 
-  it("applies completion color thresholds: muted for <50%, accent for 50-99%, success for 100%", async () => {
+  it("renders set cards with SetProgressRing for each completion tier", async () => {
     const setsData = [
       { id: 10, collectionId: 1, name: "Low Set", expectedItemCount: 10, completedCount: 2, completionPercentage: 20 },
       { id: 11, collectionId: 1, name: "Mid Set", expectedItemCount: 10, completedCount: 7, completionPercentage: 70 },
@@ -2117,18 +2120,16 @@ describe("CollectionDetail", () => {
     fireEvent.click(screen.getByText(/sets\.title/))
     await waitFor(() => screen.getByText("Low Set"))
 
-    // Check progress bar colors via the bar elements
-    const progressBars = document.querySelectorAll(".rounded-full.transition-all")
-    const barClasses = Array.from(progressBars).map((el) => el.className)
-    // Low (<50%) should have muted color
-    expect(barClasses.some((c) => c.includes("bg-muted-foreground"))).toBe(true)
-    // Mid (50-99%) should have accent
-    expect(barClasses.some((c) => c.includes("bg-accent"))).toBe(true)
-    // Full (100%) should have green
-    expect(barClasses.some((c) => c.includes("bg-green-500"))).toBe(true)
+    // Each set card should render a progress ring (SVG with role="img")
+    const rings = document.querySelectorAll("svg[role='img']")
+    expect(rings.length).toBeGreaterThanOrEqual(3)
+    // Verify all three sets are rendered
+    expect(screen.getByText("Low Set")).toBeInTheDocument()
+    expect(screen.getByText("Mid Set")).toBeInTheDocument()
+    expect(screen.getByText("Full Set")).toBeInTheDocument()
   })
 
-  it("shows trophy icon for 100% complete sets", async () => {
+  it("renders progress ring with 100% for complete sets", async () => {
     const setsData = [
       { id: 12, collectionId: 1, name: "Full Set", expectedItemCount: 5, completedCount: 5, completionPercentage: 100 },
     ]
@@ -2144,9 +2145,9 @@ describe("CollectionDetail", () => {
     await waitFor(() => screen.getByText("Comics"))
     fireEvent.click(screen.getByText(/sets\.title/))
     await waitFor(() => screen.getByText("Full Set"))
-    // Trophy icon should be rendered (lucide renders as svg)
-    const trophySvg = document.querySelector(".text-green-500")
-    expect(trophySvg).toBeInTheDocument()
+    // Progress ring should show 100% complete
+    const ring = document.querySelector("svg[role='img'][aria-label='100% complete']")
+    expect(ring).toBeInTheDocument()
   })
 
   it("shows all-owned celebration message and owned/missing visual distinction in set items", async () => {

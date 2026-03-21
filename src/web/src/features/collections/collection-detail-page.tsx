@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, type FormEvent } from "react"
 import { useParams, useNavigate, useSearchParams } from "react-router-dom"
 import { useTranslation } from "react-i18next"
 import { motion, AnimatePresence } from "framer-motion"
-import { Plus, ArrowLeft, Image, Package, Check, Trash2, Pencil, Search, SearchX, CheckCircle2, Circle, ArrowUp, ArrowDown, Download, Upload, LayoutGrid, List, ChevronDown, GripVertical, MoreVertical, DollarSign, Target, Heart, Trophy, BarChart3 } from "lucide-react"
+import { Plus, ArrowLeft, Image, Package, Check, Trash2, Pencil, Search, SearchX, CheckCircle2, CircleDashed, ArrowUp, ArrowDown, Download, Upload, LayoutGrid, List, ChevronDown, GripVertical, MoreVertical, DollarSign, Target, Heart, HeartOff, Trophy, BarChart3, Layers } from "lucide-react"
 import {
   BarChart,
   Bar,
@@ -38,6 +38,7 @@ import {
   DropdownMenuItem,
   durations,
   easings,
+  SetProgressRing,
 } from "@/components/ds"
 import type { DataTableColumn } from "@/components/ds"
 import { useAuth } from "@/components/auth-provider"
@@ -144,17 +145,6 @@ const WARM_GRADIENTS = [
 
 const CHART_COLORS = Array.from({ length: 8 }, (_, i) => `var(--chart-${i + 1})`)
 
-function getCompletionColor(pct: number): string {
-  if (pct >= 100) return "bg-green-500"
-  if (pct >= 50) return "bg-accent"
-  return "bg-muted-foreground/40"
-}
-
-function getCompletionTextColor(pct: number): string {
-  if (pct >= 100) return "text-green-500"
-  if (pct >= 50) return "text-accent"
-  return "text-muted-foreground"
-}
 
 interface ChartTooltipProps {
   active?: boolean
@@ -1344,10 +1334,10 @@ export default function CollectionDetail() {
 
           {sets.length === 0 ? (
             <EmptyState
-              icon={<Package />}
-              title={t("sets.empty")}
+              icon={<Layers />}
+              title={t("sets.emptyTitle")}
               description={t("sets.emptyDescription")}
-              actionLabel={t("sets.create")}
+              actionLabel={t("sets.createSet")}
               onAction={openCreateSet}
             />
           ) : (
@@ -1356,55 +1346,27 @@ export default function CollectionDetail() {
                 const pct = s.completionPercentage ?? 0
                 const isExpanded = expandedSets.has(s.id)
                 const detail = setDetails[s.id]
-                const completionBarColor = getCompletionColor(pct)
-                const completionText = getCompletionTextColor(pct)
                 return (
-                  <Card key={s.id} className="overflow-hidden">
+                  <Card key={s.id} data-testid="set-card" data-set-id={s.id} className="overflow-hidden">
                     {/* Accordion header */}
                     <button
-                      className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-muted/30"
+                      className="group flex w-full items-center gap-3 p-3 text-left transition-colors hover:bg-muted/30 sm:p-4"
                       onClick={() => toggleSetExpanded(s.id)}
                     >
                       <motion.div
                         animate={{ rotate: isExpanded ? 0 : -90 }}
-                        transition={{ duration: 0.2 }}
+                        transition={{ duration: durations.fast }}
                         className="shrink-0"
                       >
                         <ChevronDown className="h-4 w-4 text-muted-foreground" />
                       </motion.div>
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2">
-                          <h3 className="truncate text-sm font-semibold">{s.name}</h3>
-                          <span className="shrink-0 text-xs text-muted-foreground tabular-nums">
-                            {s.completedCount ?? 0}/{s.expectedItemCount} {t("sets.items")}
-                          </span>
-                        </div>
-                        {/* Progress bar */}
-                        <div className="mt-1.5 flex items-center gap-2">
-                          <div className="h-2 flex-1 overflow-hidden rounded-full bg-primary/10">
-                            <div
-                              className={`h-full rounded-full transition-all duration-500 ${completionBarColor}`}
-                              style={{ width: `${Math.min(pct, 100)}%` }}
-                            />
-                          </div>
-                          <span className={`shrink-0 text-xs font-medium tabular-nums ${completionText}`}>
-                            {pct.toFixed(0)}%
-                          </span>
-                        </div>
-                      </div>
-                      {/* Completion trophy for 100% */}
-                      {pct >= 100 && (
-                        <Trophy className="h-4 w-4 shrink-0 text-green-500" />
-                      )}
-                      {/* Action buttons */}
-                      <div className="flex shrink-0 items-center gap-1">
-                        <button
-                          className="rounded p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-                          onClick={(e) => { e.stopPropagation(); openAddItemsForSet(s) }}
-                          title={t("sets.addItems")}
-                        >
-                          <Plus className="h-3.5 w-3.5" />
-                        </button>
+                      <span className="min-w-0 flex-1 truncate text-sm font-medium text-foreground">{s.name}</span>
+                      <span className="shrink-0 text-xs font-medium text-muted-foreground tabular-nums">
+                        {s.completedCount ?? 0}/{s.expectedItemCount} {t("sets.items")}
+                      </span>
+                      <SetProgressRing percentage={pct} size="sm" data-testid="progress-ring" data-percentage={pct} />
+                      {/* Action buttons — hover-reveal on desktop, always visible on mobile */}
+                      <div className="flex shrink-0 items-center gap-1 transition-opacity sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100">
                         <button
                           className="rounded p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
                           onClick={(e) => { e.stopPropagation(); openEditSet(s) }}
@@ -1430,15 +1392,18 @@ export default function CollectionDetail() {
                           initial={{ height: 0, opacity: 0 }}
                           animate={{ height: "auto", opacity: 1 }}
                           exit={{ height: 0, opacity: 0 }}
-                          transition={{ duration: 0.2, ease: "easeInOut" }}
+                          transition={{
+                            height: { duration: 0.25, ease: [0, 0, 0.2, 1] },
+                            opacity: { duration: 0.15, delay: 0.05 },
+                          }}
                           className="overflow-hidden"
                         >
-                          <CardContent className="border-t pt-3 pb-4">
+                          <div className="border-t border-border pt-3 pb-4 pl-7 pr-4">
                             {!detail ? (
                               /* Loading skeleton */
                               <div className="space-y-2">
                                 {Array.from({ length: 3 }).map((_, i) => (
-                                  <div key={i} className="flex items-center gap-2 px-2 py-1.5">
+                                  <div key={i} className="flex items-center gap-2.5 px-2 py-1.5">
                                     <SkeletonRect width={16} height={16} className="rounded-full" />
                                     <SkeletonRect width={`${60 + i * 10}%`} height={14} />
                                   </div>
@@ -1448,7 +1413,7 @@ export default function CollectionDetail() {
                               <>
                                 {/* All owned celebration */}
                                 {pct >= 100 && (
-                                  <div className="mb-3 flex items-center gap-2 rounded-lg bg-green-500/10 px-3 py-2 text-sm text-green-600 dark:text-green-400">
+                                  <div className="mb-3 flex items-center gap-2 rounded-lg bg-success/10 px-3 py-2 text-sm text-success">
                                     <Trophy className="h-4 w-4 shrink-0" />
                                     {t("sets.allOwned")}
                                   </div>
@@ -1461,33 +1426,48 @@ export default function CollectionDetail() {
                                       return (
                                         <li
                                           key={si.id}
-                                          className={`group flex items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors hover:bg-muted/50 ${
+                                          className={`group/item flex items-center gap-2.5 rounded-md px-2 py-1.5 transition-colors hover:bg-muted/50 ${
                                             owned
-                                              ? "border border-solid border-green-500/20 bg-green-500/5"
+                                              ? "border border-solid border-success/20 bg-success/5"
                                               : "border border-dashed border-border bg-card/50"
                                           }`}
+                                          style={{ minHeight: 36 }}
                                         >
                                           {owned ? (
-                                            <CheckCircle2 className="h-4 w-4 shrink-0 text-green-500" />
+                                            <CheckCircle2 className="h-4 w-4 shrink-0 fill-success/20 text-success" />
                                           ) : (
-                                            <Circle className="h-4 w-4 shrink-0 text-muted-foreground/30" />
+                                            <CircleDashed className="h-4 w-4 shrink-0 text-muted-foreground/40" />
                                           )}
-                                          <span className={`truncate ${owned ? "text-foreground font-medium" : "text-muted-foreground"}`}>
-                                            {si.name}
-                                          </span>
-                                          <div className="ml-auto flex shrink-0 items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+                                          {si.catalogItemId ? (
+                                            <button
+                                              className={`min-w-0 flex-1 truncate text-left text-sm hover:text-accent hover:underline ${owned ? "font-medium text-foreground" : "text-muted-foreground"}`}
+                                              onClick={() => navigate(`/collections/${id}/items/${si.catalogItemId}`)}
+                                            >
+                                              {si.name}
+                                            </button>
+                                          ) : (
+                                            <span className={`min-w-0 flex-1 truncate text-sm ${owned ? "font-medium text-foreground" : "text-muted-foreground"}`}>
+                                              {si.name}
+                                            </span>
+                                          )}
+                                          <div className="ml-auto flex shrink-0 items-center gap-1 sm:opacity-0 sm:transition-opacity sm:group-hover/item:opacity-100 sm:group-focus-within/item:opacity-100">
                                             {/* Add to wishlist for missing items */}
                                             {!owned && (
                                               <button
-                                                className={`flex items-center gap-1 rounded px-2 py-0.5 text-xs transition-colors ${
+                                                className={`flex items-center gap-1 rounded px-2 py-0.5 text-xs font-medium transition-colors ${
                                                   wishlistAdded.has(si.id)
-                                                    ? "text-muted-foreground cursor-default"
-                                                    : "text-accent hover:bg-accent/10"
+                                                    ? "cursor-default text-muted-foreground"
+                                                    : "text-accent hover:text-accent/80"
                                                 }`}
-                                                onClick={() => handleAddToWishlist(si)}
+                                                onClick={(e) => { e.stopPropagation(); handleAddToWishlist(si) }}
                                                 disabled={wishlistAdding.has(si.id) || wishlistAdded.has(si.id)}
+                                                data-testid="wishlist-quick-add"
                                               >
-                                                <Heart className={`h-3 w-3 ${wishlistAdded.has(si.id) ? "fill-current" : ""}`} />
+                                                {wishlistAdded.has(si.id) ? (
+                                                  <HeartOff className="h-3 w-3" />
+                                                ) : (
+                                                  <Heart className="h-3 w-3" />
+                                                )}
                                                 {wishlistAdding.has(si.id)
                                                   ? t("sets.adding")
                                                   : wishlistAdded.has(si.id)
@@ -1495,18 +1475,10 @@ export default function CollectionDetail() {
                                                     : t("sets.addToWishlist")}
                                               </button>
                                             )}
-                                            {si.catalogItemId && (
-                                              <button
-                                                className="text-xs text-primary hover:underline"
-                                                onClick={() => navigate(`/collections/${id}/items/${si.catalogItemId}`)}
-                                              >
-                                                {t("sets.viewItem")}
-                                              </button>
-                                            )}
                                             <button
                                               className="rounded p-1 text-muted-foreground hover:text-destructive"
-                                              onClick={() => {
-                                                // Set selectedSet for the remove handler
+                                              onClick={(e) => {
+                                                e.stopPropagation()
                                                 setSelectedSet(detail)
                                                 confirmRemoveSetItem(si.id)
                                               }}
@@ -1518,13 +1490,34 @@ export default function CollectionDetail() {
                                       )
                                     })}
                                 </ul>
+                                {/* Add Items button */}
+                                <div className="mt-2 border-t border-border/50 pt-2">
+                                  <button
+                                    className="flex items-center gap-1.5 text-xs font-medium text-accent hover:text-accent/80"
+                                    onClick={() => openAddItemsForSet(s)}
+                                    title={t("sets.addItems")}
+                                  >
+                                    <Plus className="h-3.5 w-3.5" />
+                                    {t("sets.addItems")}
+                                  </button>
+                                </div>
                               </>
                             ) : (
-                              <p className="py-4 text-center text-sm text-muted-foreground">
-                                {t("sets.emptyItems")}
-                              </p>
+                              <div className="py-4 text-center">
+                                <p className="text-sm text-muted-foreground">
+                                  {t("sets.emptyItems")}
+                                </p>
+                                <button
+                                  className="mt-2 inline-flex items-center gap-1.5 text-xs font-medium text-accent hover:text-accent/80"
+                                  onClick={() => openAddItemsForSet(s)}
+                                  title={t("sets.addItems")}
+                                >
+                                  <Plus className="h-3.5 w-3.5" />
+                                  {t("sets.addItems")}
+                                </button>
+                              </div>
                             )}
-                          </CardContent>
+                          </div>
                         </motion.div>
                       )}
                     </AnimatePresence>

@@ -27,6 +27,9 @@
 - Full test suite may timeout in dev container — run individual test files to verify
 - Wishlist API: POST /api/collections/{collectionId}/wishlist with body { name, catalogItemId, priority (1-3), targetPrice, notes }
 - Collection detail page test file is too large to run in the dev container — typecheck (npx tsc -b) is the primary verification method
+- ImageGalleryLightbox: portal-rendered, takes images[], initialIndex, open, onClose — use createPortal(content, document.body)
+- SetProgressRing: takes percentage, size ("sm"|"lg"), showLabel — exports getCompletionTier() for reuse in set cards/pages
+- durations object from motion.tsx contains numbers in seconds (e.g., fast: 0.15), not strings — use directly with Framer Motion transition.duration
 
 ---
 
@@ -328,3 +331,100 @@
   - Framer Motion animate={{ rotate: ... }} on a wrapper div is cleaner than CSS transition-transform for chevron rotation (single source of truth)
   - Charts in IIFE: wrap chart computation + rendering in an immediately-invoked function expression to keep derived state local to the render
 ---
+---
+
+## 2026-03-21 - US-019
+- Added image hover zoom effect: scale-[1.03] with CSS transition-transform duration-[400ms] on item image
+- Added set membership indicator section between custom fields and owned copies
+- Fetches all sets for collection, then fetches each set's detail in parallel to find sets containing the current item
+- Set membership callout cards: Box icon (accent), "Part of: **Set Name**", completion count with color thresholds, ChevronRight, clickable to navigate to set
+- Keyboard accessible: tabIndex={0}, role="link", Enter/Space key navigation
+- Hover state: bg-muted + accent/30 border glow
+- Added getCompletionColor helper for set completion thresholds (<50% muted, 50-99% accent, 100% green)
+- Updated mockFetch in tests to handle /sets and /sets/:id endpoints
+- Added 5 new tests: image hover zoom classes, set membership rendering, no-sets state, set click navigation, set Enter key navigation
+- Added i18n keys: itemDetail.partOf, itemDetail.setItems (en + pt)
+- Files changed: `src/web/src/features/collections/catalog-item-detail-page.tsx`, `src/web/src/features/collections/catalog-item-detail-page.test.tsx`, `src/web/src/i18n/locales/en.json`, `src/web/src/i18n/locales/pt.json`
+- **Learnings for future iterations:**
+  - No dedicated API to get sets by catalog item — must fetch all sets for the collection, then each set's detail, and filter client-side
+  - Set list endpoint (GET /api/collections/{id}/sets) returns SetSummary without items; individual set endpoint returns SetDetail with items
+  - Catalog item detail page test file times out in dev container — typecheck (npx tsc -b) is the primary verification method
+  - CSS transition for image hover zoom (not Framer Motion) is the established pattern for simple hover effects
+---
+
+## 2026-03-21 - US-020
+- Updated copy card: hover:border-accent/20 transition-colors duration-150 for subtle amber border on hover
+- Changed action buttons visibility: sm:opacity-0 sm:group-hover:opacity-100 group-focus-within:opacity-100 — always visible on mobile, hover-reveal on desktop, visible on keyboard focus
+- Added tabular-nums class to purchase price and estimated value for aligned decimal columns
+- Redesigned thumbnail gallery: max 4 thumbnails visible with "+N" overflow badge on 4th position
+- Added keyboard accessibility to thumbnails: tabIndex={0}, role="button", aria-label, cursor-pointer
+- Enhanced delete copy confirmation: shows image count warning when copy has images ("This will also remove N image(s)")
+- Added i18n keys: ownedCopy.viewImage, ownedCopy.deleteConfirmWithImages (en + pt)
+- Updated t() mock in tests to handle count parameter in addition to name
+- Added 5 new tests: mobile action visibility, tabular-nums, thumbnail overflow badge, card hover border, delete with image count warning
+- Files changed: `src/web/src/features/collections/catalog-item-detail-page.tsx`, `src/web/src/features/collections/catalog-item-detail-page.test.tsx`, `src/web/src/i18n/locales/en.json`, `src/web/src/i18n/locales/pt.json`
+- **Learnings for future iterations:**
+  - Thumbnail overflow uses IIFE pattern `{(() => { ... })()}` for inline computed rendering in JSX
+  - sm:opacity-0 combined with group-focus-within:opacity-100 handles both mobile always-visible and keyboard accessibility
+  - tabular-nums is a Tailwind utility for font-variant-numeric: tabular-nums (Inter supports natively)
+  - t() mock needs to handle multiple interpolation param names (name, count, etc.) — update as new params are used
+---
+
+## 2026-03-21 - US-021
+- Created `src/web/src/components/ds/image-gallery-lightbox.tsx`: full-screen overlay using createPortal
+- Features: direction-aware slide transitions (AnimatePresence), keyboard navigation (Escape, Arrow keys, Home, End), focus trap, touch/swipe support (left/right navigate, down closes), double-click zoom toggle, dot indicators (≤8 images), image counter
+- Visual: bg-black/90 backdrop with blur(8px), frosted glass nav buttons (bg-white/10 hover:bg-white/20), rounded-lg images, max-h-[85vh] max-w-[90vw]
+- Responsive: navigation arrows hidden on mobile (swipe instead), close button always visible
+- Reduced motion: noop variants when prefers-reduced-motion is set
+- Entrance: backdrop fades 200ms, image scales from 0.9 with springs.gentle; slide transitions 200ms with easings.enter
+- Navigation arrows hidden at boundaries (no wrap-around), hidden when zoomed
+- Exported from components/ds/index.ts (ImageGalleryLightbox + ImageGalleryLightboxProps)
+- Created co-located test file: 20 tests covering open/close, keyboard navigation, arrow boundaries, backdrop click, dot navigation, counter visibility, ref forwarding
+- Added i18n keys: lightbox.ariaLabel, close, prev, next, imageAlt, goToImage (en + pt)
+- Files changed: `src/web/src/components/ds/image-gallery-lightbox.tsx`, `src/web/src/components/ds/image-gallery-lightbox.test.tsx`, `src/web/src/components/ds/index.ts`, `src/web/src/i18n/locales/en.json`, `src/web/src/i18n/locales/pt.json`
+- **Learnings for future iterations:**
+  - createPortal to document.body is needed for lightbox to escape overflow containers — no existing portal pattern in codebase, this is the first
+  - Framer Motion easings from motion.tsx need `as [number, number, number, number]` cast when spread into transition objects (TypeScript narrowing issue)
+  - Focus trap: query `button:not([disabled])` within `[data-testid]` container and cycle Tab between first/last
+  - Touch swipe: simple onTouchStart/onTouchEnd with 50px minimum delta — no gesture library needed
+  - AnimatePresence mode="wait" + direction state enables direction-aware slide transitions (key must change)
+---
+
+## 2026-03-21 - US-022
+- Created `src/web/src/components/ds/set-progress-ring.tsx`: SVG-based circular progress ring component
+- Two sizes: sm (36×36px) for card rows, lg (64×64px) for detail hero
+- SVG viewBox 36×36, circle r=15.5, stroke-width 3, rotated -90deg for 12 o'clock start
+- stroke-dasharray calculation: fill = (percentage/100) × circumference (≈97.39)
+- Three completion tiers: <50% muted-foreground, 50-99% accent, 100% success with drop-shadow glow
+- 100% completion: Framer Motion scale pulse [1, 1.15, 1] with spring (stiffness 400, damping 15)
+- CSS transition on stroke-dasharray (600ms cubic-bezier(0.2, 0, 0, 1)) for smooth fill animation
+- Reduced motion: skips CSS transition and Framer Motion pulse
+- Center label for lg size: percentage text or Check icon at 100%
+- Exported SetProgressRing + getCompletionTier from components/ds/index.ts
+- Created co-located test file: 24 tests covering sizes, tiers, glow, pulse, labels, clamping, a11y
+- Files changed: `src/web/src/components/ds/set-progress-ring.tsx`, `src/web/src/components/ds/set-progress-ring.test.tsx`, `src/web/src/components/ds/index.ts`
+- **Learnings for future iterations:**
+  - SetProgressRing exports getCompletionTier utility — reuse in set cards and set detail pages for consistent tier logic
+  - SVG viewBox="0 0 36 36" with r=15.5 gives circumference ≈ 97.39 — store as const for stroke-dasharray calculation
+  - Framer Motion mock for tests: destructure animate/transition out of props to avoid React DOM warnings
+  - lucide-react Check component can be placed inside SVG <g> elements with x/y/width/height positioning
+---
+
+## 2026-03-21 - US-023
+- Redesigned sets tab in collection detail page with SetProgressRing, improved accordion, and wishlist integration
+- Replaced progress bars with SetProgressRing component (sm size) in set card headers
+- Updated accordion: ChevronDown with Framer Motion rotation, hover-reveal action buttons (edit, delete) on desktop, always visible on mobile
+- Improved expanded item list: owned items with CheckCircle2 + green stripe (border-success/20), missing items with CircleDashed + dashed border
+- Item names are now clickable buttons when linked to catalog items (navigate to item detail)
+- Wishlist button: Heart icon for unadded, HeartOff icon for already-added items
+- Added "Add Items" button at bottom of expanded item list and in empty items state
+- Updated empty state: Layers icon, new i18n keys (sets.emptyTitle, sets.createSet)
+- Removed unused getCompletionColor/getCompletionTextColor helper functions (replaced by SetProgressRing tier logic)
+- Added data-testid attributes for testing: set-card, progress-ring, wishlist-quick-add
+- Updated 5 tests to match new markup: empty state key, progress ring assertions, item navigation via name button, trash button selection
+- Files changed: `src/web/src/features/collections/collection-detail-page.tsx`, `src/web/src/features/collections/collection-detail-page.test.tsx`, `src/web/src/i18n/locales/en.json`, `src/web/src/i18n/locales/pt.json`, `.claude/skills/ralph/prd.json`
+- **Learnings for future iterations:**
+  - durations object from motion.tsx already contains numbers (seconds), not strings — use directly, don't parseFloat
+  - When removing separate "View" action buttons, make item names clickable instead (button with navigate onClick)
+  - sm:opacity-0 sm:group-hover:opacity-100 pattern needs group/item nested naming for items within cards that are already groups
+  - Tests that find buttons in li elements need to account for new button order when wishlist buttons are added
