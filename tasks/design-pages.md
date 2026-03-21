@@ -3208,3 +3208,763 @@ Each select takes full width (`w-full`), the item count right-aligns below.
 10. **No-results state is different from empty state** — empty state (0 total items) uses `EmptyState` component with action. No-results state (filters active, 0 matches) uses a simpler centered text block with `Search` icon. The current implementation uses a plain text div for no-results — upgrade to include the icon.
 11. **Test strategy** — wishlist cards: `data-testid="wishlist-card"` with `data-item-id`. Priority badge: `data-testid="priority-badge"` with `data-priority="high|medium|low"`. Group headers: `data-testid="wishlist-group"` with `data-collection-id`. Filter selects: standard select test patterns. Empty state: `data-testid="wishlist-empty"`.
 12. **i18n keys needed:** `wishlist.title`, `wishlist.description`, `wishlist.add`, `wishlist.addTitle`, `wishlist.addDescription`, `wishlist.editTitle`, `wishlist.editDescription`, `wishlist.nameLabel`, `wishlist.namePlaceholder`, `wishlist.priorityLabel`, `wishlist.targetPriceLabel`, `wishlist.notesLabel`, `wishlist.notesPlaceholder`, `wishlist.collectionLabel`, `wishlist.selectCollection`, `wishlist.selectCollectionFirst`, `wishlist.linkCatalogItem`, `wishlist.searchCatalogPlaceholder`, `wishlist.linked`, `wishlist.unlink`, `wishlist.viewCatalogItem`, `wishlist.cancel`, `wishlist.save`, `wishlist.saving`, `wishlist.edit`, `wishlist.delete`, `wishlist.deleteTitle`, `wishlist.deleteConfirm`, `wishlist.deleting`, `wishlist.itemCount`, `wishlist.priorityAll`, `wishlist.priorityHigh`, `wishlist.priorityMedium`, `wishlist.priorityLow`, `wishlist.sortPriority`, `wishlist.sortPrice`, `wishlist.sortName`, `wishlist.sortDateAdded`, `wishlist.filterDateAll`, `wishlist.filterDate7d`, `wishlist.filterDate30d`, `wishlist.filterDate90d`, `wishlist.noResults`, `wishlist.noResultsHint`, `emptyStates.wishlist.title`, `emptyStates.wishlist.description`, `emptyStates.wishlist.action`.
+
+---
+
+## Collection Types
+
+### Design Philosophy
+
+Collection types are the **taxonomy backbone** of the vault — they define what kinds of collections exist and what custom fields each type carries. This page serves power users and organizers who want control over their data schema. The design treats it as a **settings-adjacent management page**: clean, efficient, and information-dense without being visually sparse. Think of it as the "workshop" where the collector sets up their display cases before filling them.
+
+**Key aesthetic decisions:**
+- **Card grid over table** — types are few in number (typically 5-15) and benefit from visual identity (icon + color indicator). A grid of compact cards feels more tangible than a table row.
+- **Two-tab dialog** reused from current implementation — "General" + "Custom Fields" tab structure works well for separating identity from schema definition.
+- **Icon as hero element** — each type card leads with its icon, making the grid scannable at a glance.
+- **Custom fields get visual type indicators** — field type badges (text, number, date, etc.) use color-coded pills for quick recognition.
+- **Usage count badge** — shows how many collections use each type, preventing accidental deletion of in-use types.
+
+---
+
+### Overall Page Layout
+
+```
+┌──────────────────────────────────────────────────────────────┐
+│  Page Header                                                  │
+│  "Collection Types" + description + [+ Create Type] button    │
+│  gap: --space-8 (32px)                                        │
+├──────────────────────────────────────────────────────────────┤
+│  Types Grid (responsive columns)                              │
+│  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐        │
+│  │  Icon     │ │  Icon     │ │  Icon     │ │  Icon     │        │
+│  │  Name     │ │  Name     │ │  Name     │ │  Name     │        │
+│  │  Desc     │ │  Desc     │ │  Desc     │ │  Desc     │        │
+│  │  Fields:3 │ │  Fields:5 │ │  Fields:2 │ │  Fields:0 │        │
+│  │  Used:12  │ │  Used:8   │ │  Used:3   │ │  Used:0   │        │
+│  │  [Edit][⋯]│ │  [Edit][⋯]│ │  [Edit][⋯]│ │  [Edit][⋯]│        │
+│  └──────────┘ └──────────┘ └──────────┘ └──────────┘        │
+└──────────────────────────────────────────────────────────────┘
+```
+
+- **Section spacing**: `--space-8` (32px) between header and grid
+- **Grid**: `grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4`
+- **Page header**: uses `PageHeader` component with title, description, and action button
+
+---
+
+### Type Card Design
+
+```
+┌─────────────────────────────────────────┐
+│                                         │
+│  ┌────────┐                             │
+│  │  Icon   │   Type Name                │  ← h4, font-semibold
+│  │  (40px) │   Short description...     │  ← text-sm, text-muted-foreground, line-clamp-2
+│  └────────┘                             │
+│                                         │
+│  ┌─────────┐ ┌─────────┐ ┌─────────┐   │  ← Custom field type badges
+│  │📝 text  │ │🔢 number│ │📅 date  │   │
+│  └─────────┘ └─────────┘ └─────────┘   │
+│                                         │
+│  5 custom fields  •  12 collections     │  ← text-xs, text-muted-foreground
+│                                         │
+│  ──────────────────────────────────     │  ← border-t border-border
+│  [Edit]                         [⋯]    │  ← Action row
+│                                         │
+└─────────────────────────────────────────┘
+```
+
+**Container:**
+- `bg-card rounded-lg border border-border p-5`
+- `hover:shadow-md hover:border-accent/30 transition-all duration-150`
+- No lift on hover (settings card, not a navigable destination)
+
+**Icon container:**
+- `w-10 h-10 rounded-lg bg-accent/10 flex items-center justify-center`
+- Icon: `h-5 w-5 text-accent`
+- The icon comes from the collection type's configured icon (Lucide icon name stored in DB)
+
+**Title + description:**
+- Title: `text-base font-semibold text-card-foreground`
+- Description: `text-sm text-muted-foreground line-clamp-2 mt-1`
+- If no description: hide the description line (don't show placeholder text)
+
+**Custom field badges:**
+- Container: `flex flex-wrap gap-1.5 mt-3`
+- Badge: `inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium`
+- Color coding by field type:
+  - `text`: `bg-info/10 text-info` (blue)
+  - `number`: `bg-accent/10 text-accent` (amber)
+  - `date`: `bg-success/10 text-success` (green)
+  - `enum`: `bg-chart-5/10 text-chart-5` (purple)
+  - `boolean`: `bg-muted text-muted-foreground` (neutral)
+  - `image_url`: `bg-chart-6/10 text-chart-6` (cyan)
+- Max 5 badges shown, then `+N more` overflow badge in `bg-muted text-muted-foreground`
+- If no custom fields: show `text-xs text-muted-foreground italic` "No custom fields"
+
+**Metadata row:**
+- `text-xs text-muted-foreground mt-3`
+- Format: `{N} custom fields  •  {M} collections`
+- Dot separator: `mx-1.5` inline span
+
+**Action row:**
+- `border-t border-border mt-4 pt-3 flex items-center justify-between`
+- Edit button: `Button variant="ghost" size="sm"` with `Pencil` icon + "Edit" label
+- More menu: `DropdownMenu` triggered by `Button variant="ghost" size="icon-sm"` with `MoreHorizontal` icon
+  - Menu items: "Duplicate", "Delete" (destructive styling)
+
+**Hover state:**
+- Card border shifts to `border-accent/30`
+- Subtle shadow appears (`shadow-md`)
+- No translate/lift — this is a management card, not a gallery item
+
+---
+
+### Create/Edit Dialog
+
+Reuses the current two-tab dialog structure, refined visually:
+
+**Dialog container:**
+- `DialogContent className="sm:max-w-xl"`
+- Title: "Create Collection Type" or "Edit Collection Type"
+- Description: "Define a type to categorize your collections." or "Update this collection type."
+
+**Tab structure:**
+- `Tabs defaultValue="general"` with two tabs: "General" and "Custom Fields"
+- Tab bar: standard `Tabs` component with `--space-4` gap below
+
+**General tab:**
+```
+┌─────────────────────────────────────┐
+│  Icon                               │
+│  ┌──────────────────────────────┐   │
+│  │ [Select an icon ▾]            │   │  ← Icon picker select (Lucide icon names)
+│  └──────────────────────────────┘   │
+│                                     │
+│  Name *                             │
+│  ┌──────────────────────────────┐   │
+│  │ e.g., Vinyl Records           │   │
+│  └──────────────────────────────┘   │
+│                                     │
+│  Description                        │
+│  ┌──────────────────────────────┐   │
+│  │ Describe this type...         │   │  ← Textarea, rows={3}, resize-y
+│  │                               │   │
+│  └──────────────────────────────┘   │
+└─────────────────────────────────────┘
+```
+
+- Icon select: dropdown with icon preview thumbnails in a grid layout within the popover (4 columns of icons)
+- Name input: required, standard `Input` with placeholder
+- Description: `Textarea` with `rows={3}` and `resize-y` — upgrade from current implementation which may use Input
+
+**Custom Fields tab:**
+```
+┌─────────────────────────────────────┐
+│  Custom Fields                      │
+│  Define fields for items in this    │
+│  type. Max 10 fields.               │
+│                                     │
+│  ┌─ ☰ ─────────────────────────┐   │  ← Drag handle + field row
+│  │  Name: [Release Year    ]    │   │
+│  │  Type: [number ▾]            │   │
+│  │                      [🗑]    │   │
+│  └──────────────────────────────┘   │
+│  ┌─ ☰ ─────────────────────────┐   │
+│  │  Name: [Genre           ]    │   │
+│  │  Type: [enum ▾]              │   │
+│  │  Options: [Rock][Jazz][+]    │   │  ← Tag editor for enum options
+│  │                      [🗑]    │   │
+│  └──────────────────────────────┘   │
+│                                     │
+│  [+ Add Field]                      │  ← Ghost button, disabled at max
+│  ──────────────────────────────     │
+│  [Cancel]              [Save]       │
+└─────────────────────────────────────┘
+```
+
+- Field rows: `border border-border rounded-md p-3 mb-2` with `bg-card`
+- Drag handle: `GripVertical` icon, `text-muted-foreground cursor-grab`
+- Field name input: `Input` with placeholder "Field name"
+- Field type select: `Select` with options: Text, Number, Date, Enum, Boolean, Image URL — each with a small color dot matching the badge colors defined above
+- Enum options: tag editor — pills with `X` close button, `Input` to add new (Enter or button), `flex flex-wrap gap-1.5`
+- Delete field: `Button variant="ghost" size="icon-sm"` with `Trash2` icon, `text-destructive/60 hover:text-destructive`
+- Add field button: `Button variant="ghost" size="sm"` with `Plus` icon, disabled with tooltip when at 10 fields
+- Reorder: uses `SortableList` from `components/ds/` — same pattern as current implementation
+- Validation: name required, max 10 fields, enum fields require at least 1 option
+
+**Dialog footer:**
+- `Cancel` button: `variant="outline"`
+- `Save` button: `variant="default"` with loading spinner during save
+
+---
+
+### Delete Confirmation
+
+- Standard `ConfirmDialog` component
+- Title: "Delete Collection Type"
+- Message: "Are you sure you want to delete **{typeName}**?"
+- **Usage warning** (conditional): If `collectionCount > 0`, show a warning alert:
+  - `bg-destructive/10 border border-destructive/20 rounded-md p-3`
+  - Icon: `AlertTriangle` in `text-destructive`
+  - Text: "This type is used by {N} collection(s). Deleting it will remove the type assignment from those collections."
+- Cancel button: `variant="outline"`
+- Delete button: `variant="destructive"` with loading state
+
+---
+
+### Empty State
+
+- Uses `EmptyState` component from `components/ds/`
+- Icon: `Layers` (h-12 w-12, text-muted-foreground)
+- Title: "No collection types yet"
+- Description: "Create your first collection type to start organizing your vault."
+- Action: `Button variant="default"` with `Plus` icon + "Create Collection Type"
+
+---
+
+### Loading Skeleton
+
+- Grid of 4 skeleton cards matching the card layout:
+  - Skeleton icon circle (40×40)
+  - Skeleton title line (60% width)
+  - Skeleton description lines (2 lines, 80% and 50% width)
+  - Skeleton badge row (3 small pills)
+  - Skeleton metadata line (40% width)
+
+---
+
+### Responsive Summary
+
+| Element | Desktop (≥1024px) | Tablet (768–1023px) | Mobile (<768px) |
+|---------|-------------------|---------------------|-----------------|
+| **Grid columns** | 4 | 3 (sm) → 2 | 1 |
+| **Card padding** | `p-5` | `p-5` | `p-4` |
+| **Page header** | Title + desc + button inline | Same | Title + desc stacked, button full-width below |
+| **Dialog width** | `sm:max-w-xl` | Same | Full-width sheet |
+| **Field badges** | Up to 5 | Up to 4 | Up to 3 |
+
+---
+
+### Implementation Notes
+
+1. **Icon picker** — The current implementation uses a text input for icon name. The redesign upgrades this to a select/popover with a visual grid of common Lucide icons. Implementation can start with a curated list of 20-30 relevant icons (Library, Disc, Film, Gamepad2, BookOpen, Camera, Stamp, Coins, Gem, Palette, Music, Trophy, Car, Watch, Shirt, Puzzle, Sword, MapPin, Globe, Star, Heart, Sparkles, Zap, Flame, Crown).
+2. **Collection count** — The current API returns collection types but may not include a count of collections using each type. If not available, either add a count to the API response or derive it client-side from the collections list.
+3. **Field type color dots** — Same pattern as priority dots in wishlist Select: `<div className="flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-{color}" /><span>{label}</span></div>` inside SelectItem.
+4. **Custom field badge overflow** — Use `slice(0, 5)` on field list for badges, then conditionally render `+{fields.length - 5} more` badge.
+5. **Description upgrade** — Current implementation may use `Input` for description. Upgrade to `Textarea` with `rows={3}` and `resize-y`.
+6. **Stagger entrance** — Card grid uses `StaggerChildren` + `FadeIn` from motion.tsx. Standard 60ms stagger delay.
+7. **Test strategy** — Type cards: `data-testid="type-card"` with `data-type-id`. Field badges: `data-testid="field-badge"` with `data-field-type`. Dialog tabs: standard tab test patterns. Empty state: `data-testid="types-empty"`.
+8. **i18n keys needed:** `collectionTypes.title`, `collectionTypes.description`, `collectionTypes.create`, `collectionTypes.createTitle`, `collectionTypes.createDescription`, `collectionTypes.editTitle`, `collectionTypes.editDescription`, `collectionTypes.nameLabel`, `collectionTypes.namePlaceholder`, `collectionTypes.descriptionLabel`, `collectionTypes.descriptionPlaceholder`, `collectionTypes.iconLabel`, `collectionTypes.selectIcon`, `collectionTypes.generalTab`, `collectionTypes.fieldsTab`, `collectionTypes.fieldName`, `collectionTypes.fieldType`, `collectionTypes.fieldTypePlaceholder`, `collectionTypes.addField`, `collectionTypes.maxFields`, `collectionTypes.enumOptions`, `collectionTypes.addOption`, `collectionTypes.noFields`, `collectionTypes.fieldCount`, `collectionTypes.collectionCount`, `collectionTypes.cancel`, `collectionTypes.save`, `collectionTypes.saving`, `collectionTypes.edit`, `collectionTypes.duplicate`, `collectionTypes.delete`, `collectionTypes.deleteTitle`, `collectionTypes.deleteConfirm`, `collectionTypes.deleteWarning`, `collectionTypes.deleting`, `collectionTypes.moreFields`, `emptyStates.collectionTypes.title`, `emptyStates.collectionTypes.description`, `emptyStates.collectionTypes.action`.
+
+---
+
+## Profile
+
+### Design Philosophy
+
+The profile page is the collector's **personal space** — where identity meets preferences. It should feel warm and personal, like the inside cover of a collector's journal. The design prioritizes clarity and progressive disclosure: the most personal element (avatar) leads, followed by identity, then preferences grouped by category into distinct cards. Each card is a self-contained section that can be scanned independently.
+
+**Key aesthetic decisions:**
+- **Large avatar as hero** — a 96px avatar with hover-to-upload overlay creates a strong personal anchor. The avatar upload interaction should feel polished (hover overlay with camera icon, instant preview).
+- **Card-per-section layout** — Account Info, About, Preferences, and Appearance each get their own card with clear headings. This prevents the "long form" fatigue of a single scrolling form.
+- **Theme selector is visual** — three icon-toggled options (light/dark/system) with clear visual indicators, not a dropdown. Clicking should immediately apply the theme for instant feedback.
+- **Sticky save on mobile** — the save button sticks to the bottom of the viewport on mobile so it's always reachable without scrolling.
+- **Read-only fields are distinct** — email is visually muted and disabled, clearly communicating it can't be changed here.
+
+---
+
+### Overall Page Layout
+
+```
+┌──────────────────────────────────────────────────────────────┐
+│  Page Header                                                  │
+│  "Profile" + "Manage your account settings and preferences"   │
+│  gap: --space-8 (32px)                                        │
+├──────────────────────────────────────────────────────────────┤
+│  Two-column layout (desktop) / single column (mobile)         │
+│                                                               │
+│  ┌─ Left Column (1/3) ──────┐  ┌─ Right Column (2/3) ────┐  │
+│  │                          │  │                          │  │
+│  │  Avatar Card             │  │  Account Info Card       │  │
+│  │  ┌──────────┐            │  │  Display Name: [...]     │  │
+│  │  │  Avatar   │            │  │  Email: ralph@... (ro)   │  │
+│  │  │  (96px)   │            │  │                          │  │
+│  │  │  Upload   │            │  ├──────────────────────────┤  │
+│  │  └──────────┘            │  │  About Card              │  │
+│  │  "Ralph Largo"           │  │  Bio: [textarea]         │  │
+│  │  ralph@example.com       │  │                          │  │
+│  │                          │  ├──────────────────────────┤  │
+│  └──────────────────────────┘  │  Preferences Card        │  │
+│                                │  Language: [en ▾]         │  │
+│                                │  Currency: [USD ▾]        │  │
+│                                ├──────────────────────────┤  │
+│                                │  Appearance Card          │  │
+│                                │  [☀ Light][🌙 Dark][🖥 Sys]│  │
+│                                └──────────────────────────┘  │
+│                                                               │
+│                                           [Save Changes]      │
+└──────────────────────────────────────────────────────────────┘
+```
+
+- **Layout**: `grid grid-cols-1 lg:grid-cols-3 gap-6`
+- **Left column**: `lg:col-span-1` — avatar card only
+- **Right column**: `lg:col-span-2` — stacked section cards
+- **Section spacing**: `gap-6` between cards
+
+---
+
+### Avatar Card
+
+```
+┌─────────────────────────────────┐
+│                                 │
+│         ┌──────────┐            │
+│         │          │            │
+│         │  Avatar  │            │  ← 96×96px, rounded-full, object-cover
+│         │  (96px)  │            │
+│         │          │            │
+│         └──────────┘            │
+│                                 │
+│     ┌──────────────────┐        │  ← Hover overlay on avatar
+│     │  📷 Change photo │        │  ← Camera icon + text, semi-transparent
+│     └──────────────────┘        │
+│                                 │
+│      Ralph Largo                │  ← text-lg font-semibold
+│      ralph@example.com          │  ← text-sm text-muted-foreground
+│                                 │
+└─────────────────────────────────┘
+```
+
+**Card container:**
+- `bg-card rounded-lg border border-border p-6 text-center`
+
+**Avatar:**
+- `w-24 h-24 rounded-full mx-auto object-cover border-2 border-border`
+- Fallback (no avatar): `bg-accent/10` with `User` icon (`h-10 w-10 text-accent`)
+- Wrapped in `relative group cursor-pointer` div
+
+**Upload overlay:**
+- `absolute inset-0 rounded-full bg-black/50 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-150`
+- `Camera` icon (`h-5 w-5 text-white`) + "Change" text (`text-xs text-white mt-1`)
+- Click triggers hidden `<input type="file" accept="image/*">` via ref
+- After file selection: instant preview (URL.createObjectURL), then upload API call
+
+**User info below avatar:**
+- Name: `text-lg font-semibold text-card-foreground mt-4`
+- Email: `text-sm text-muted-foreground mt-0.5`
+
+---
+
+### Account Info Card
+
+```
+┌─────────────────────────────────────────────┐
+│  Account Information                         │  ← Card heading
+│                                              │
+│  Display Name                                │
+│  ┌──────────────────────────────────────┐    │
+│  │ Ralph Largo                           │    │  ← Input, editable
+│  └──────────────────────────────────────┘    │
+│                                              │
+│  Email                                       │
+│  ┌──────────────────────────────────────┐    │
+│  │ ralph@example.com              🔒     │    │  ← Input, disabled, lock icon
+│  └──────────────────────────────────────┘    │
+│  Your email cannot be changed.               │  ← text-xs text-muted-foreground
+│                                              │
+└──────────────────────────────────────────────┘
+```
+
+**Card container:**
+- `bg-card rounded-lg border border-border p-6`
+- Heading: `text-base font-semibold text-card-foreground mb-4`
+
+**Display name field:**
+- Label: `text-sm font-medium text-foreground`
+- Input: standard `Input` component
+
+**Email field:**
+- Label: `text-sm font-medium text-foreground`
+- Input: `Input` with `disabled` prop, `opacity-60` styling
+- Lock icon: `Lock` (`h-4 w-4`) positioned `absolute right-3` inside input wrapper
+- Helper text: `text-xs text-muted-foreground mt-1`
+
+---
+
+### About Card
+
+```
+┌─────────────────────────────────────────────┐
+│  About                                       │
+│                                              │
+│  Bio                                         │
+│  ┌──────────────────────────────────────┐    │
+│  │ Tell us about yourself and your       │    │  ← Textarea, rows={4}, resize-y
+│  │ collecting interests...               │    │
+│  │                                       │    │
+│  └──────────────────────────────────────┘    │
+│                                              │
+└──────────────────────────────────────────────┘
+```
+
+- Same card styling as Account Info
+- Bio: `Textarea` with `rows={4}` and `resize-y`, placeholder text about collecting interests
+
+---
+
+### Preferences Card
+
+```
+┌─────────────────────────────────────────────┐
+│  Preferences                                 │
+│                                              │
+│  Language                    Currency         │
+│  ┌──────────────────┐  ┌──────────────────┐ │
+│  │ English ▾         │  │ USD ($) ▾         │ │
+│  └──────────────────┘  └──────────────────┘ │
+│                                              │
+└──────────────────────────────────────────────┘
+```
+
+- Same card styling
+- Two selects side-by-side: `grid grid-cols-2 gap-4`
+- On mobile: `grid-cols-1` (stacked)
+
+**Language select options:**
+- English (en), Português (pt) — with flag emoji or language code prefix
+
+**Currency select options:**
+- USD ($), EUR (€), GBP (£), BRL (R$), JPY (¥), CAD (C$), AUD (A$)
+- Display format: `{code} ({symbol})` in select options
+
+---
+
+### Appearance Card
+
+```
+┌─────────────────────────────────────────────┐
+│  Appearance                                  │
+│                                              │
+│  Theme                                       │
+│  ┌────────┐ ┌────────┐ ┌────────┐           │
+│  │  ☀️     │ │  🌙    │ │  🖥️    │           │
+│  │ Light  │ │ Dark   │ │ System │           │
+│  └────────┘ └────────┘ └────────┘           │
+│                                              │
+└──────────────────────────────────────────────┘
+```
+
+**Theme toggle group:**
+- Container: `flex gap-2`
+- Each option: `flex flex-col items-center gap-1.5 px-4 py-3 rounded-lg border cursor-pointer transition-all duration-150`
+- **Unselected**: `border-border bg-transparent text-muted-foreground hover:bg-muted hover:text-foreground`
+- **Selected**: `border-accent bg-accent/10 text-accent ring-1 ring-accent/30`
+- Icon: `Sun` / `Moon` / `Monitor` — `h-5 w-5`
+- Label: `text-xs font-medium`
+- Click applies theme immediately (via theme context) — no save required for theme changes
+- Visual indicator: `bg-accent/10` tint + `border-accent` on the selected option
+
+---
+
+### Save Button
+
+- **Desktop**: `Button variant="default" size="default"` aligned to the right of the right column
+- `flex justify-end mt-2` container below the cards
+- **Mobile**: `sticky bottom-4 left-0 right-0 z-10` — full-width button inside a `px-4` wrapper with `bg-gradient-to-t from-background via-background/80 to-transparent pt-6 pb-4` fade effect above
+- Loading state: `Loader2` spinner + "Saving..."
+- Disabled when no changes have been made (track dirty state)
+
+---
+
+### Loading Skeleton
+
+- Avatar card: skeleton circle (96px) + two skeleton text lines (name, email)
+- Account info card: skeleton input fields (2)
+- About card: skeleton textarea block
+- Preferences card: skeleton select fields (2 side-by-side)
+- Appearance card: 3 skeleton toggle boxes
+
+---
+
+### Responsive Summary
+
+| Element | Desktop (≥1024px) | Tablet (768–1023px) | Mobile (<768px) |
+|---------|-------------------|---------------------|-----------------|
+| **Layout** | 2-column (1/3 + 2/3) | 2-column (1/3 + 2/3) | Single column |
+| **Avatar card** | Left column | Left column | Full width, stacked above |
+| **Preferences grid** | 2-column selects | 2-column | 1-column (stacked) |
+| **Save button** | Right-aligned, static | Right-aligned, static | Sticky bottom, full-width |
+| **Theme toggles** | Horizontal row | Horizontal row | Horizontal row (compact padding) |
+
+---
+
+### Implementation Notes
+
+1. **Avatar upload** — Current implementation already uses `FormData` with `POST /api/profile/avatar`. Keep this pattern. Add `URL.createObjectURL` for instant preview before upload completes.
+2. **Theme is applied immediately** — Theme changes don't require clicking "Save". They apply via the `useTheme()` context on click. This is already the behavior in the current implementation.
+3. **Dirty state tracking** — Compare current form values with initial fetched values to determine if Save should be enabled. Use a simple `JSON.stringify` comparison or track individual field changes.
+4. **Language change** — When saved, if the language changed, call `i18n.changeLanguage(newLang)` after successful save. Current implementation already does this.
+5. **Card-per-section** is a visual change — current implementation uses a flat form. The redesign wraps each section in a `Card` component from `components/ds/`.
+6. **Two-column layout** — The avatar as a separate left column is new. Current implementation has avatar inline at the top of a single column. The redesign gives the avatar more prominence.
+7. **Email lock icon** — New visual indicator. Position the `Lock` icon absolutely within a `relative` wrapper around the email input.
+8. **Stagger entrance** — Use `StaggerChildren` wrapping the cards container. Each card gets `FadeIn`. Standard 60ms stagger.
+9. **Test strategy** — Avatar: `data-testid="profile-avatar"` and `data-testid="avatar-upload"`. Form fields: standard label-based selection. Theme toggles: `data-testid="theme-{light|dark|system}"`. Save button: `data-testid="profile-save"`. Loading: `data-testid="profile-skeleton"`.
+10. **i18n keys needed:** `profile.title`, `profile.description`, `profile.avatarChange`, `profile.accountInfo`, `profile.displayName`, `profile.displayNamePlaceholder`, `profile.email`, `profile.emailReadOnly`, `profile.about`, `profile.bio`, `profile.bioPlaceholder`, `profile.preferences`, `profile.language`, `profile.currency`, `profile.appearance`, `profile.theme`, `profile.themeLight`, `profile.themeDark`, `profile.themeSystem`, `profile.save`, `profile.saving`, `profile.noChanges`.
+
+---
+
+## Auth Pages
+
+### Design Philosophy
+
+The auth pages are GeekVault's **first impression** — the moment a new user decides whether this app feels worth their time. The design uses a split-screen layout that turns the left panel into a **brand storytelling canvas** while keeping the form panel clean and focused. The Warm Obsidian identity shines most here: the decorative panel uses the amber accent as a warm, inviting glow against deep stone surfaces, evoking the feeling of walking into a beautifully lit collector's showroom.
+
+**Key aesthetic decisions:**
+- **Split-screen with brand panel** — the left 55% is a purely decorative, atmosphere-building surface. It communicates the app's identity before the user reads a word.
+- **Warm amber gradient** — not a flat color but a layered, textured gradient using the accent palette. Feels premium and distinctive.
+- **Floating geometric shapes** — subtle, blurred amber/warm circles create depth and movement. Not illustrations — abstract shapes that evoke display case lighting.
+- **Brand + tagline on decorative panel** — reinforces identity. "Your vault awaits" is warm and personal.
+- **Clean, centered form panel** — the right side is pure function: white/dark card with form fields, no clutter.
+- **Mobile: form only** — decorative panel hides, replaced by a compact brand header above the form.
+
+---
+
+### Auth Layout (Shared Shell)
+
+```
+Desktop (≥1024px):
+┌──────────────────────────────────┬──────────────────────────┐
+│                                  │                          │
+│  Decorative Brand Panel (55%)    │  Form Panel (45%)        │
+│                                  │                          │
+│  ┌──────────────────────────┐    │  ┌──────────────────┐    │
+│  │                          │    │  │                  │    │
+│  │  ○ (blurred amber)       │    │  │    Form Card     │    │
+│  │       ○                  │    │  │    (centered)    │    │
+│  │                          │    │  │                  │    │
+│  │  🔒 GeekVault            │    │  │                  │    │
+│  │  "Your vault awaits"     │    │  │                  │    │
+│  │                          │    │  └──────────────────┘    │
+│  │            ○              │    │                          │
+│  │                          │    │                          │
+│  └──────────────────────────┘    │                          │
+│                                  │                          │
+└──────────────────────────────────┴──────────────────────────┘
+
+Mobile (<1024px):
+┌────────────────────────────┐
+│  Brand Header (compact)    │
+│  🔒 GeekVault              │
+├────────────────────────────┤
+│                            │
+│       Form Card            │
+│       (centered)           │
+│                            │
+│                            │
+└────────────────────────────┘
+```
+
+**Outer container:**
+- `min-h-screen flex`
+- Desktop: `flex-row`
+- Mobile: `flex-col`
+
+**Decorative Panel (left):**
+- `hidden lg:flex lg:w-[55%] relative overflow-hidden`
+- Background: `bg-stone-900` (warm near-black)
+- Gradient overlay: layered CSS radial gradients for depth:
+  ```css
+  background:
+    radial-gradient(ellipse at 20% 50%, rgba(217, 119, 6, 0.15) 0%, transparent 60%),
+    radial-gradient(ellipse at 80% 20%, rgba(245, 158, 11, 0.10) 0%, transparent 50%),
+    radial-gradient(ellipse at 60% 80%, rgba(217, 119, 6, 0.08) 0%, transparent 50%),
+    #1C1917;
+  ```
+- **Floating shapes**: 3-4 `absolute` divs with `rounded-full` and amber gradient fills, large sizes (200-400px), `blur-3xl opacity-20`. Positioned at different corners. Optional: subtle CSS animation (`animate-float`, custom keyframe with `translateY` oscillation at 20s duration).
+- **Brand content**: centered flex column
+  - Vault icon: `h-12 w-12 text-amber-500` (or a custom SVG logo)
+  - App name: `text-3xl font-display font-bold text-white mt-4` — "GeekVault"
+  - Tagline: `text-lg text-stone-400 mt-2` — "Your vault awaits"
+- **Optional testimonial/feature highlight**: Below brand, in a frosted card:
+  - `bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-6 max-w-sm mt-12`
+  - Feature text: `text-sm text-stone-300` — e.g., "Organize, track, and showcase your collectibles with a tool built for collectors."
+
+**Form Panel (right):**
+- `flex-1 flex items-center justify-center p-6 sm:p-8 lg:p-12`
+- Light mode: `bg-background`
+- Dark mode: `bg-background`
+- Content is a centered card: `w-full max-w-sm`
+
+**Mobile Brand Header:**
+- `lg:hidden flex items-center justify-center gap-2 py-6`
+- Vault icon: `h-8 w-8 text-accent`
+- "GeekVault": `text-xl font-display font-bold text-foreground`
+- Background: `bg-background` — blends with form panel
+
+---
+
+### Login Page
+
+```
+┌─────────────────────────────────────┐
+│                                     │
+│     Welcome back                    │  ← text-2xl font-display font-bold
+│     Sign in to your vault           │  ← text-sm text-muted-foreground mt-1
+│                                     │
+│     gap: --space-6 (24px)           │
+│                                     │
+│     Email                           │
+│     ┌───────────────────────────┐   │
+│     │ you@example.com            │   │  ← Input type="email", autoComplete="email"
+│     └───────────────────────────┘   │
+│                                     │
+│     Password                        │
+│     ┌───────────────────────────┐   │
+│     │ ••••••••                   │   │  ← Input type="password", autoComplete="current-password"
+│     └───────────────────────────┘   │
+│                                     │
+│     ┌───────────────────────────┐   │
+│     │        Sign In             │   │  ← Button variant="default", full width
+│     └───────────────────────────┘   │
+│                                     │
+│     ┌─── error banner ──────────┐   │  ← Conditional, bg-destructive/10, rounded-md, p-3
+│     │ ⚠ Invalid credentials      │   │
+│     └───────────────────────────┘   │
+│                                     │
+│     Don't have an account?          │  ← text-sm text-muted-foreground, centered
+│     Sign up →                       │  ← Link to /register, text-accent hover:underline
+│                                     │
+└─────────────────────────────────────┘
+```
+
+**Form container:**
+- `space-y-6` between sections
+
+**Heading:**
+- Title: `text-2xl font-display font-bold text-foreground`
+- Subtitle: `text-sm text-muted-foreground mt-1`
+
+**Form fields:**
+- `space-y-4` between fields
+- Labels: `text-sm font-medium text-foreground`
+- Inputs: standard `Input` component, full width
+- Email: `type="email"` with `autoComplete="email"`
+- Password: `type="password"` with `autoComplete="current-password"`
+
+**Submit button:**
+- `Button variant="default" className="w-full"` with height `h-11` (slightly taller than default for prominence)
+- Loading state: `Loader2` spinner + "Signing in..."
+- `disabled` when loading
+
+**Error banner:**
+- Appears above the submit button or below the form (between button and register link)
+- `bg-destructive/10 border border-destructive/20 rounded-md p-3 text-sm text-destructive`
+- Icon: `AlertCircle` (`h-4 w-4`) inline with text
+- `flex items-center gap-2`
+- Dismissible: fades in via `FadeIn` from motion.tsx
+
+**Register link:**
+- `text-center mt-6`
+- "Don't have an account?" in `text-sm text-muted-foreground`
+- "Sign up" as `Link` to `/register` in `text-accent font-medium hover:underline`
+
+---
+
+### Register Page
+
+```
+┌─────────────────────────────────────┐
+│                                     │
+│     Create your vault               │  ← text-2xl font-display font-bold
+│     Start organizing your           │  ← text-sm text-muted-foreground mt-1
+│     collection today                │
+│                                     │
+│     gap: --space-6 (24px)           │
+│                                     │
+│     Display Name                    │
+│     ┌───────────────────────────┐   │
+│     │ Your name                  │   │  ← Input, autoComplete="name"
+│     └───────────────────────────┘   │
+│                                     │
+│     Email                           │
+│     ┌───────────────────────────┐   │
+│     │ you@example.com            │   │  ← Input type="email", autoComplete="email"
+│     └───────────────────────────┘   │
+│                                     │
+│     Password                        │
+│     ┌───────────────────────────┐   │
+│     │ ••••••••                   │   │  ← Input type="password", autoComplete="new-password"
+│     └───────────────────────────┘   │
+│     At least 6 characters           │  ← text-xs text-muted-foreground mt-1
+│                                     │
+│     ┌───────────────────────────┐   │
+│     │      Create Account        │   │  ← Button variant="default", full width
+│     └───────────────────────────┘   │
+│                                     │
+│     ┌─── error banner ──────────┐   │
+│     │ ⚠ Email already in use     │   │
+│     └───────────────────────────┘   │
+│                                     │
+│     Already have an account?        │
+│     Sign in →                       │  ← Link to /login
+│                                     │
+└─────────────────────────────────────┘
+```
+
+**Differences from Login:**
+- Title: "Create your vault" (not "Welcome back")
+- Subtitle: "Start organizing your collection today"
+- Additional field: Display Name (first field)
+- Password hint: `text-xs text-muted-foreground mt-1` — "At least 6 characters"
+- Submit label: "Create Account" / "Creating account..."
+- Footer link: "Already have an account? Sign in"
+- `autoComplete="new-password"` on password field
+
+**Validation states:**
+- Required field error: `text-xs text-destructive mt-1` below the field
+- Password length error: shown only after blur or submit attempt
+- All validations match current implementation logic
+
+---
+
+### Auth Responsive Behavior
+
+| Element | Desktop (≥1024px) | Tablet (768–1023px) | Mobile (<768px) |
+|---------|-------------------|---------------------|-----------------|
+| **Layout** | Split 55/45 | Form only (full width) | Form only (full width) |
+| **Decorative panel** | Visible | Hidden | Hidden |
+| **Brand header** | In decorative panel | Shown above form | Shown above form |
+| **Form max-width** | `max-w-sm` (384px) | `max-w-sm` centered | Full width with `px-6` padding |
+| **Form padding** | `p-12` panel padding | `p-8` | `p-6` |
+| **Button height** | `h-11` | `h-11` | `h-11` |
+
+---
+
+### Auth Animation
+
+**Page entrance (both login and register):**
+- Form card uses `FadeIn` from motion.tsx (fade + slide-up)
+- Decorative panel shapes have a subtle `ScaleIn` on page load (delay 200ms)
+
+**Error banner:**
+- `FadeIn` with `duration: 0.2` for fast appearance
+- No exit animation (replaced in-place when error changes)
+
+**Page switch (login ↔ register):**
+- Uses `AnimatedOutlet` from layout — standard page transition (exit down, enter up)
+- Since both pages share the auth layout shell, only the form content transitions
+
+---
+
+### Implementation Notes
+
+1. **Auth layout is shared** — `auth-layout.tsx` wraps both login and register pages via React Router `<Outlet>`. The decorative panel is in the layout, not duplicated in each page.
+2. **Gradient background replaces current hardcoded colors** — Current implementation uses `bg-gradient-to-br from-[#1B3A6B] to-[#0F2442]`. The redesign replaces this with the warm stone + amber radial gradients specified above. All colors come from the new palette, not hardcoded hex.
+3. **Floating shapes are CSS-only** — No JavaScript animation needed. Use `@keyframes float` with `translateY(-10px)` ↔ `translateY(10px)` at `20s infinite ease-in-out` for gentle movement. Different shapes get different `animation-delay` values for organic feel.
+4. **No confirm password field** — Current register page has name, email, and password (no confirm). The redesign keeps this pattern — confirmation is friction that doesn't prevent weak passwords.
+5. **Error handling** — Keep current error handling: catch login/register errors, display user-friendly message. Add the visual error banner component described above.
+6. **Password visibility toggle** — Not included in this spec (keep it simple). Can be added as a future enhancement if users request it.
+7. **Form animation** — The form itself doesn't animate individual fields on load. Only the container gets a `FadeIn`. Over-animating form fields feels distracting when users want to quickly type credentials.
+8. **Test strategy** — Form inputs: standard label-based selection. Submit button: `data-testid="auth-submit"`. Error banner: `data-testid="auth-error"`. Register link: `data-testid="auth-register-link"`. Login link: `data-testid="auth-login-link"`. Decorative panel: not tested (purely visual).
+9. **i18n keys needed:** `auth.loginTitle`, `auth.loginSubtitle`, `auth.registerTitle`, `auth.registerSubtitle`, `auth.email`, `auth.emailPlaceholder`, `auth.password`, `auth.passwordPlaceholder`, `auth.passwordHint`, `auth.displayName`, `auth.displayNamePlaceholder`, `auth.signIn`, `auth.signingIn`, `auth.createAccount`, `auth.creatingAccount`, `auth.noAccount`, `auth.signUp`, `auth.hasAccount`, `auth.signInLink`, `auth.tagline`, `auth.featureHighlight`.

@@ -287,7 +287,7 @@
         "Document appended to tasks/design-pages.md under 'Collection Types', 'Profile', and 'Auth Pages' sections"
       ],
       "priority": 14,
-      "passes": false,
+      "passes": true,
       "notes": "These are simpler pages grouped together to avoid tiny stories. Auth pages are the first impression — make them count."
     },
     {

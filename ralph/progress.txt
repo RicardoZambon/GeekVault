@@ -56,6 +56,15 @@
 - Notes fields should use Textarea (not Input) for multi-line content — `rows={3} resize-y`
 - Priority color dots in Select options: `w-2 h-2 rounded-full` inline with flex layout inside SelectItem
 - Date-range client-side filtering: use `item.id` descending as creation-order proxy when `createdAt` is unavailable
+- Collection types cards: no lift on hover (settings/management cards, not gallery destinations)
+- Custom field type badges use color-coded pills: text=info, number=accent, date=success, enum=chart-5, boolean=muted, image_url=chart-6
+- Icon picker for collection types: curated 25-icon subset of Lucide, displayed in 4-column grid popover
+- Profile page uses card-per-section layout with 2-column grid (avatar left, form cards right)
+- Theme toggle applies immediately via context — does NOT require Save button click
+- Auth decorative panel: radial gradient layers on stone-900, NOT flat/linear gradient — creates depth and warmth
+- Auth floating shapes: pure CSS `@keyframes float` with 20s duration and staggered `animation-delay` — no JS needed
+- Auth layout: decorative panel hidden below lg breakpoint — replaced by compact brand header above form
+- Disabled/read-only inputs: `opacity-60` + lock icon positioned absolutely in input wrapper
 
 ---
 
@@ -296,4 +305,22 @@
   - Date-range client-side filtering can use `item.id` ordering as creation-date proxy when API doesn't return `createdAt`
   - Group collapse state should NOT be persisted to localStorage — wishlist groups are small and should default to all-expanded on each visit
   - Filter "no results" state needs visual treatment (icon + hint text) distinct from "empty" state (EmptyState component + action CTA)
+---
+
+## 2026-03-21 - US-014
+- Designed collection types, profile, and auth pages with full visual specification
+- Appended "Collection Types", "Profile", and "Auth Pages" sections to `tasks/design-pages.md`
+- COLLECTION TYPES: Card grid with icon hero, color-coded custom field type badges, usage count, two-tab create/edit dialog (General + Custom Fields), delete confirmation with usage warning, icon picker upgrade from text input to visual grid popover
+- PROFILE: Card-per-section layout with 2-column grid (avatar card left, form cards right), avatar with hover-to-upload overlay, account info with disabled email + lock icon, preferences grid (language + currency), visual theme toggle (3 icon options with immediate apply), sticky save on mobile
+- AUTH: Split-screen layout (55% decorative brand panel + 45% form), warm amber radial gradient with floating blurred shapes, brand + tagline on decorative panel, clean centered form cards, mobile hides decorative panel and shows compact brand header, login and register forms with error banners
+- Files changed: `tasks/design-pages.md`, `ralph/prd.json`, `ralph/progress.txt`
+- **Learnings for future iterations:**
+  - Collection type cards are management/settings cards — no lift on hover, just border + shadow shift
+  - Custom field type badges use 6 distinct colors mapped to field types (text→info, number→accent, date→success, enum→chart-5, boolean→muted, image_url→chart-6)
+  - Auth decorative panel uses layered radial gradients (not linear) — multiple `radial-gradient` with different centers and amber opacities create depth
+  - Floating decorative shapes are pure CSS animation — `@keyframes float` with `translateY` oscillation, 20s duration, staggered delays
+  - Profile theme toggle applies immediately via context (not gated behind Save) — already the current behavior, just needs visual redesign
+  - Read-only inputs should use `opacity-60` + `Lock` icon positioned absolutely — clear visual signal that field is not editable
+  - Profile card-per-section pattern is new — current implementation is a flat form. Each section becomes its own `Card` component
+  - Auth layout `lg:` breakpoint (not `md:`) for decorative panel — tablets get form-only view since the panel needs width to look good
 ---
