@@ -1,331 +1,830 @@
 {
   "project": "GeekVault",
-  "branchName": "ralph/collections-grid-redesign",
-  "description": "Collections Grid Redesign (Phase 3) - Netflix/Steam-inspired cover grid with sorting, completion %, cover-from-item, and drag-to-reorder",
+  "branchName": "ralph/saas-redesign-plan",
+  "description": "SaaS-Grade Frontend Redesign + Admin Backend — Warm Obsidian design language, motion system, page redesigns, role-based admin with user management, settings, analytics, and audit logging",
   "userStories": [
     {
       "id": "US-001",
-      "title": "Add CreatedAt and UpdatedAt timestamps to Collection entity",
-      "description": "As a developer, I need CreatedAt and UpdatedAt timestamps on the Collection model so the frontend can display relative time metadata and the API can support date-based sorting.",
+      "title": "Install Plus Jakarta Sans and update font tokens",
+      "description": "As a developer, I need the new display font installed and referenced in CSS tokens so that all headings use Plus Jakarta Sans.",
       "acceptanceCriteria": [
-        "Add CreatedAt (DateTime, default UTC now) and UpdatedAt (DateTime?, nullable) to the Collection entity",
-        "Generate and apply EF Core migration — existing rows get CreatedAt = UTC now, UpdatedAt = null",
-        "CreatedAt is set on POST to /api/collections (in CollectionsService.CreateAsync)",
-        "UpdatedAt is set on PUT to /api/collections/{id} (in CollectionsService.UpdateAsync)",
-        "UpdatedAt is set on cover upload (in CollectionsService.UploadCoverAsync)",
-        "Both fields included in CollectionResponse DTO",
-        "Existing integration tests still pass (dotnet test)",
-        "Typecheck passes (dotnet build)"
+        "Install @fontsource/plus-jakarta-sans (weights 400, 500, 600, 700) via npm",
+        "Update src/web/src/index.css: replace @fontsource/nunito import with @fontsource/plus-jakarta-sans",
+        "Update --font-display from 'Nunito' to 'Plus Jakarta Sans'",
+        "Verify --font-body remains 'Inter'",
+        "Typecheck passes (npx tsc -b)",
+        "Verify in browser using dev-browser skill"
       ],
       "priority": 1,
       "passes": true,
-      "notes": ""
+      "notes": "Spec: tasks/design-tokens.md → Typography section"
     },
     {
       "id": "US-002",
-      "title": "Propagate UpdatedAt to parent Collection from child services",
-      "description": "As a developer, I need CatalogItemsService and OwnedCopiesService to update the parent Collection's UpdatedAt when items are added, removed, or reordered.",
+      "title": "Implement new color palette tokens (light + dark)",
+      "description": "As a developer, I need the Warm Obsidian color palette applied to all CSS custom properties for both light and dark modes.",
       "acceptanceCriteria": [
-        "CatalogItemsService.CreateAsync sets UpdatedAt on the parent Collection",
-        "CatalogItemsService.DeleteAsync sets UpdatedAt on the parent Collection",
-        "CatalogItemsService.ReorderAsync sets UpdatedAt on the parent Collection",
-        "OwnedCopiesService.CreateAsync propagates UpdatedAt to the parent Collection (via CatalogItem → Collection)",
-        "OwnedCopiesService.DeleteAsync propagates UpdatedAt to the parent Collection (via CatalogItem → Collection)",
-        "Existing integration tests still pass (dotnet test)",
-        "Typecheck passes (dotnet build)"
+        "Replace all color values in :root (light mode) block in index.css with Warm Obsidian light palette from tasks/design-tokens.md",
+        "Replace all color values in .dark block with Warm Obsidian dark palette from tasks/design-tokens.md",
+        "Add new tokens: --warning, --warning-foreground, --info, --info-foreground",
+        "Update sidebar tokens (--sidebar-*) for both modes",
+        "Add chart color tokens (--chart-1 through --chart-8) for both modes",
+        "Update focus ring color to amber (--ring)",
+        "Update text selection color (::selection styles)",
+        "Typecheck passes (npx tsc -b)",
+        "Verify in browser using dev-browser skill"
       ],
       "priority": 2,
       "passes": true,
-      "notes": "For OwnedCopies, the chain is OwnedCopy → CatalogItem → Collection (two hops). Load the parent Collection via the CatalogItem's CollectionId."
+      "notes": "Spec: tasks/design-tokens.md → Color Palette section. Use stone scale for neutrals, amber for accent."
     },
     {
       "id": "US-003",
-      "title": "Add CollectionTypeName to CollectionResponse and fix N+1 query",
-      "description": "As a developer, I need CollectionTypeName in the response DTO and the N+1 item count query eliminated so sorting by itemCount can work at the DB level.",
+      "title": "Implement spacing, border-radius, and elevation tokens",
+      "description": "As a developer, I need updated spacing, border-radius, and shadow tokens in CSS and Tailwind theme.",
       "acceptanceCriteria": [
-        "CollectionTypeName included in CollectionResponse DTO",
-        "CollectionsRepository.GetByUserIdAsync() adds .Include(c => c.CollectionType) and maps c.CollectionType.Name",
-        "Refactor CollectionsService.GetAllAsync to eliminate N+1 — replace per-collection GetItemCountAsync() loop with a single projected query returning collections with item counts in one DB round-trip",
-        "Existing integration tests still pass (dotnet test)",
-        "Typecheck passes (dotnet build)"
+        "Add spacing tokens to @theme inline: --space-0.5 (2px), --space-1.5 (6px), --space-16 (64px), --space-20 (80px), --space-24 (96px)",
+        "Update border-radius: --radius-md → 8px, --radius-lg → 12px; add --radius-2xl (24px)",
+        "Add shadow tokens to :root and .dark: --shadow-sm, --shadow-md, --shadow-lg, --shadow-xl with warm-tinted light and high-opacity dark values",
+        "Reference shadow tokens in @theme inline for Tailwind integration",
+        "Typecheck passes (npx tsc -b)",
+        "Verify in browser using dev-browser skill"
       ],
       "priority": 3,
       "passes": true,
-      "notes": "The projected query pattern (GroupJoin or subquery via .Select()) is needed for US-004 sort-by-itemCount to work."
+      "notes": "Spec: tasks/design-tokens.md → Spacing, Border Radius, Elevation sections"
     },
     {
       "id": "US-004",
-      "title": "Add server-side sort to collections API",
-      "description": "As a user, I want to sort my collections by name, last updated, most items, or recently added.",
+      "title": "Implement motion tokens and update motion.tsx",
+      "description": "As a developer, I need the motion system tokens (durations, springs, easings) defined and the motion.tsx DS component updated with reduced-motion support.",
       "acceptanceCriteria": [
-        "GET /api/collections accepts optional query params: sortBy (name | updatedAt | itemCount | createdAt) and sortDir (asc | desc)",
-        "Default sort: name ascending",
-        "Sorting is performed in the database query (not in-memory)",
-        "The itemCount sort option uses the DB-level count (not fetch all items to count in-memory)",
-        "Integration tests cover each sort option (name asc/desc, updatedAt, itemCount, createdAt)",
-        "Typecheck passes (dotnet build)"
+        "Add CSS custom properties to :root in index.css: --duration-instant (50ms), --duration-fast (150ms), --duration-normal (250ms), --duration-slow (400ms), --duration-deliberate (600ms), --ease-standard, --ease-enter, --ease-exit, --ease-emphasized",
+        "Update src/web/src/components/ds/motion.tsx: export springs object (default, gentle, bouncy, stiff), durations object, easings object",
+        "Update existing variants (PageTransition, FadeIn, StaggerChildren, ScaleIn) to use new tokens",
+        "Add getVariants() factory that returns noop variants when prefers-reduced-motion is set",
+        "Replace any Tailwind animate-pulse usage with custom @keyframes skeleton-pulse that respects reduced motion",
+        "Add @media (prefers-reduced-motion: reduce) block in index.css that disables CSS animations but preserves spinners",
+        "Typecheck passes (npx tsc -b)",
+        "Verify in browser using dev-browser skill"
       ],
       "priority": 4,
       "passes": true,
-      "notes": "Depends on US-003 projected query refactor. Frontend sends ?sortBy=name&sortDir=asc."
+      "notes": "Spec: tasks/design-motion.md → Duration Tokens, Easing Curves, Spring Configs sections"
     },
     {
       "id": "US-005",
-      "title": "Add completion percentage to CollectionResponse",
-      "description": "As a developer, I need OwnedCount and CompletionPercentage in the CollectionResponse DTO so the frontend can show collection progress.",
+      "title": "Redesign sidebar component",
+      "description": "As a user, I want a redesigned sidebar with the Warm Obsidian visual identity, proper nav groups, and smooth collapse/expand behavior.",
       "acceptanceCriteria": [
-        "CollectionResponse DTO includes OwnedCount (int) and CompletionPercentage (double, 0-100)",
-        "Completion calculated as (OwnedCount / ItemCount) * 100 — reuse the pattern from SetsService",
-        "Computed in the same projected query as item count (no extra round-trip)",
-        "If ItemCount is 0, CompletionPercentage is 0 (avoid division by zero)",
-        "Integration tests verify completion calculation",
-        "Typecheck passes (dotnet build)"
+        "Update sidebar.tsx: dark background using sidebar tokens, nav group structure (Overview, Collections, Account, Admin conditional), 260px/72px widths",
+        "Nav item states: default, hover (bg-sidebar-accent/50), active (amber left border + amber icon), focus-visible ring",
+        "Collapse/expand animation uses motion tokens (250ms, text fade timing)",
+        "Edge toggle button with group-hover pattern",
+        "Nav items have min-height 44px (WCAG touch target)",
+        "Navigation hierarchy: Dashboard, Collections, Collection Types, Wishlist, Profile, Admin (conditional on user.role === 'admin')",
+        "Tooltip on collapsed items (side='right', delayDuration=0)",
+        "Update co-located tests if markup changes",
+        "Add new i18n keys to both en.json and pt.json",
+        "Typecheck passes (npx tsc -b)",
+        "Verify in browser using dev-browser skill"
       ],
       "priority": 5,
       "passes": true,
-      "notes": "Add OwnedCopies.Count() subquery to the existing projected query from US-003."
+      "notes": "Spec: tasks/design-layout.md → App Shell & Navigation section"
     },
     {
       "id": "US-006",
-      "title": "Add cover-from-item API endpoint",
-      "description": "As a user, I want to set a catalog item's image as my collection cover without uploading a separate image.",
+      "title": "Redesign top toolbar and mobile header",
+      "description": "As a user, I want a redesigned top toolbar with search trigger, action buttons, and an updated mobile header.",
       "acceptanceCriteria": [
-        "New endpoint: POST /api/collections/{id}/cover-from-item/{itemId}",
-        "Copies the item's image file to a new collection cover path (collection-{id}-{timestamp}.{ext})",
-        "Image is copied (not referenced) so deleting the catalog item doesn't break the cover",
-        "Validates that the item belongs to the collection and the collection belongs to the user",
-        "Returns 404 if item has no image",
-        "Sets UpdatedAt on the collection",
-        "Integration tests for: happy path, item-not-in-collection, item-has-no-image",
-        "Typecheck passes (dotnet build)"
+        "Update top-toolbar.tsx: 72px height, search trigger button (opens command palette), action buttons (help, notifications, language, theme, user avatar)",
+        "Update header.tsx (mobile): 56px height, hamburger, brand icon + 'GeekVault' text, language/theme toggles",
+        "Search trigger styled as fake input with ⌘K keyboard hint",
+        "Theme toggle icon transition (Sun/Moon with rotation)",
+        "All toolbar buttons use ghost variant, 36×36px, wrapped in Tooltip",
+        "Update co-located tests",
+        "Add new i18n keys to both en.json and pt.json",
+        "Typecheck passes (npx tsc -b)",
+        "Verify in browser using dev-browser skill"
       ],
       "priority": 6,
       "passes": true,
-      "notes": "Reuse CollectionsService.UploadCoverAsync file-saving logic for the copy operation."
+      "notes": "Spec: tasks/design-layout.md → Top Toolbar Design, Mobile Header Design sections"
     },
     {
       "id": "US-007",
-      "title": "Add SortOrder field and reorder endpoint for collections",
-      "description": "As a developer, I need a SortOrder field on Collection and a reorder endpoint so the frontend can support drag-to-reorder.",
+      "title": "Redesign user menu dropdown",
+      "description": "As a user, I want a polished user menu dropdown with profile link, theme cycle, language toggle, and logout.",
       "acceptanceCriteria": [
-        "Add SortOrder (int, default 0) to Collection entity; generate EF Core migration",
-        "New endpoint: POST /api/collections/reorder accepting ReorderCollectionsRequest(List<int> CollectionIds)",
-        "Follows the existing CatalogItemsService.ReorderAsync pattern",
-        "Default sort when sortBy is not specified changes from name to sortOrder",
-        "Integration test for reorder endpoint",
-        "Typecheck passes (dotnet build)"
+        "Update user-menu.tsx: w-56 dropdown with profile link, theme cycle, language toggle, logout",
+        "Style with bg-popover, --shadow-lg, --radius-lg",
+        "Menu items: min-h-36px, hover bg-accent/10, icons h-4 w-4",
+        "Menu stays open after toggling theme/language (don't auto-close)",
+        "Logout closes menu and navigates with replace=true",
+        "Placement: side='top' from sidebar, side='bottom' from toolbar",
+        "Update co-located tests",
+        "Add new i18n keys to both en.json and pt.json",
+        "Typecheck passes (npx tsc -b)"
       ],
       "priority": 7,
       "passes": true,
-      "notes": "Existing rows get SortOrder = 0 (will sort by creation order as tiebreaker)."
+      "notes": "Spec: tasks/design-layout.md → User Menu section"
     },
     {
       "id": "US-008",
-      "title": "Remove page subtitle and add i18n keys for toolbar and grid",
-      "description": "As a user, I want a cleaner page header without the subtitle, and all new i18n keys ready for the toolbar and grid UI.",
+      "title": "Update app layout and animated outlet",
+      "description": "As a developer, I need the app layout responsive padding and page transition animations updated to use new motion tokens.",
       "acceptanceCriteria": [
-        "Remove description prop from PageHeader on collections page (removes 'Manage your collectible collections.')",
-        "New Collection button remains in the actions slot, right-aligned",
-        "Add new i18n keys to both en.json and pt.json: sort options (collections.sort.name, collections.sort.lastUpdated, collections.sort.mostItems, collections.sort.recentlyAdded), toolbar labels (collections.toolbar.filters, collections.toolbar.sortBy), view toggle tooltips (collections.view.grid, collections.view.list), time-ago patterns (collections.updated, collections.complete), 'Use as Cover' label",
+        "Update app-layout.tsx: responsive padding (px-4/py-4 mobile, px-4/py-6 tablet, px-6/py-6 desktop)",
+        "Update animated-outlet.tsx: enter y 12→0, 250ms springGentle; exit y 0→-8, 150ms ease-exit",
+        "Verify z-index layers: sidebar z-0, dropdowns z-50, sheet z-50, command palette z-50, toasts z-[100]",
+        "Update co-located tests",
         "Typecheck passes (npx tsc -b)",
         "Verify in browser using dev-browser skill"
       ],
       "priority": 8,
       "passes": true,
-      "notes": "i18n key collections.description can remain in locale files (no breaking change) but is no longer rendered."
+      "notes": "Spec: tasks/design-layout.md → Responsive Breakpoint Summary, Animated Page Transitions sections"
     },
     {
       "id": "US-009",
-      "title": "Build collection toolbar with search, type filter, and sort",
-      "description": "As a user, I want a unified toolbar with search, type filter, sort dropdown, and CTA button so I can efficiently browse collections.",
+      "title": "Redesign command palette",
+      "description": "As a user, I want a redesigned command palette with better search, result groups, and keyboard navigation.",
       "acceptanceCriteria": [
-        "Toolbar is a horizontal flex container below the page header",
-        "Contains: search input (max-width 420px, search icon), type filter dropdown, sort dropdown, New Collection button (right-aligned via ml-auto)",
-        "Search filters collections by name (existing debounced behavior preserved)",
-        "Type filter options: All Types (default), plus all collection types from API",
-        "Sort dropdown options: Name, Last Updated, Most Items, Recently Added — triggers server-side sort via API query params",
-        "Sort default: Name ascending",
-        "Sort preference (sortBy + sortDir) persisted to localStorage and restored on page load",
-        "New Collection button moves from header actions slot into the toolbar (right side)",
+        "Update command-palette.tsx: backdrop blur(8px), container at 25% from top, --radius-xl, --shadow-xl, 560px width",
+        "Search input: 52px height, Search icon, placeholder 'Search pages, collections, actions...'",
+        "Result groups: Navigation (static), Collections (dynamic), Recent Items (sessionStorage), Actions, Settings",
+        "Result items: 44px min-height, icon + label + description + keyboard hint",
+        "Selected state: bg-accent/10, text-accent",
+        "Footer hint bar with keyboard shortcuts (hidden on mobile)",
+        "Entrance: scale 0.95→1, y -8→0, 250ms springGentle; Exit: scale 1→0.97, 150ms ease-exit",
+        "Reduced motion: opacity only at 50ms",
+        "Update co-located tests",
+        "Add new i18n keys to both en.json and pt.json",
         "Typecheck passes (npx tsc -b)",
         "Verify in browser using dev-browser skill"
       ],
       "priority": 9,
       "passes": true,
-      "notes": "Uses i18n keys from US-008. Sort calls GET /api/collections?sortBy=X&sortDir=Y from US-004."
+      "notes": "Spec: tasks/design-layout.md → Command Palette section"
     },
     {
       "id": "US-010",
-      "title": "Collapsible mobile filter toolbar",
-      "description": "As a mobile user, I want filters hidden behind a Filters toggle so the toolbar doesn't consume too much vertical space.",
+      "title": "Redesign dashboard — greeting and stats row",
+      "description": "As a user, I want a time-aware greeting and redesigned stats row on the dashboard.",
       "acceptanceCriteria": [
-        "On mobile (< sm breakpoint): search input shown full-width; a Filters toggle button shown next to it",
-        "Tapping Filters reveals/hides the type filter + sort dropdown row with smooth animation",
-        "New Collection button remains always visible",
-        "On desktop (>= sm): all toolbar items shown inline, no toggle needed",
+        "Update dashboard-page.tsx: add time-aware greeting with user name and collection stats subtitle",
+        "Update stats-row.tsx: 5 stat cards (Collections, Items, Owned Copies, Total Value, Total Invested) with 40×40px icon containers, animated numbers, hover lift (-2px)",
+        "Stats grid: 5-col desktop → 3-col tablet → 2-col mobile (no orphan cards)",
+        "StaggerChildren entrance animation with 60ms stagger",
+        "Update co-located tests",
+        "Add new i18n keys to both en.json and pt.json",
         "Typecheck passes (npx tsc -b)",
         "Verify in browser using dev-browser skill"
       ],
       "priority": 10,
       "passes": true,
-      "notes": "Uses i18n key collections.toolbar.filters from US-008."
+      "notes": "Spec: tasks/design-pages.md → Dashboard section (Greeting, Stats Row)"
     },
     {
       "id": "US-011",
-      "title": "Build CollectionCoverCard component",
-      "description": "As a user, I want each collection displayed as a visual cover tile (Netflix-style) so I can visually identify collections at a glance.",
+      "title": "Redesign dashboard — charts section",
+      "description": "As a user, I want the dashboard charts to use the new design tokens and be legible in both light and dark modes.",
       "acceptanceCriteria": [
-        "New CollectionCoverCard component replaces current card markup",
-        "Card structure: full-bleed cover image (aspect-ratio 4/3, object-fit cover) with gradient overlay at bottom",
-        "Overlay contains: collection name (18px, semibold, white), metadata line (13px, white/85% opacity)",
-        "Gradient overlay: linear-gradient(transparent, rgba(0,0,0,0.7))",
-        "Fallback when no cover image: gradient placeholder with Library icon",
-        "Entire card is clickable — navigates to /collections/{id}",
-        "Card has border-radius 12px (rounded-xl) and overflow hidden",
-        "Remove: View button, CardFooter, CardContent wrapper, type Badge from card body",
-        "Cover images use loading='lazy' for off-screen cards",
+        "Update charts-section.tsx: donut pie chart (Items by Condition) + bar chart (Condition Breakdown)",
+        "All chart fills use hsl(var(--chart-N)) — no hardcoded hex colors",
+        "Custom chart tooltip styled with --card bg, --border, --radius-md, --shadow-md",
+        "2-column grid desktop, stacked on mobile",
+        "Chart card containers with --radius-lg, --shadow-sm",
+        "Update co-located tests",
         "Typecheck passes (npx tsc -b)",
         "Verify in browser using dev-browser skill"
       ],
       "priority": 11,
       "passes": true,
-      "notes": "Metadata line content depends on US-012. For now show '{count} items'."
+      "notes": "Spec: tasks/design-pages.md → Dashboard section (Charts)"
     },
     {
       "id": "US-012",
-      "title": "Card metadata line with completion % and relative time",
-      "description": "As a user, I want to see item count, completion percentage, and last updated time on each collection cover.",
+      "title": "Redesign dashboard — collection summaries and recent acquisitions",
+      "description": "As a user, I want redesigned collection summary cards and recent acquisitions table on the dashboard.",
       "acceptanceCriteria": [
-        "Metadata line in overlay: '{count} items · {percent}% complete · Updated {timeAgo}'",
-        "Time displayed as relative (e.g. '2 days ago', 'just now') using Intl.RelativeTimeFormat or lightweight utility",
-        "If updatedAt is null, show only item count and completion %",
-        "If ItemCount is 0, show '0 items' without completion %",
-        "Metadata styled: 13px, white text, 85% opacity",
+        "Update collection-summaries.tsx: 3-column card grid (max 6), cover image with gradient fallback (index % 4 rotation), hover lift, 'View all' link",
+        "Cards must have tabIndex={0}, role='link', onKeyDown for keyboard accessibility",
+        "Update recent-acquisitions.tsx: DataTable with condition badges, max 8 rows, responsive column hiding",
+        "Update co-located tests",
+        "Add new i18n keys to both en.json and pt.json",
         "Typecheck passes (npx tsc -b)",
         "Verify in browser using dev-browser skill"
       ],
       "priority": 12,
       "passes": true,
-      "notes": "Uses CompletionPercentage from backend US-005 and UpdatedAt from US-001. Do not add date-fns — use Intl.RelativeTimeFormat."
+      "notes": "Spec: tasks/design-pages.md → Dashboard section (Collection Summaries, Recent Acquisitions)"
     },
     {
       "id": "US-013",
-      "title": "Card hover interactions and quick actions",
-      "description": "As a user, I want hover feedback and quick action buttons on collection cover cards.",
+      "title": "Redesign dashboard — empty state and loading skeleton",
+      "description": "As a user, I want a polished empty state and matching loading skeletons on the dashboard.",
       "acceptanceCriteria": [
-        "On hover: card lifts with translateY(-4px) and increased box-shadow",
-        "On hover: quick action buttons appear over the cover (Open, Edit, three-dot menu)",
-        "Open navigates to collection detail, Edit opens the edit dialog",
-        "Three-dot menu provides Delete option (existing behavior)",
-        "Quick actions have a semi-transparent backdrop for readability",
-        "On touch devices, the three-dot menu is always visible",
-        "Transition duration ~200ms ease",
+        "Add empty state to dashboard: Sparkles icon, message, CTA to create first collection, keyboard hint",
+        "StaggerChildren reveal animation on empty state",
+        "Add loading skeleton layout matching final content structure (greeting skeleton, stats skeleton row, chart skeletons, summaries skeleton grid)",
+        "Skeleton pulse uses custom keyframe (not Tailwind animate-pulse)",
+        "Ensure all dashboard sub-sections show EmptyState component instead of returning null",
+        "Update co-located tests",
+        "Add new i18n keys to both en.json and pt.json",
         "Typecheck passes (npx tsc -b)",
         "Verify in browser using dev-browser skill"
       ],
       "priority": 13,
       "passes": true,
-      "notes": ""
+      "notes": "Spec: tasks/design-pages.md → Dashboard section (Empty State, Loading State)"
     },
     {
       "id": "US-014",
-      "title": "Responsive grid layout",
-      "description": "As a user, I want the collection grid to show 3 columns on desktop, 2 on tablet, and 1 on mobile.",
+      "title": "Redesign collections list page — grid view and toolbar",
+      "description": "As a user, I want the collections page grid view and toolbar redesigned with the Warm Obsidian visual identity.",
       "acceptanceCriteria": [
-        "Grid container uses CSS grid with repeat(auto-fill, minmax(320px, 1fr)) and gap 24px",
-        "Effectively shows ~3 cols desktop, ~2 tablet, 1 mobile",
-        "Page padding 32px or equivalent Tailwind spacing",
-        "Stagger animation preserved (Framer Motion StaggerChildren)",
+        "Update collections-page.tsx: toolbar with search, type filter, sort select, view toggle (grid/list), create button",
+        "Grid view cards: 4:3 aspect ratio, cover image full-bleed, gradient metadata overlay, collection type badge, hover effects (-4px lift, shadow-lg, amber border glow, image zoom via CSS transition)",
+        "Action buttons: frosted glass circles, sm:opacity-0 sm:group-hover:opacity-100 (always visible on mobile)",
+        "Gradient fallback: index % 4 rotation through 4 warm gradients",
+        "Cards use --radius-xl (16px)",
+        "Responsive: 3-col desktop, 2-col tablet, 1-col mobile",
+        "Update co-located tests",
+        "Add new i18n keys to both en.json and pt.json",
         "Typecheck passes (npx tsc -b)",
         "Verify in browser using dev-browser skill"
       ],
       "priority": 14,
       "passes": true,
-      "notes": ""
+      "notes": "Spec: tasks/design-pages.md → Collections List section"
     },
     {
       "id": "US-015",
-      "title": "Grid vs list view toggle",
-      "description": "As a user, I want to switch between a visual cover grid and a compact list view.",
+      "title": "Redesign collections list page — list view, dialogs, and states",
+      "description": "As a user, I want redesigned list view, create/edit dialogs, and empty/loading states for the collections page.",
       "acceptanceCriteria": [
-        "Toggle button (grid icon / list icon) in the toolbar, next to sort dropdown",
-        "Grid view: cover tile layout (default)",
-        "List view: compact table/row layout using DataTable DS component showing collection name, type, item count, updated date",
-        "Active view persisted to localStorage (key: collections-view-mode), restored on page load",
-        "Default: grid view",
+        "List view: DataTable with 40×40px thumbnail in name column, type, items count, last updated",
+        "Create/edit dialog: form with name, description, type select (required), cover image dropzone with live preview",
+        "Delete confirmation dialog with destructive button styling",
+        "Empty state: icon, message, CTA to create first collection",
+        "Drag-to-reorder: ring-2 ring-accent, shadow-xl, scale 1.02 (only when sort = 'custom')",
+        "No results state for search with no matches",
+        "Loading skeleton matching grid layout",
+        "Update co-located tests",
+        "Add new i18n keys to both en.json and pt.json",
         "Typecheck passes (npx tsc -b)",
         "Verify in browser using dev-browser skill"
       ],
       "priority": 15,
       "passes": true,
-      "notes": ""
+      "notes": "Spec: tasks/design-pages.md → Collections List section (List View, Create/Edit Dialog, Delete, Empty State, Drag)"
     },
     {
       "id": "US-016",
-      "title": "Skeleton loading state for cover grid",
-      "description": "As a user, I want skeleton placeholders that match the new cover card shape while collections load.",
+      "title": "Redesign collection detail page — header and tabs",
+      "description": "As a user, I want a redesigned collection detail page with cover banner, metadata overlay, and tab navigation.",
       "acceptanceCriteria": [
-        "Loading state shows 6 skeleton cards in the same grid layout",
-        "Each skeleton: aspect-ratio 4/3, rounded-xl, animated pulse",
-        "Skeleton includes faint overlay area at bottom to mimic text placement",
+        "Update collection-detail-page.tsx: back navigation (ghost button with arrow), cover image banner (240px desktop, 192px tablet, 160px mobile) with gradient overlay (bg-gradient-to-t from-black/70 via-black/30 to-transparent)",
+        "Metadata overlay: collection name, description, stats (items, value, completion %)",
+        "Gradient fallback: collection.id % 4",
+        "Action buttons: frosted glass (bg-white/20 backdrop-blur-sm border-white/30 text-white hover:bg-white/30), mobile moves below banner",
+        "Tab navigation: All Items, Sets, Stats tabs with amber underline indicator",
+        "Tab content animation: fade + small y shift (lightweight for frequent switching)",
+        "Update co-located tests",
+        "Add new i18n keys to both en.json and pt.json",
         "Typecheck passes (npx tsc -b)",
         "Verify in browser using dev-browser skill"
       ],
       "priority": 16,
-      "passes": true,
-      "notes": ""
+      "passes": false,
+      "notes": "Spec: tasks/design-pages.md → Collection Detail section (Header, Tabs)"
     },
     {
       "id": "US-017",
-      "title": "Add Use as Cover option to catalog item context menu",
-      "description": "As a user, I want to pick a catalog item's image as the collection cover from the collection detail page.",
+      "title": "Redesign collection detail page — items tab content",
+      "description": "As a user, I want redesigned item grid/list views, search/filter toolbar, and add item dialog in the collection detail items tab.",
       "acceptanceCriteria": [
-        "On the collection detail page: add 'Use as Cover' option to the catalog item's context menu / three-dot dropdown",
-        "Clicking 'Use as Cover' calls POST /api/collections/{id}/cover-from-item/{itemId} from US-006",
-        "Shows success toast on completion",
-        "Collection cover updates immediately in the detail page header",
+        "Items tab: search and filter toolbar (search input, condition filter, sort), grid/list view toggle, add item + import/export buttons",
+        "Item grid cards: image, name, key attributes, condition badge, --radius-lg (12px)",
+        "Item list view: DataTable with thumbnail, name, condition, rarity, actions",
+        "Add item dialog: form with identifier, name, description, release date, manufacturer, reference code, rarity, image upload, custom fields",
+        "Empty state for no items",
+        "Drag-to-reorder for items when sort = 'custom'",
+        "Update co-located tests",
+        "Add new i18n keys to both en.json and pt.json",
         "Typecheck passes (npx tsc -b)",
         "Verify in browser using dev-browser skill"
       ],
       "priority": 17,
-      "passes": true,
-      "notes": "Uses the API endpoint from US-006."
+      "passes": false,
+      "notes": "Spec: tasks/design-pages.md → Collection Detail section (Items Tab)"
     },
     {
       "id": "US-018",
-      "title": "Drag-to-reorder collections in grid view",
-      "description": "As a user, I want to drag collections to reorder them in the grid view.",
+      "title": "Redesign collection detail page — sets tab and stats tab",
+      "description": "As a user, I want redesigned sets tab with accordion cards and stats tab with charts in the collection detail page.",
       "acceptanceCriteria": [
-        "Wrap grid in SortableList component (already exists in DS) in grid view only",
-        "Drag handle visible on hover (GripVertical icon, same as collection-detail-page items)",
-        "Reorder calls POST /api/collections/reorder from US-007 with optimistic UI update and rollback on error",
-        "When user selects an explicit sort option (name, updatedAt, etc.), drag reorder is disabled and a visual indicator shows sorting is active",
-        "Drag-to-reorder disabled in list view",
+        "Sets tab: expandable accordion cards with completion progress, item checklist, add-to-wishlist on missing items",
+        "Set completion color thresholds: <50% muted, 50-99% accent, 100% success",
+        "Accordion expand uses Framer Motion height animation",
+        "Stats tab: StatCards and charts (condition breakdown, rarity distribution) reusing dashboard chart patterns",
+        "Charts use hsl(var(--chart-N)) fills",
+        "Update co-located tests",
+        "Add new i18n keys to both en.json and pt.json",
         "Typecheck passes (npx tsc -b)",
         "Verify in browser using dev-browser skill"
       ],
       "priority": 18,
-      "passes": true,
-      "notes": "Uses SortableList from DS and reorder endpoint from US-007."
+      "passes": false,
+      "notes": "Spec: tasks/design-pages.md → Collection Detail section (Sets Tab, Stats Tab)"
     },
     {
       "id": "US-019",
-      "title": "Update existing tests for new collections page UI",
-      "description": "As a developer, I need existing tests updated and new tests added for the redesigned collections page.",
+      "title": "Redesign catalog item detail page — hero and metadata",
+      "description": "As a user, I want a redesigned catalog item detail page with hero layout, breadcrumbs, and metadata grid.",
       "acceptanceCriteria": [
-        "All existing test scenarios in collections-page.test.tsx updated to work with new markup",
-        "Tests cover: cover card rendering, card click navigation, hover quick actions, toolbar search/filter/sort, empty state, create/edit/delete dialogs",
-        "New test for sort dropdown triggering API call with query params",
-        "New test for mobile filter toggle",
-        "New test for grid/list view toggle and localStorage persistence",
-        "New test for completion percentage display on card",
-        "New test for drag-to-reorder (SortableList interaction)",
-        "All frontend tests pass (npm test)",
-        "Typecheck passes (npx tsc -b)"
+        "Update catalog-item-detail-page.tsx: breadcrumb trail (Collections > Collection Name > Item Name) — this is the only page with breadcrumbs",
+        "Hero layout: 5-column grid, 2/5 for square image (with warm fallback), 3/5 for identity panel",
+        "Identity panel: name (h1), identifier, action buttons (edit, delete, add copy)",
+        "Metadata grid: manufacturer, release date, reference code, rarity (3-col desktop, 1-col mobile)",
+        "Custom fields card: collection-type-specific fields displayed conditionally",
+        "Set membership indicator: callout cards showing which sets item belongs to with completion badges",
+        "Update co-located tests",
+        "Add new i18n keys to both en.json and pt.json",
+        "Typecheck passes (npx tsc -b)",
+        "Verify in browser using dev-browser skill"
       ],
       "priority": 19,
-      "passes": true,
-      "notes": ""
+      "passes": false,
+      "notes": "Spec: tasks/design-pages.md → Catalog Item Detail section"
+    },
+    {
+      "id": "US-020",
+      "title": "Redesign catalog item detail page — owned copies section",
+      "description": "As a user, I want redesigned owned copy cards, add/edit dialogs, and image management in the catalog item detail page.",
+      "acceptanceCriteria": [
+        "Owned copies section: grid of copy cards with condition badge (3-tier: Mint/NearMint→success, Excellent/Good→primary, Fair/Poor→warning)",
+        "Copy card: flat design (no lift on hover, just shadow-md), financial values with tabular-nums, notes, image thumbnails (max 4 + overflow badge)",
+        "Action buttons: sm:opacity-0 sm:group-hover:opacity-100 group-focus-within:opacity-100",
+        "Add/edit copy dialog: condition select with color indicators, date picker, price input with currency prefix, notes textarea, multi-image upload zone",
+        "Image upload zone: drag-and-drop, preview grid (grid-cols-4 sm:grid-cols-5), reorder via @dnd-kit, file validation",
+        "Delete copy confirmation with image count warning",
+        "Empty state for no copies",
+        "Update co-located tests",
+        "Add new i18n keys to both en.json and pt.json",
+        "Typecheck passes (npx tsc -b)",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 20,
+      "passes": false,
+      "notes": "Spec: tasks/design-pages.md → Catalog Item Detail section (Owned Copies), Owned Copies section"
+    },
+    {
+      "id": "US-021",
+      "title": "Create image gallery lightbox component",
+      "description": "As a developer, I need a reusable image gallery lightbox DS component for viewing owned copy images.",
+      "acceptanceCriteria": [
+        "Create src/web/src/components/ds/image-gallery-lightbox.tsx: full-screen overlay using createPortal",
+        "Navigation arrows (hidden on mobile — swipe only), close button, image counter, dot indicators",
+        "Keyboard navigation: left/right arrows, Escape to close",
+        "Focus trap: focus stays in lightbox, returns to trigger thumbnail on close",
+        "Direction-aware slide transitions",
+        "Backdrop: black/90 with blur",
+        "Reduced motion: instant image swap (no slide)",
+        "Export from components/ds/index.ts",
+        "Create co-located test file",
+        "Add new i18n keys to both en.json and pt.json",
+        "Typecheck passes (npx tsc -b)"
+      ],
+      "priority": 21,
+      "passes": false,
+      "notes": "Spec: tasks/design-pages.md → Owned Copies section (Image Gallery Lightbox)"
+    },
+    {
+      "id": "US-022",
+      "title": "Create set progress ring component",
+      "description": "As a developer, I need a reusable SVG progress ring DS component for visualizing set completion.",
+      "acceptanceCriteria": [
+        "Create src/web/src/components/ds/set-progress-ring.tsx: SVG-based circular progress ring",
+        "Two sizes: 36×36px (card) and 64×64px (hero)",
+        "stroke-dasharray calculation: fill = (percentage/100) × circumference",
+        "Rotate -90deg to start at 12 o'clock",
+        "Color tiers: <50% muted, 50-99% accent, 100% success with glow (filter: drop-shadow)",
+        "100% completion: one-time scale pulse via Framer Motion spring",
+        "CSS transition for smooth fill animation",
+        "Reduced motion: instant fill (no animation)",
+        "Export from components/ds/index.ts",
+        "Create co-located test file",
+        "Typecheck passes (npx tsc -b)"
+      ],
+      "priority": 22,
+      "passes": false,
+      "notes": "Spec: tasks/design-pages.md → Sets section (Completion Visualization)"
+    },
+    {
+      "id": "US-023",
+      "title": "Redesign sets page",
+      "description": "As a user, I want redesigned set cards with progress rings, accordion expand, and wishlist integration.",
+      "acceptanceCriteria": [
+        "Set cards use SetProgressRing component; collapsed: chevron, name, fraction count, progress ring, action buttons (edit, delete)",
+        "Expanded: item checklist with owned (solid border, green left stripe) vs missing (dashed border, bg-card/50) visual distinction",
+        "Missing items: Heart button 'Add to Wishlist' with optimistic UI (button → 'Added' → 'In Wishlist' disabled)",
+        "Chevron rotation: single ChevronDown icon + Framer Motion rotate (-90° collapsed, 0° expanded)",
+        "Empty states: no sets, no items, all owned celebration",
+        "Update co-located tests",
+        "Add new i18n keys to both en.json and pt.json",
+        "Typecheck passes (npx tsc -b)",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 23,
+      "passes": false,
+      "notes": "Spec: tasks/design-pages.md → Sets section. Sets are displayed within collection detail page (Sets tab)."
+    },
+    {
+      "id": "US-024",
+      "title": "Redesign wishlist page",
+      "description": "As a user, I want a redesigned wishlist with collapsible collection groups, priority badges, and drag-to-reorder.",
+      "acceptanceCriteria": [
+        "Update wishlist-page.tsx: page header with title + add button",
+        "Filter/sort toolbar: priority filter, sort by (priority/price/name/date), date range filter, item count",
+        "Collection groups: collapsible sections with chevron rotation animation, item count badge",
+        "Wishlist cards: drag handle, name, priority badge (High→destructive, Medium→accent, Low→muted), target price, notes preview (2-line clamp), catalog link, actions dropdown",
+        "Cards: subtle hover:shadow-md (no translate lift — data cards, not destinations)",
+        "Create/edit dialog: collection select, name, priority + target price grid, notes textarea, catalog item link search",
+        "Drag-to-reorder within collection groups",
+        "Empty state: Heart icon, encouraging message, add button",
+        "No results state: Search icon, filter hint",
+        "Update co-located tests",
+        "Add new i18n keys to both en.json and pt.json",
+        "Typecheck passes (npx tsc -b)",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 24,
+      "passes": false,
+      "notes": "Spec: tasks/design-pages.md → Wishlist section. Group collapse state NOT persisted (all expanded on load)."
+    },
+    {
+      "id": "US-025",
+      "title": "Redesign collection types page",
+      "description": "As a user, I want a redesigned collection types page with icon heroes, custom field badges, and two-tab create/edit dialog.",
+      "acceptanceCriteria": [
+        "Update collection-types-page.tsx: card grid with icon hero (40×40px container), name, description, custom field type badges (color-coded), usage count",
+        "Cards: no lift on hover (management cards) — just border + shadow shift",
+        "Two-tab create/edit dialog: General (icon picker grid popover from 25 Lucide icons, name, description) + Custom Fields (draggable field rows, type select, enum options tag editor)",
+        "Delete confirmation with usage warning if type is used by collections",
+        "Field limit: max 10 custom fields, add button disabled at limit",
+        "Responsive: 4-col desktop, 3-col tablet, 2-col mobile, 1-col small",
+        "Update co-located tests",
+        "Add new i18n keys to both en.json and pt.json",
+        "Typecheck passes (npx tsc -b)",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 25,
+      "passes": false,
+      "notes": "Spec: tasks/design-pages.md → Collection Types section"
+    },
+    {
+      "id": "US-026",
+      "title": "Redesign profile page",
+      "description": "As a user, I want a redesigned profile page with card-per-section layout, avatar management, and visual theme toggles.",
+      "acceptanceCriteria": [
+        "Update profile-page.tsx: card-per-section layout (new pattern, replacing flat form)",
+        "2-column grid on desktop (1/3 avatar card, 2/3 form cards), single column on mobile",
+        "Avatar card: 96×96px image with hover upload overlay, user name, email",
+        "Account Info card: editable display name, read-only email with lock icon",
+        "About card: bio textarea",
+        "Preferences card: language + currency selects (2-column grid)",
+        "Appearance card: 3 visual theme toggles (Light/Dark/System with icons) — applies immediately via context",
+        "Save button: right-aligned desktop, sticky bottom mobile",
+        "Loading skeleton matching final structure",
+        "Update co-located tests",
+        "Add new i18n keys to both en.json and pt.json",
+        "Typecheck passes (npx tsc -b)",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 26,
+      "passes": false,
+      "notes": "Spec: tasks/design-pages.md → Profile section"
+    },
+    {
+      "id": "US-027",
+      "title": "Redesign auth pages (login + register)",
+      "description": "As a user, I want beautiful auth pages with a split-screen layout and premium first impression.",
+      "acceptanceCriteria": [
+        "Update auth-layout.tsx: split-screen layout — 55% decorative panel (left) + 45% form panel (right)",
+        "Decorative panel: bg-stone-900, layered radial gradients with amber tones, floating blurred circles (CSS @keyframes float, 20s duration, staggered delays), brand content (icon, 'GeekVault', tagline)",
+        "Decorative panel hidden below lg: breakpoint — replaced by compact brand header above form on mobile",
+        "Update login-page.tsx: 'Welcome back' title, email + password fields, submit with loading state, error banner, register link",
+        "Update register-page.tsx: 'Create your vault' title, display name + email + password fields, submit with loading state, error banner, login link",
+        "No hardcoded gradient colors — use CSS variables where possible, stone scale for non-variable colors",
+        "Update co-located tests",
+        "Add new i18n keys to both en.json and pt.json",
+        "Typecheck passes (npx tsc -b)",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 27,
+      "passes": false,
+      "notes": "Spec: tasks/design-pages.md → Auth Pages section"
+    },
+    {
+      "id": "US-028",
+      "title": "Add role-based identity system",
+      "description": "As a platform owner, I need role-based access control so that admin features are restricted to authorized users.",
+      "acceptanceCriteria": [
+        "Change ApplicationDbContext from IdentityUserContext<User> to IdentityDbContext<User, IdentityRole, string>",
+        "Create EF Core migration to add role tables (AspNetRoles, AspNetUserRoles, AspNetRoleClaims)",
+        "Update ServiceCollectionExtensions: change AddIdentityCore<User>() to AddIdentityCore<User>().AddRoles<IdentityRole>().AddEntityFrameworkStores<ApplicationDbContext>()",
+        "Add authorization policy: builder.Services.AddAuthorizationBuilder().AddPolicy('AdminOnly', p => p.RequireRole('Admin'))",
+        "Update AuthService JWT generation: add ClaimTypes.Role claim from user's roles",
+        "Seed Admin and User roles on startup via backend data seeding",
+        "Add GET /api/auth/me enhancement: include role in the response DTO",
+        "Integration tests: verify admin role assignment, JWT includes role claim, admin policy rejects non-admin users",
+        "dotnet build and dotnet test pass"
+      ],
+      "priority": 28,
+      "passes": false,
+      "notes": "Current state: No role field on User entity, no role tables in DB. JWT tokens contain only NameIdentifier, Email, Jti. IdentityUserContext must become IdentityDbContext to restore role support."
+    },
+    {
+      "id": "US-029",
+      "title": "Create audit log entity and infrastructure",
+      "description": "As a developer, I need the audit log entity, repository, and service created as infrastructure for logging system activity.",
+      "acceptanceCriteria": [
+        "Create Entities/Admin/AuditLog.cs: Id (int), Timestamp (DateTime), UserId (string, FK), Action (string), TargetType (string), TargetId (string, nullable), Details (string, JSON), IpAddress (string, nullable)",
+        "Add DbSet<AuditLog> to ApplicationDbContext; create EF Core migration",
+        "Create IAuditLogRepository + AuditLogRepository with methods: LogAsync, GetPagedAsync(filter, page, pageSize), GetAllFilteredAsync(filter) for CSV export",
+        "Create IAuditLogService + AuditLogService with LogActionAsync(userId, action, targetType, targetId, details, ipAddress)",
+        "Register in DI (ServiceCollectionExtensions)",
+        "Integration tests for audit log creation",
+        "dotnet build and dotnet test pass"
+      ],
+      "priority": 29,
+      "passes": false,
+      "notes": "This story creates the infrastructure only. Wiring into existing services happens in US-030."
+    },
+    {
+      "id": "US-030",
+      "title": "Wire audit logging into existing services",
+      "description": "As an admin, I need all CRUD operations and auth events automatically logged to the audit trail.",
+      "acceptanceCriteria": [
+        "Wire audit logging into CollectionsService: create, update, delete actions",
+        "Wire audit logging into CatalogItemsService: create, update, delete actions",
+        "Wire audit logging into OwnedCopiesService: create, delete actions",
+        "Wire audit logging into SetsService: create, update, delete actions",
+        "Wire audit logging into WishlistService: create, update, delete actions",
+        "Wire audit logging into AuthService: Login (success/failure), Register",
+        "Integration tests verifying audit entries are created for CRUD operations",
+        "dotnet build and dotnet test pass"
+      ],
+      "priority": 30,
+      "passes": false,
+      "notes": "Depends on US-029. Inject IAuditLogService into each existing service."
+    },
+    {
+      "id": "US-031",
+      "title": "Create system settings infrastructure",
+      "description": "As an admin, I need configurable system settings stored in the database with seeded defaults.",
+      "acceptanceCriteria": [
+        "Create Entities/Admin/SystemSetting.cs: Id (int), Key (string, unique), Value (string), Category (string), UpdatedAt (DateTime), UpdatedById (string, FK)",
+        "Add DbSet<SystemSetting> to ApplicationDbContext; create EF Core migration",
+        "Create ISystemSettingsRepository + SystemSettingsRepository: GetByCategoryAsync, GetByKeyAsync, UpsertAsync, GetAllAsync",
+        "Create ISystemSettingsService + SystemSettingsService: GetSettingsByCategory, UpdateSettings",
+        "Seed default settings on startup: General (appName, language, currency), Security (minPasswordLength, requireUppercase, requireNumber, requireSpecial, sessionTimeoutMinutes, registrationEnabled), Features (wishlistEnabled, importExportEnabled, imageUploadsEnabled, publicProfilesEnabled, valueTrackingEnabled), Storage (maxUploadSizeMb, allowedFileTypes)",
+        "Register in DI",
+        "Integration tests for settings CRUD",
+        "dotnet build and dotnet test pass"
+      ],
+      "priority": 31,
+      "passes": false,
+      "notes": "Spec: tasks/design-admin.md → System Settings"
+    },
+    {
+      "id": "US-032",
+      "title": "Implement admin user management API",
+      "description": "As an admin, I need API endpoints to manage platform users — list, view, change roles, disable accounts.",
+      "acceptanceCriteria": [
+        "Create Controllers/Admin/AdminUsersController.cs (minimal API style, MapAdminUsersEndpoints())",
+        "All endpoints require .RequireAuthorization('AdminOnly')",
+        "GET /api/admin/users — paginated, searchable (name/email), filterable (role, status), sortable",
+        "GET /api/admin/users/{id} — user detail with collection stats (count, total items, total value)",
+        "PUT /api/admin/users/{id}/role — change role (Admin/User); prevent removing last admin",
+        "PUT /api/admin/users/{id}/status — enable/disable user (add IsDisabled bool to User entity + migration)",
+        "DELETE /api/admin/users/{id} — soft-delete (IsDeleted + DeletedAt on User entity); prevent self-deletion",
+        "Create DTOs, IAdminUsersRepository + AdminUsersRepository, IAdminUsersService + AdminUsersService",
+        "All actions logged via AuditLogService",
+        "Integration tests for all endpoints (happy path + authorization + edge cases)",
+        "dotnet build and dotnet test pass"
+      ],
+      "priority": 32,
+      "passes": false,
+      "notes": "Spec: tasks/design-admin.md → User Management. Soft-deleted users excluded from queries by default."
+    },
+    {
+      "id": "US-033",
+      "title": "Implement admin system settings API",
+      "description": "As an admin, I need API endpoints to read and update system settings by category.",
+      "acceptanceCriteria": [
+        "Create Controllers/Admin/AdminSettingsController.cs",
+        "All endpoints require .RequireAuthorization('AdminOnly')",
+        "GET /api/admin/settings — returns all settings grouped by category",
+        "GET /api/admin/settings/{category} — returns settings for one category",
+        "PUT /api/admin/settings/{category} — update settings for a category (validates known keys, rejects unknown)",
+        "Create DTOs: SettingsCategoryResponse, UpdateSettingsRequest",
+        "Settings changes logged via AuditLogService with before/after values in details",
+        "Integration tests for CRUD + authorization",
+        "dotnet build and dotnet test pass"
+      ],
+      "priority": 33,
+      "passes": false,
+      "notes": "Spec: tasks/design-admin.md → System Settings"
+    },
+    {
+      "id": "US-034",
+      "title": "Implement admin analytics API",
+      "description": "As an admin, I need analytics endpoints to view platform usage statistics and growth trends.",
+      "acceptanceCriteria": [
+        "Create Controllers/Admin/AdminAnalyticsController.cs",
+        "All endpoints require .RequireAuthorization('AdminOnly')",
+        "GET /api/admin/analytics/stats?range=30d — Total Users, Active Users (within range), Total Collections, Total Items",
+        "GET /api/admin/analytics/growth?range=30d — daily user signups and collections created grouped by day",
+        "GET /api/admin/analytics/usage?range=30d — most active users (top 5), largest collections (top 5), popular collection types",
+        "Range parameter: 7d, 30d, 90d, all (default 30d)",
+        "Create DTOs, IAdminAnalyticsRepository + AdminAnalyticsRepository, IAdminAnalyticsService + AdminAnalyticsService",
+        "Integration tests for all endpoints with range filtering",
+        "dotnet build and dotnet test pass"
+      ],
+      "priority": 34,
+      "passes": false,
+      "notes": "Spec: tasks/design-admin.md → Analytics Dashboard"
+    },
+    {
+      "id": "US-035",
+      "title": "Implement admin audit log API",
+      "description": "As an admin, I need to query, filter, and export the audit log via API endpoints.",
+      "acceptanceCriteria": [
+        "Create Controllers/Admin/AdminAuditLogController.cs",
+        "All endpoints require .RequireAuthorization('AdminOnly')",
+        "GET /api/admin/audit-log — paginated, filterable: search, action type, userId, fromDate, toDate; sortable by timestamp (desc default)",
+        "GET /api/admin/audit-log/{id} — single entry detail with full metadata",
+        "GET /api/admin/audit-log/export?format=csv — returns CSV of all filtered entries, filename geekvault-audit-log-{yyyy-MM-dd}.csv",
+        "Create DTOs: AuditLogEntryResponse, AuditLogListResponse, AuditLogFilterRequest",
+        "Integration tests for pagination, filtering, and CSV export",
+        "dotnet build and dotnet test pass"
+      ],
+      "priority": 35,
+      "passes": false,
+      "notes": "Spec: tasks/design-admin.md → Audit Log"
+    },
+    {
+      "id": "US-036",
+      "title": "Implement admin layout and sidebar context switch",
+      "description": "As an admin, I want the sidebar to context-switch to admin navigation when on /admin routes.",
+      "acceptanceCriteria": [
+        "Update sidebar: define adminNavGroups alongside navGroups, switch based on location.pathname.startsWith('/admin')",
+        "Admin nav items: Back to GeekVault (header link), Management group (Users, Settings), Insights group (Analytics, Audit Log)",
+        "AnimatePresence fast fade (100ms) on nav group container",
+        "Visual differentiation: sidebar 'ADMIN' badge (Shield icon), toolbar admin pill badge (amber-tinted)",
+        "Mobile header text: 'Admin' instead of 'GeekVault' when on admin routes",
+        "Route guard: redirect non-admin users silently to / (no toast)",
+        "/admin redirects to /admin/users",
+        "Create src/web/src/features/admin/ directory; add routes to App.tsx",
+        "Add new i18n keys to both en.json and pt.json",
+        "Typecheck passes (npx tsc -b)",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 36,
+      "passes": false,
+      "notes": "Spec: tasks/design-admin.md → Admin Layout & Navigation section"
+    },
+    {
+      "id": "US-037",
+      "title": "Implement admin user management page",
+      "description": "As an admin, I want a user management page with search, filter, detail panel, and role/status management.",
+      "acceptanceCriteria": [
+        "Create src/web/src/features/admin/users-page.tsx",
+        "DataTable: avatar+name+email, role badge (Admin→accent, User→secondary), status dot (Active→success, Disabled→muted), last active, actions dropdown",
+        "56px row height, hover overlay, click opens user detail Sheet (sm:max-w-md)",
+        "Search + filter bar (debounced search, role, status); result count",
+        "User detail Sheet: profile info, collection stats, action buttons",
+        "Confirmation dialogs: role change, enable/disable, delete (typed name required)",
+        "Pagination: summary + page controls + page size",
+        "Empty/no-results states; responsive column hiding",
+        "Create co-located test",
+        "Add new i18n keys to both en.json and pt.json",
+        "Typecheck passes (npx tsc -b)",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 37,
+      "passes": false,
+      "notes": "Spec: tasks/design-admin.md → User Management section"
+    },
+    {
+      "id": "US-038",
+      "title": "Implement admin system settings page",
+      "description": "As an admin, I want a settings page with card-per-section layout and independent save per section.",
+      "acceptanceCriteria": [
+        "Create src/web/src/features/admin/settings-page.tsx",
+        "Card-per-section (General, Security, Features, Storage), max-w-3xl centered",
+        "Independent save per section with unsaved amber dot",
+        "General: app name, description, language, currency",
+        "Security: password length, uppercase/number/special toggles, session timeout, registration toggle",
+        "Features: 5 toggle flags with descriptions",
+        "Storage: max upload size, file type checkboxes",
+        "beforeunload for unsaved changes; toasts; inline validation; loading skeletons",
+        "Create co-located test",
+        "Add new i18n keys to both en.json and pt.json",
+        "Typecheck passes (npx tsc -b)",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 38,
+      "passes": false,
+      "notes": "Spec: tasks/design-admin.md → System Settings section"
+    },
+    {
+      "id": "US-039",
+      "title": "Implement admin analytics dashboard page",
+      "description": "As an admin, I want an analytics dashboard with stat cards, growth charts, and usage breakdowns.",
+      "acceptanceCriteria": [
+        "Create src/web/src/features/admin/analytics-page.tsx",
+        "Time range segmented control (7d, 30d, 90d, All) in URL params, default 30d",
+        "4 StatCards (Total Users, Active Users, Total Collections, Total Items)",
+        "Growth charts (2-col): user signups line (--chart-1), collections bar (--chart-2)",
+        "Usage (3-col): most active users table, largest collections table, collection types horizontal bar",
+        "hsl(var(--chart-N)) for all charts; custom tooltip",
+        "Loading skeletons; individual empty states; responsive grid collapse",
+        "Create co-located test",
+        "Add new i18n keys to both en.json and pt.json",
+        "Typecheck passes (npx tsc -b)",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 39,
+      "passes": false,
+      "notes": "Spec: tasks/design-admin.md → Analytics Dashboard section"
+    },
+    {
+      "id": "US-040",
+      "title": "Implement admin audit log page",
+      "description": "As an admin, I want an audit log page with filtering, detail expansion, and CSV export.",
+      "acceptanceCriteria": [
+        "Create src/web/src/features/admin/audit-log-page.tsx",
+        "Filter bar: search, action type select, user combobox, date range, CSV export button",
+        "DataTable: timestamp, user (avatar+name), action badge (color-coded), target, details",
+        "Row click: inline accordion expansion (AnimatePresence, 200ms)",
+        "Detail panel: event metadata, changes mini-table (field, before w/ line-through, after w/ font-medium)",
+        "Server-side pagination; CSV export (geekvault-audit-log-{YYYY-MM-DD}.csv)",
+        "Responsive column hiding; stacking filters; empty/no-results states",
+        "Create co-located test",
+        "Add new i18n keys to both en.json and pt.json",
+        "Typecheck passes (npx tsc -b)",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 40,
+      "passes": false,
+      "notes": "Spec: tasks/design-admin.md → Audit Log section"
+    },
+    {
+      "id": "US-041",
+      "title": "Global accessibility and dark mode audit",
+      "description": "As a developer, I need to audit and fix all accessibility and dark mode issues across the entire app.",
+      "acceptanceCriteria": [
+        "Replace all :focus with :focus-visible in CSS and component classes",
+        "Add aria-label to all icon-only buttons across all pages",
+        "Add tabIndex={0}, role, onKeyDown to all clickable divs",
+        "Verify WCAG AA contrast on all text/accent combos in both modes",
+        "Verify no hardcoded colors remain (grep for hex, rgb(), hsl() without var())",
+        "Verify dark mode on every page — no invisible elements, proper shadows, chart legibility",
+        "Test prefers-reduced-motion: reduce — no transforms, spinners work",
+        "Typecheck passes (npx tsc -b)",
+        "All tests pass (npm test)"
+      ],
+      "priority": 41,
+      "passes": false,
+      "notes": "Spec: tasks/design-audit.md → Accessibility Gaps, Dark Mode Assessment"
+    },
+    {
+      "id": "US-042",
+      "title": "Final cross-page consistency review",
+      "description": "As a developer, I need to verify consistency across all pages and run the full test/build suite.",
+      "acceptanceCriteria": [
+        "Section spacing consistent: --space-8 desktop, --space-6 mobile across all pages",
+        "Empty states use EmptyState component consistently (no pages returning null)",
+        "Card radius: --radius-xl for collection gallery, --radius-lg for others",
+        "Hover patterns: lift on navigable cards, shadow-only on data cards",
+        "Skeleton loading uses custom pulse keyframe everywhere",
+        "All chart fills use hsl(var(--chart-N))",
+        "All UI strings in both en.json and pt.json",
+        "Run npm test — all pass",
+        "Run npm run test:coverage — 90% line coverage",
+        "Run npx tsc -b — zero errors",
+        "Run dotnet test — all pass",
+        "Run dotnet build — success"
+      ],
+      "priority": 42,
+      "passes": false,
+      "notes": "Spec: All design documents. Performance budget: LCP < 2.5s, TBT < 200ms, CLS < 0.1."
     }
   ]
 }

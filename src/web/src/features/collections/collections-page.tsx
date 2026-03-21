@@ -8,6 +8,7 @@ import {
   Trash2,
   Library,
   Search,
+  SearchX,
   Upload,
   Loader2,
   ArrowUpDown,
@@ -522,8 +523,12 @@ export default function Collections() {
 
           {/* Collection cards grid / list */}
           {filteredCollections.length === 0 ? (
-            <div className="mt-12 text-center text-muted-foreground">
-              {t("collections.noResults")}
+            <div className="mt-16 flex flex-col items-center text-center">
+              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-muted">
+                <SearchX className="h-7 w-7 text-muted-foreground" />
+              </div>
+              <p className="mt-4 text-sm font-medium text-foreground">{t("collections.noResults")}</p>
+              <p className="mt-1 text-sm text-muted-foreground">{t("collections.noResultsHint")}</p>
             </div>
           ) : viewMode === "grid" ? (
             /* v8 ignore start -- grid view with optional drag-to-reorder */
@@ -673,18 +678,43 @@ export default function Collections() {
                   {
                     header: t("collections.nameLabel"),
                     accessor: "name",
+                    render: (_value, row) => {
+                      const idx = collections.indexOf(row)
+                      return (
+                        <div className="flex items-center gap-3">
+                          {row.coverImage ? (
+                            <img
+                              src={row.coverImage}
+                              alt=""
+                              className="h-10 w-10 shrink-0 rounded-[var(--radius-md)] object-cover"
+                            />
+                          ) : (
+                            <div
+                              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[var(--radius-md)]"
+                              style={{ background: WARM_GRADIENTS[(idx >= 0 ? idx : 0) % 4] }}
+                            >
+                              <Library className="h-4 w-4 text-muted-foreground/40" />
+                            </div>
+                          )}
+                          <span className="truncate text-sm font-medium">{row.name}</span>
+                        </div>
+                      )
+                    },
                   },
                   {
                     header: t("collections.typeLabel"),
                     accessor: "collectionTypeName",
+                    className: "hidden md:table-cell",
                   },
                   {
                     header: t("collections.listItems"),
                     accessor: "itemCount",
+                    className: "tabular-nums",
                   },
                   {
                     header: t("collections.listUpdated"),
                     accessor: (row) => row.updatedAt ? getRelativeTime(row.updatedAt) : "—",
+                    className: "hidden sm:table-cell text-muted-foreground",
                   },
                 ]}
                 data={filteredCollections}
@@ -697,7 +727,7 @@ export default function Collections() {
 
       {/* Create/Edit Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="sm:max-w-lg">
+        <DialogContent className="sm:max-w-lg rounded-[var(--radius-xl)] shadow-[var(--shadow-xl)]">
           <DialogHeader>
             <DialogTitle>
               {editingId
@@ -765,34 +795,48 @@ export default function Collections() {
 
             <div className="space-y-2">
               <Label>{t("collections.coverLabel")}</Label>
-              <div
-                onDrop={handleDrop}
-                /* v8 ignore next 2 */
-                onDragOver={(e) => e.preventDefault()}
-                onClick={() => fileInputRef.current?.click()}
-                className="flex cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-muted-foreground/25 px-6 py-8 text-center transition-colors hover:border-accent/50 hover:bg-accent/5"
-              >
-                <Upload className="mb-2 h-8 w-8 text-muted-foreground/50" />
-                {formCoverFile ? (
-                  <p className="text-sm font-medium text-foreground">
-                    {formCoverFile.name}
-                  </p>
-                ) : (
+              {formCoverFile ? (
+                <div className="flex items-center gap-3 rounded-[var(--radius-lg)] border border-border p-3">
+                  <img
+                    src={URL.createObjectURL(formCoverFile)}
+                    alt=""
+                    className="h-20 w-20 shrink-0 rounded-[var(--radius-md)] object-cover"
+                  />
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-medium text-foreground">{formCoverFile.name}</p>
+                    <button
+                      type="button"
+                      className="mt-1 text-sm text-destructive hover:underline"
+                      onClick={() => setFormCoverFile(null)}
+                    >
+                      {t("collections.removeCover")}
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div
+                  onDrop={handleDrop}
+                  /* v8 ignore next 2 */
+                  onDragOver={(e) => e.preventDefault()}
+                  onClick={() => fileInputRef.current?.click()}
+                  className="flex cursor-pointer flex-col items-center justify-center rounded-[var(--radius-lg)] border-2 border-dashed border-muted-foreground/25 px-6 py-6 text-center transition-colors hover:border-accent/50 hover:bg-accent/5"
+                >
+                  <Upload className="mb-2 h-8 w-8 text-muted-foreground/50" />
                   <p className="text-sm text-muted-foreground">
                     {t("collections.dropCoverHere")}
                   </p>
-                )}
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={(e) =>
-                    setFormCoverFile(e.target.files?.[0] ?? null)
-                  }
-                  disabled={submitting}
-                />
-              </div>
+                </div>
+              )}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) =>
+                  setFormCoverFile(e.target.files?.[0] ?? null)
+                }
+                disabled={submitting}
+              />
             </div>
 
             <div className="flex justify-end gap-2 pt-2">

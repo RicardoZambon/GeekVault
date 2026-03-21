@@ -507,21 +507,29 @@ describe("Collections", () => {
     expect(img).toHaveAttribute("src", "http://img.jpg")
   })
 
-  it("handles cover file input with file and null", async () => {
+  it("shows cover preview with remove button when file selected", async () => {
     mockFetch()
+    // Mock URL.createObjectURL
+    const mockUrl = "blob:http://localhost/mock-image"
+    vi.spyOn(URL, "createObjectURL").mockReturnValue(mockUrl)
     render(<MemoryRouter><Collections /></MemoryRouter>)
     await waitFor(() => screen.getByText("collections.title"))
     fireEvent.click(screen.getByText("collections.create"))
     await waitFor(() => screen.getByText("collections.createTitle"))
 
     const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement
-    // Test selecting a file
     const file = new File(["img"], "cover.png", { type: "image/png" })
     fireEvent.change(fileInput, { target: { files: [file] } })
-    // The file name should appear in the dropzone
+
+    // File name and preview thumbnail should appear
     expect(screen.getByText("cover.png")).toBeInTheDocument()
-    // Test clearing (null branch via ?.[0] ?? null)
-    fireEvent.change(fileInput, { target: { files: null } })
+    // Remove button should be present
+    expect(screen.getByText("collections.removeCover")).toBeInTheDocument()
+
+    // Click remove → dropzone reappears
+    fireEvent.click(screen.getByText("collections.removeCover"))
+    expect(screen.queryByText("cover.png")).not.toBeInTheDocument()
+    expect(screen.getByText("collections.dropCoverHere")).toBeInTheDocument()
   })
 
   it("shows metadata line with item count and completion on cover card", async () => {
@@ -676,6 +684,32 @@ describe("Collections", () => {
     expect(screen.getByText("collections.typeLabel")).toBeInTheDocument()
   })
 
+  it("list view shows thumbnails in name column", async () => {
+    localStorage.setItem("collections-view-mode", "list")
+    mockFetch()
+    const { container } = render(<MemoryRouter><Collections /></MemoryRouter>)
+    await waitFor(() => screen.getByText("Comics"))
+
+    // Comics has no cover → gradient fallback (40x40 div)
+    const gradientDivs = container.querySelectorAll(".h-10.w-10")
+    expect(gradientDivs.length).toBeGreaterThan(0)
+
+    // Cards has cover image → img element (40x40)
+    const imgs = container.querySelectorAll("img.h-10.w-10")
+    expect(imgs.length).toBeGreaterThan(0)
+  })
+
+  it("list view hides type column on small screens via CSS class", async () => {
+    localStorage.setItem("collections-view-mode", "list")
+    mockFetch()
+    const { container } = render(<MemoryRouter><Collections /></MemoryRouter>)
+    await waitFor(() => screen.getByText("Comics"))
+
+    // Type column cells should have hidden md:table-cell class
+    const hiddenCells = container.querySelectorAll(".hidden.md\\:table-cell")
+    expect(hiddenCells.length).toBeGreaterThan(0)
+  })
+
   it("shows completion percentage on cover card", async () => {
     // Ensure grid view via localStorage
     localStorage.setItem("collections-view-mode", "grid")
@@ -724,7 +758,7 @@ describe("Collections", () => {
     expect(screen.queryByText("Cards")).not.toBeInTheDocument()
   })
 
-  it("shows no results message when filter matches nothing", async () => {
+  it("shows no results message with hint when filter matches nothing", async () => {
     mockFetch()
     render(<MemoryRouter><Collections /></MemoryRouter>)
     await waitFor(() => screen.getByText("Comics"))
@@ -733,6 +767,7 @@ describe("Collections", () => {
     fireEvent.change(searchInput, { target: { value: "nonexistent" } })
 
     expect(screen.getByText("collections.noResults")).toBeInTheDocument()
+    expect(screen.getByText("collections.noResultsHint")).toBeInTheDocument()
   })
 
   it("renders collection type badge on grid cards", async () => {
