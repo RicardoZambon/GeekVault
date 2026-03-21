@@ -2286,3 +2286,486 @@ When the price value is clicked:
 9. **Drag-and-drop in upload preview** — `@dnd-kit` is already a project dependency (used for sortable lists). Reuse `SortableContext` + `useSortable` pattern from existing codebase.
 10. **Copy card test strategy** — copy cards should have `data-testid="owned-copy-card"` with `data-copy-id={copy.id}` for integration test targeting. Inline editors should have `data-testid="inline-edit-{field}"`. Lightbox should have `data-testid="image-lightbox"`.
 11. **i18n keys needed:** `ownedCopy.addTitle`, `ownedCopy.addDescription`, `ownedCopy.editTitle`, `ownedCopy.editDescription`, `ownedCopy.deleteTitle`, `ownedCopy.deleteConfirmation`, `ownedCopy.deleteImagesWarning`, `ownedCopy.uploadPrompt`, `ownedCopy.uploadHint`, `ownedCopy.imageCounter`, `ownedCopy.removeImageConfirm`, `ownedCopy.inlineEditCondition`, `ownedCopy.inlineEditPrice`, `ownedCopy.uploadProgress`.
+
+---
+
+## Sets
+
+### Design Philosophy
+
+Sets are GeekVault's **dopamine engine** — the feature that transforms passive cataloging into active pursuit. Every visual decision in the sets design serves one goal: make progress feel *rewarding*. The completion ring is the hero element — a warm amber arc that fills as the collector acquires items, creating a visceral sense of momentum. Missing items aren't presented as failures but as **opportunities** — muted but inviting, with a one-tap path to the wishlist. When a set hits 100%, the moment should feel like an achievement unlocked.
+
+**Key aesthetic decisions:**
+- **Circular progress ring as the hero visual** — not a bar. Rings are more emotionally engaging: they echo clocks, speedometers, and achievement badges. The amber fill on a warm stone track feels like liquid gold filling a vessel.
+- **Three completion tiers with distinct visual weight** — early progress (<50%) is quiet and encouraging, mid-progress (50–99%) pulses with amber energy, and 100% completion radiates success green with a subtle celebratory glow.
+- **Owned vs missing items have strong visual contrast** — owned items are full color with a warm check mark; missing items are deliberately desaturated with an empty circle. The eye is drawn to what's missing, motivating action.
+- **"Add to Wishlist" is a first-class action on missing items** — not buried in a menu. A single tap adds a missing item to the wishlist, closing the gap between "I want this" and "I'm tracking this."
+- **Set cards are compact but information-dense** — name, progress ring, fraction count, and percentage all visible without expanding. Expansion reveals the item checklist — the satisfying task-list view.
+
+---
+
+### Sets List View
+
+#### Page Context
+
+Sets do not have a dedicated standalone page. They appear in two contexts:
+1. **Collection Detail page → Sets tab** — the primary view (already scaffolded in design-pages.md "Collection Detail" section)
+2. **Set Detail view** — expanded view for a single set (defined below)
+
+The Sets tab within collection detail is the "list" view. This section enhances the existing Sets tab specification with richer visual details.
+
+#### Set Card Design
+
+Each set is a card in a vertical stack, not a grid — sets are fundamentally list-like (ordered, sequential, progress-oriented).
+
+**Card Container:**
+- `Card` with `rounded-lg` (`--radius-lg`, 12px), `border`, `bg-card`
+- `p-4` padding (desktop), `p-3` (mobile)
+- `hover:bg-muted/30 transition-colors duration-fast`
+- No lift on hover — sets are data records, not navigable gallery items
+- Cards stack vertically with `gap-3` (12px) between them
+
+**Card Layout — Collapsed State:**
+```
+┌────────────────────────────────────────────────────────────────┐
+│  ▸  Set Name                    12/20 items   ◐ 60%   ✏️  🗑️  │
+│     [expand chevron]            [fraction]    [ring] [actions] │
+└────────────────────────────────────────────────────────────────┘
+```
+
+- **Row layout**: `flex items-center gap-3`
+- **Expand chevron**: `ChevronRight` icon (not `ChevronDown`), `h-4 w-4 text-muted-foreground`, rotates 90° clockwise when expanded
+  - Transition: `transition-transform duration-fast`
+  - Entire card is clickable to toggle expand (not just chevron)
+- **Set name**: `text-sm font-medium text-foreground`, `flex-1 min-w-0 truncate`
+- **Fraction count**: `text-xs text-muted-foreground font-medium`, `tabular-nums` — e.g., "12/20 items"
+  - Format: `{completedCount}/{expectedItemCount} items` (i18n)
+- **Progress ring**: The hero visual element (see "Completion Visualization" below)
+- **Action buttons**: `flex items-center gap-1`
+  - Edit: `Pencil` icon button, `h-8 w-8`, `text-muted-foreground hover:text-foreground`
+  - Delete: `Trash2` icon button, `h-8 w-8`, `text-muted-foreground hover:text-destructive`
+  - Desktop: `sm:opacity-0 sm:group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity`
+  - Mobile: Always visible
+
+---
+
+### Completion Visualization — Progress Ring
+
+The progress ring is the signature visual element of sets. A 36×36px circular SVG that communicates completion at a glance.
+
+#### Ring Specifications
+
+- **Size**: `w-9 h-9` (36×36px) in the card row, `w-16 h-16` (64×64px) in set detail hero
+- **Track**: `stroke-width: 3`, `stroke: hsl(var(--muted))` — warm stone background ring
+- **Fill**: `stroke-width: 3`, `stroke-linecap: round`, color varies by tier (see below)
+- **SVG structure**: `viewBox="0 0 36 36"`, circle at `cx="18" cy="18" r="15.5"`, `fill="none"`
+- **Rotation**: `transform: rotate(-90deg)` on the SVG to start fill from 12 o'clock position
+- **`stroke-dasharray`**: `circumference = 2 * π * 15.5 ≈ 97.39`
+  - Track: `97.39 97.39` (full circle)
+  - Fill: `{completionPercentage / 100 * 97.39} 97.39`
+- **Transition**: `transition: stroke-dasharray 600ms cubic-bezier(0.2, 0, 0, 1)` — the fill animates when data loads or changes
+
+#### Completion Tiers
+
+| Tier | Range | Fill Color | Percentage Text | Visual Mood |
+|------|-------|------------|-----------------|-------------|
+| **Early** | 0–49% | `hsl(var(--muted-foreground))` | `text-muted-foreground` | Quiet, encouraging — progress is beginning |
+| **Momentum** | 50–99% | `hsl(var(--accent))` | `text-accent font-semibold` | Amber energy — the collector is on a roll |
+| **Complete** | 100% | `hsl(var(--success))` | `text-success font-semibold` | Achievement unlocked — green glow |
+
+#### 100% Completion Celebration
+
+When a set reaches 100%, the ring gets a subtle glow effect:
+- **Ring glow**: `filter: drop-shadow(0 0 4px hsl(var(--success) / 0.4))` — green aura around the completed ring
+- **On first completion** (transition from <100% to 100%): the ring pulses once using Framer Motion:
+  ```typescript
+  animate={{ scale: [1, 1.15, 1] }}
+  transition={{ duration: 0.5, type: "spring", stiffness: 400, damping: 15 }}
+  ```
+- **Percentage text**: Shows "✓" (check mark) instead of "100%" for completed sets — cleaner, more rewarding
+- **Reduced motion**: Glow persists (CSS-only), pulse animation is skipped
+
+#### Center Label (Detail Hero Size Only)
+
+In the 64×64px detail hero variant, the percentage is displayed inside the ring:
+- `text-sm font-semibold` centered within the SVG
+- Color matches the tier text color
+- "✓" for 100% (Check icon `h-5 w-5` instead of text)
+
+---
+
+### Set Card — Expanded State
+
+When a set card is expanded, it reveals the item checklist below the card header.
+
+**Expand Animation:**
+- Uses `AnimatePresence` with Framer Motion `motion.div`
+- `initial={{ height: 0, opacity: 0 }}`
+- `animate={{ height: "auto", opacity: 1 }}`
+- `exit={{ height: 0, opacity: 0 }}`
+- `transition={{ height: { duration: 0.25, ease: [0, 0, 0.2, 1] }, opacity: { duration: 0.15, delay: 0.05 } }}`
+- Container: `overflow-hidden`
+
+**Expanded Content Layout:**
+```
+┌────────────────────────────────────────────────────────────────┐
+│  ▾  Set Name                    12/20 items   ◐ 60%   ✏️  🗑️  │
+│  ─────────────────────────────────────────────────────────────  │
+│     ✅  Item Name 1                                             │
+│     ✅  Item Name 2                                      🗑️    │
+│     ✅  Item Name 3                                      🗑️    │
+│     ○   Item Name 4 (missing)              [+ Wishlist]  🗑️    │
+│     ○   Item Name 5 (missing)              [+ Wishlist]  🗑️    │
+│     ─────────────────────────────────────────────────────────  │
+│     [+ Add Items]                                               │
+└────────────────────────────────────────────────────────────────┘
+```
+
+- **Separator**: `border-t border-border mt-3 pt-3`
+- **Items list**: `space-y-0.5` — tight spacing for checklist feel
+- **Padding**: `pl-7` to align with set name (past the chevron)
+
+#### Item Row Design
+
+Each item in the expanded checklist:
+
+- **Container**: `flex items-center gap-2.5 py-1.5 px-2 rounded-md group/item`
+  - Hover: `hover:bg-muted/50 transition-colors duration-instant`
+  - Min height: 36px (touch-friendly)
+
+- **Owned item indicator**: `CheckCircle2` icon from lucide-react
+  - Size: `h-4 w-4`
+  - Color: `text-success` (green)
+  - Filled appearance via `fill-success/20 stroke-success`
+
+- **Missing item indicator**: `Circle` icon from lucide-react
+  - Size: `h-4 w-4`
+  - Color: `text-muted-foreground/40`
+  - Dashed appearance: use `stroke-dasharray="3 3"` on a custom SVG circle (or use the `CircleDashed` lucide icon instead)
+
+- **Item name**:
+  - Owned: `text-sm text-foreground` — full contrast, confident
+  - Missing: `text-sm text-muted-foreground` — desaturated, clearly unacquired
+  - If linked to catalog item: `cursor-pointer hover:underline hover:text-accent` — navigates to `/collections/{collectionId}/items/{catalogItemId}`
+  - `flex-1 min-w-0 truncate`
+
+- **Add to Wishlist button** (missing items only):
+  - `text-xs text-accent hover:underline cursor-pointer flex items-center gap-1`
+  - Icon: `Heart` (not `Plus`) `h-3 w-3` — emotional intent, not just an action
+  - Label: "Wishlist" (i18n: `sets.addToWishlist`)
+  - `sm:opacity-0 sm:group-hover/item:opacity-100 group-focus-within/item:opacity-100 transition-opacity`
+  - On click: POST to wishlist API, show `toast.success` with item name, change button to `HeartOff` "Remove" temporarily (or disable with check)
+
+- **Remove item button**:
+  - `Trash2` icon, `h-3.5 w-3.5`, `text-muted-foreground hover:text-destructive`
+  - `sm:opacity-0 sm:group-hover/item:opacity-100 group-focus-within/item:opacity-100 transition-opacity`
+  - Shows `ConfirmDialog` before removing
+
+#### Add Items Button
+
+At the bottom of the expanded item list:
+
+- **Container**: `mt-2 pt-2 border-t border-border/50`
+- **Button**: Ghost variant, `text-xs text-accent hover:text-accent/80 font-medium flex items-center gap-1.5`
+- **Icon**: `Plus` `h-3.5 w-3.5`
+- **Label**: "Add Items" (i18n: `sets.addItems`)
+- Opens a dialog to search and add catalog items to the set
+
+---
+
+### Set Detail Page
+
+When the user clicks a set name (or a dedicated "View Details" action), they navigate to a focused set detail view. This is a **sub-page** of the collection detail, accessible at `/collections/{collectionId}/sets/{setId}`.
+
+#### Overall Page Layout
+
+```
+┌──────────────────────────────────────────────────────────────┐
+│  ← Back to [Collection Name]                                  │
+│                                                              │
+│  gap: --space-6 (24px)                                       │
+│                                                              │
+│  ┌──────────────────────────────────────────────────────────┐│
+│  │                                                          ││
+│  │   ┌──────┐                                               ││
+│  │   │  ◐   │   Set Name                                    ││
+│  │   │ 60%  │   12 of 20 items · Trading Cards              ││
+│  │   └──────┘                         [Edit] [Delete]        ││
+│  │                                                          ││
+│  │   ████████████████████░░░░░░░░░░  60%                    ││
+│  │                                                          ││
+│  └──────────────────────────────────────────────────────────┘│
+│                                                              │
+│  gap: --space-6 (24px)                                       │
+│                                                              │
+│  ┌──────────────────────────────────────────────────────────┐│
+│  │  [All (20)]  [Owned (12)]  [Missing (8)]                 ││
+│  └──────────────────────────────────────────────────────────┘│
+│                                                              │
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐         │
+│  │ ✅ Item 1   │  │ ✅ Item 2   │  │ ○ Item 3    │         │
+│  │             │  │             │  │ [Wishlist]  │         │
+│  └─────────────┘  └─────────────┘  └─────────────┘         │
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐         │
+│  │ ○ Item 4    │  │ ✅ Item 5   │  │ ○ Item 6    │         │
+│  └─────────────┘  └─────────────┘  └─────────────┘         │
+│                                                              │
+│  ┌──────────────────────────────────────────────────────────┐│
+│  │  [+ Add Items to Set]                                     ││
+│  └──────────────────────────────────────────────────────────┘│
+└──────────────────────────────────────────────────────────────┘
+```
+
+---
+
+#### Back Navigation
+
+- **Element**: Ghost button with left arrow icon
+- **Text**: "Back to {collectionName}" (i18n: `sets.backToCollection`, with `{{name}}` interpolation)
+- **Icon**: `ArrowLeft` from lucide-react, `h-4 w-4`, placed before text
+- **Spacing**: `mb-4`
+- **Behavior**: Navigates to `/collections/{collectionId}` with `?tab=sets` to return to the Sets tab
+
+---
+
+#### Set Hero Header
+
+A card that gives the set identity and progress a prominent stage.
+
+**Container:**
+- `Card` with `rounded-xl` (`--radius-xl`, 16px), `border`, `bg-card`
+- `p-6` (desktop), `p-4` (mobile)
+
+**Layout:**
+```
+┌──────────────────────────────────────────────────────────────┐
+│  ┌──────────┐                                                │
+│  │    ◐     │   Set Name (h2)                                │
+│  │   60%    │   12 of 20 items · Trading Cards Collection    │
+│  └──────────┘                             [Edit] [Delete]    │
+│                                                              │
+│  ████████████████████░░░░░░░░░░░░░░░░░░░░  60% complete     │
+└──────────────────────────────────────────────────────────────┘
+```
+
+**Top section** — `flex items-start gap-5`:
+
+- **Progress ring (hero size)**: `w-16 h-16` (64×64px) — the large variant with center label
+  - Same SVG structure as card variant but `r="28"` in `viewBox="0 0 64 64"`, `stroke-width: 4`
+  - Center label: percentage or "✓" for 100%
+  - Tier colors and glow effects apply
+
+- **Text block**: `flex-1 min-w-0`
+  - **Set name**: `h2` (1.5rem / 24px, Plus Jakarta Sans, weight 600, letter-spacing -0.01em), `text-foreground`
+  - **Subtitle**: `text-sm text-muted-foreground mt-1`
+    - Format: "{completedCount} of {expectedItemCount} items · {collectionName}" (i18n: `sets.detailSubtitle`)
+    - Collection name is a link: `text-accent hover:underline` → navigates to collection
+
+- **Action buttons**: `flex items-center gap-2`
+  - Edit: `Button variant="outline" size="sm"`, `Pencil` icon + "Edit" label
+  - Delete: `Button variant="outline" size="sm"`, `Trash2` icon, `hover:text-destructive hover:border-destructive`
+
+**Progress bar (below top section)** — `mt-5`:
+
+A full-width horizontal progress bar that complements the ring with a more detailed view.
+
+- **Track**: `w-full h-2.5 rounded-full bg-muted overflow-hidden`
+- **Fill**: `h-full rounded-full transition-all duration-slow`
+  - Color: Same tier system as ring — `bg-muted-foreground` (<50%), `bg-accent` (50–99%), `bg-success` (100%)
+  - Width: `{completionPercentage}%`
+- **Label**: `text-xs font-medium mt-1.5` positioned right-aligned below the bar
+  - Text: "{completionPercentage}% complete" (i18n: `sets.percentComplete`)
+  - Color: Matches tier text color
+
+**100% completion state:**
+- Progress bar fill: `bg-success`
+- Label: "Complete!" instead of "100% complete" (i18n: `sets.complete`)
+- Subtle background tint on the entire hero card: `bg-success/5` — a whisper of green celebrating the achievement
+
+---
+
+#### Filter Tabs
+
+Below the hero, a segmented filter for the item grid:
+
+- **Container**: `flex border-b border-border`
+- **Three segments**: All, Owned, Missing
+- **Tab button**: `px-4 py-2.5 text-sm font-medium border-b-2 transition-colors`
+  - **Active**: `border-accent text-foreground`
+  - **Inactive**: `border-transparent text-muted-foreground hover:text-foreground hover:border-border`
+- **Counts in tabs**: "All (20)", "Owned (12)", "Missing (8)" — count updates dynamically
+  - Count styling: `text-muted-foreground` even on active tab (only the label gets `text-foreground`)
+- **Keyboard**: Arrow keys, Enter/Space, `role="tablist"` + `role="tab"` + `aria-selected`
+
+---
+
+#### Items Grid
+
+Items are displayed in a card grid (not a checklist) in the detail view — this gives each item more visual weight and room for the owned/missing distinction.
+
+**Grid layout:**
+- `grid gap-3 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 mt-4`
+
+**Item Card — Owned:**
+- **Container**: `Card rounded-lg border bg-card p-3 group relative`
+  - Left border accent: `border-l-3 border-l-success` — a subtle green stripe confirming ownership
+- **Layout**: `flex items-start gap-3`
+- **Status icon**: `CheckCircle2` `h-5 w-5 text-success fill-success/20 mt-0.5 shrink-0`
+- **Content**: `flex-1 min-w-0`
+  - **Item name**: `text-sm font-medium text-foreground line-clamp-2`
+  - **Sort order** (if present): `text-xs text-muted-foreground mt-0.5` — e.g., "#7 in set"
+- **Link behavior**: If `catalogItemId` exists, entire card is clickable → `/collections/{collectionId}/items/{catalogItemId}`
+  - `cursor-pointer hover:bg-muted/30 transition-colors`
+  - `tabIndex={0} role="link"` + keyboard Enter/Space
+- **Remove button**: `absolute top-2 right-2`, `Trash2` `h-3.5 w-3.5`, `text-muted-foreground hover:text-destructive`
+  - `sm:opacity-0 sm:group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity`
+
+**Item Card — Missing:**
+- **Container**: `Card rounded-lg border border-dashed bg-card/50 p-3 group relative`
+  - Dashed border signals incompleteness — a visual "slot" waiting to be filled
+  - `bg-card/50` — slightly transparent, receding behind owned items
+- **Layout**: Same as owned
+- **Status icon**: `CircleDashed` `h-5 w-5 text-muted-foreground/40 mt-0.5 shrink-0`
+- **Content**: `flex-1 min-w-0`
+  - **Item name**: `text-sm font-medium text-muted-foreground line-clamp-2` — desaturated
+  - **Sort order**: Same as owned variant
+- **Wishlist button**: `flex items-center gap-1 text-xs text-accent hover:text-accent/80 mt-1.5 font-medium`
+  - Icon: `Heart` `h-3 w-3`
+  - Label: "Add to Wishlist" (i18n: `sets.addToWishlist`)
+  - On click (stop propagation): POST to wishlist, toast confirmation, button changes to `HeartOff` "In Wishlist" (disabled state, `text-muted-foreground`)
+- **Link behavior**: If `catalogItemId` exists, card navigates to item detail (but wishlist button stops propagation)
+- **Remove button**: Same as owned variant
+
+---
+
+#### Add Items Action
+
+Below the item grid:
+
+- **Container**: `mt-4`
+- **Button**: `Button variant="outline" size="sm"` with `Plus` icon + "Add Items to Set" label
+- **Full-width on mobile**: `w-full sm:w-auto`
+- Opens the add-items-to-set dialog (search catalog items, select, add)
+
+---
+
+### Quick Action: "Add to Wishlist" on Missing Items
+
+This is a first-class interaction pattern used in both the collapsed set card (expanded checklist) and the set detail grid.
+
+**Interaction flow:**
+1. User sees missing item with `Heart` + "Wishlist" / "Add to Wishlist" label
+2. On click/tap: Immediately show optimistic state — button becomes `Check` + "Added" in `text-success` for 2 seconds
+3. POST `/api/wishlist` with `{ catalogItemName: item.name, collectionId, priority: "Medium" }`
+4. On success: After 2s optimistic state, button settles to `HeartOff` + "In Wishlist" in `text-muted-foreground` (disabled)
+5. On failure: Revert to original state, show `toast.error`
+
+**Keyboard accessible**: `tabIndex={0}`, `role="button"`, Enter/Space triggers
+
+---
+
+### Empty States
+
+#### No Sets (Collection Detail → Sets Tab)
+
+- **Icon**: `Layers` from lucide-react — represents stacked/grouped items
+- **Title**: "No sets yet" (i18n: `sets.emptyTitle`)
+- **Description**: "Create sets to track completion of themed subgroups within this collection" (i18n: `sets.emptyDescription`)
+- **Action**: `Button` with `variant="default"` (accent), `Plus` icon + "Create Set"
+- Uses the existing `EmptyState` component from `components/ds/`
+
+#### No Items in Set (Set Detail)
+
+- **Icon**: `Package` from lucide-react
+- **Title**: "This set has no items" (i18n: `sets.noItemsTitle`)
+- **Description**: "Add items to start tracking your completion progress" (i18n: `sets.noItemsDescription`)
+- **Action**: "Add Items" button
+
+#### All Items Owned (Set Detail — Missing tab)
+
+When filtering by "Missing" and all items are owned:
+- **Icon**: `Trophy` from lucide-react — celebration!
+- **Title**: "You've completed this set!" (i18n: `sets.allOwnedTitle`)
+- **Description**: "Every item in this set is in your collection. Congratulations!" (i18n: `sets.allOwnedDescription`)
+- No action button — this is a pure celebration moment
+- Background tint: `bg-success/5` matching the hero card's 100% state
+
+---
+
+### Loading State — Skeleton
+
+#### Sets Tab Skeleton
+
+- 3 skeleton cards matching set card dimensions:
+  - `Card` with `p-4`
+  - Row: `flex items-center gap-3`
+    - Chevron placeholder: `SkeletonRect w-4 h-4 rounded`
+    - Name: `SkeletonRect w-32 h-4 rounded`
+    - Spacer: `flex-1`
+    - Fraction: `SkeletonRect w-20 h-3 rounded`
+    - Ring placeholder: `SkeletonRect w-9 h-9 rounded-full`
+  - `space-y-3` between skeleton cards
+
+#### Set Detail Skeleton
+
+- Hero card: `Card p-6`
+  - `flex items-start gap-5`
+  - Ring: `SkeletonRect w-16 h-16 rounded-full`
+  - Title: `SkeletonRect w-48 h-6 rounded`
+  - Subtitle: `SkeletonRect w-64 h-4 rounded mt-2`
+  - Progress bar: `SkeletonRect w-full h-2.5 rounded-full mt-5`
+- Filter tabs: `SkeletonRect w-64 h-8 rounded mt-6`
+- Item grid: 6 skeleton cards in grid
+  - Each: `Card p-3`, `flex items-start gap-3`, circle `w-5 h-5 rounded-full`, text `w-24 h-4 rounded`
+
+---
+
+### Responsive Summary
+
+| Element | Desktop (≥1024px) | Tablet (≥640px) | Mobile (<640px) |
+|---------|-------------------|-----------------|-----------------|
+| **Set card padding** | `p-4` | `p-4` | `p-3` |
+| **Action buttons** | Hover-reveal | Hover-reveal | Always visible |
+| **Progress ring (card)** | 36×36px | 36×36px | 36×36px |
+| **Progress ring (hero)** | 64×64px | 64×64px | 56×56px (`w-14 h-14`) |
+| **Hero card padding** | `p-6` | `p-5` | `p-4` |
+| **Hero layout** | Side-by-side | Side-by-side | Stacked (ring centered above text) |
+| **Item grid columns** | 4 | 3 (sm:2, md:3) | 1 |
+| **Item card** | Card with border | Card with border | Card with border |
+| **Wishlist button** | Hover-reveal text | Hover-reveal text | Always visible, compact (icon only) |
+| **Remove item button** | Hover-reveal | Hover-reveal | Always visible |
+| **Filter tab text** | Full text + count | Full text + count | Abbreviate: "All", "Own", "Miss" |
+
+**Mobile hero stacking:**
+On screens <640px, the hero header stacks the progress ring above the text:
+```
+┌────────────────────────┐
+│      ┌──────┐          │
+│      │  ◐   │          │
+│      │ 60%  │          │
+│      └──────┘          │
+│                        │
+│   Set Name             │
+│   12 of 20 · Cards     │
+│                        │
+│   [Edit]  [Delete]     │
+│                        │
+│   ██████████░░░░  60%  │
+└────────────────────────┘
+```
+
+---
+
+### Implementation Notes
+
+1. **Progress ring is a new reusable component** — `SetProgressRing` in `components/ds/`. It takes `percentage: number`, `size: "sm" | "lg"` (36px or 64px), `showLabel: boolean` (center label for lg size only). Uses raw SVG, not a library. The `stroke-dasharray` animation is CSS-only (works with reduced motion).
+2. **Completion tier logic** should be a shared utility — `getCompletionTier(percentage: number): { color: string, textClass: string, glowClass: string }` — used by both the ring and the progress bar.
+3. **Set detail is a sub-route** — `/collections/:collectionId/sets/:setId`. It should be a separate component file: `src/web/src/features/collections/set-detail-page.tsx`. The collection detail page's Sets tab links to this route.
+4. **Wishlist quick-add** calls `POST /api/wishlist` — check if the item already exists in the wishlist before showing the button. If already wishlisted, show `HeartOff` + "In Wishlist" (disabled) from the start.
+5. **The 100% celebration pulse** uses Framer Motion and respects `prefers-reduced-motion` — use the `getVariants()` pattern from `motion.tsx` to provide noop variants for reduced motion.
+6. **Set items use the existing `SetItem` interface** — `{ id, setId, catalogItemId, name, sortOrder }`. The owned/missing distinction comes from cross-referencing with the collection's owned items (catalog items with `ownedCopiesCount > 0`).
+7. **Filter tabs in set detail** are local state (not URL params) — sets are small enough that client-side filtering is instant. No debounce needed.
+8. **Dashed border on missing item cards** — use Tailwind `border-dashed`. This is a deliberate visual language: dashed = incomplete, solid = acquired.
+9. **Sort order display** — show `#{sortOrder}` only if the set has a defined order (items sorted by `sortOrder`). If all sort orders are 0 or sequential, show position index instead.
+10. **Test strategy** — set cards: `data-testid="set-card"` with `data-set-id`. Progress ring: `data-testid="progress-ring"` with `data-percentage`. Item cards in detail: `data-testid="set-item-card"` with `data-owned="true|false"`. Wishlist button: `data-testid="wishlist-quick-add"`.
+11. **i18n keys needed:** `sets.emptyTitle`, `sets.emptyDescription`, `sets.noItemsTitle`, `sets.noItemsDescription`, `sets.allOwnedTitle`, `sets.allOwnedDescription`, `sets.addToWishlist`, `sets.inWishlist`, `sets.addItems`, `sets.backToCollection`, `sets.detailSubtitle`, `sets.percentComplete`, `sets.complete`, `sets.itemCount`, `sets.filterAll`, `sets.filterOwned`, `sets.filterMissing`, `sets.createSet`, `sets.editSet`, `sets.deleteSet`, `sets.deleteConfirmation`, `sets.sortPosition`.

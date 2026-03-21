@@ -46,6 +46,11 @@
 - Image upload zone: `grid-cols-4 sm:grid-cols-5` for preview grid (not flex-wrap — prevents ragged rows)
 - Hover-reveal buttons: add `group-focus-within:opacity-100` alongside `group-hover:opacity-100` for keyboard accessibility
 - Currency prefix pattern: `absolute left-3 pointer-events-none` + `pl-7` on input
+- Progress ring SVG: `stroke-dasharray` = `{pct/100 * circumference} {circumference}`, rotate -90deg to start at top
+- Completion tier thresholds: <50% muted, 50-99% accent, 100% success — used across rings, bars, and text colors
+- Dashed border = incomplete/missing slot; solid border = owned/acquired — visual language for sets
+- Missing items use `bg-card/50` to visually recede; owned items get `border-l-3 border-l-success` left stripe
+- Wishlist quick-add: optimistic "Added" → "In Wishlist" (disabled) — no toast on success, toast on error only
 
 ---
 
@@ -252,4 +257,22 @@
   - `group-focus-within:opacity-100` ensures hover-reveal action buttons appear when keyboard-focused (not just mouse hover)
   - Currency prefix on price inputs: `absolute left-3` with `pl-7` on input — consistent with SaaS form patterns
 ---
+
+## 2026-03-21 - US-012
+- Designed sets page and set detail with full visual specification
+- Appended "Sets" section to `tasks/design-pages.md`
+- Sections: Design Philosophy, Sets List View (enhanced card design), Completion Visualization (circular progress ring as hero element), Set Card Expanded State (item checklist with owned/missing distinction), Set Detail Page (hero header with large ring + progress bar, filter tabs, item card grid), Quick Action "Add to Wishlist", Empty States (no sets, no items, all owned celebration), Loading Skeletons, Responsive Summary, Implementation Notes
+- Key decisions: circular progress ring (not bar) as signature visual — 36px in cards, 64px in detail hero; three completion tiers with distinct colors (<50% muted, 50-99% amber, 100% success green with glow); missing items use dashed border cards; owned items get solid border with green left stripe; "Add to Wishlist" as first-class Heart button on missing items with optimistic UI; set detail as sub-route `/collections/:collectionId/sets/:setId`
+- New component designed: `SetProgressRing` for `components/ds/` — SVG-based, CSS-animated, two sizes
+- **Learnings for future iterations:**
+  - Progress ring uses raw SVG with `stroke-dasharray` — no chart library needed, CSS transition handles animation
+  - `stroke-dasharray` calculation: circumference = 2πr, fill = (percentage/100) * circumference
+  - Ring starts from 12 o'clock via `transform: rotate(-90deg)` on the SVG element
+  - Dashed border (`border-dashed`) is a deliberate visual language: dashed = incomplete slot, solid = acquired
+  - Missing item cards use `bg-card/50` (semi-transparent) to visually recede behind owned items
+  - Owned items get `border-l-3 border-l-success` left stripe — subtle but clear ownership signal
+  - 100% completion celebration: green glow via `filter: drop-shadow()` + one-time scale pulse via Framer Motion spring
+  - Wishlist quick-add uses optimistic update: button → "Added" (success) for 2s → "In Wishlist" (disabled)
+  - Set detail filter tabs are local state, not URL params — sets are small enough for client-side filtering
+  - Set items determine owned/missing by cross-referencing `catalogItemId` with collection's owned items
 ---

@@ -247,7 +247,7 @@
         "Document appended to tasks/design-pages.md under 'Sets' section"
       ],
       "priority": 12,
-      "passes": false,
+      "passes": true,
       "notes": "Completion tracking is a dopamine feature — make progress feel rewarding visually."
     },
     {
