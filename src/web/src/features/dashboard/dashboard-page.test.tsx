@@ -54,14 +54,10 @@ vi.mock("@/components/ds", async () => {
 })
 
 // Mock recharts to avoid rendering issues in jsdom
-let capturedPieLabel: ((entry: { name: string; value: number }) => string) | null = null
 vi.mock("recharts", () => ({
   ResponsiveContainer: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
   PieChart: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-  Pie: ({ label }: { label?: (entry: { name: string; value: number }) => string }) => {
-    if (typeof label === "function") capturedPieLabel = label
-    return <div>Pie</div>
-  },
+  Pie: () => <div>Pie</div>,
   Cell: () => <div />,
   BarChart: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
   Bar: () => <div>Bar</div>,
@@ -154,7 +150,6 @@ const dashboardData = {
 describe("Dashboard", () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    capturedPieLabel = null
   })
 
   it("shows loading state with skeleton elements", () => {
@@ -187,7 +182,7 @@ describe("Dashboard", () => {
     // Stats are rendered via AnimatedNumber mock
     expect(screen.getByText("3")).toBeInTheDocument() // totalCollections
     expect(screen.getByText("50")).toBeInTheDocument() // totalItems
-    expect(screen.getByText("25")).toBeInTheDocument() // totalOwnedCopies
+    expect(screen.getAllByText("25").length).toBeGreaterThanOrEqual(1) // totalOwnedCopies (may also appear in chart center)
     // Recent acquisitions
     expect(screen.getByText("Spider-Man #1")).toBeInTheDocument()
     // Collection summaries
@@ -295,23 +290,6 @@ describe("Dashboard", () => {
     expect(mockNavigate).toHaveBeenCalledWith("/collections?create=true")
   })
 
-  it("calls pie chart label function correctly", async () => {
-    vi.spyOn(global, "fetch").mockResolvedValueOnce({
-      ok: true,
-      json: () => Promise.resolve(dashboardData),
-    } as Response)
-
-    render(<MemoryRouter><Dashboard /></MemoryRouter>)
-    await waitFor(() => {
-      expect(screen.getByText(/dashboard\.greeting/)).toBeInTheDocument()
-    })
-
-    // The Pie mock should have captured the label function
-    expect(capturedPieLabel).not.toBeNull()
-    const result = capturedPieLabel!({ name: "Mint", value: 10 })
-    expect(result).toBe("Mint: 10")
-  })
-
   it("renders stats and sections when data is loaded (not empty)", async () => {
     vi.spyOn(global, "fetch").mockResolvedValueOnce({
       ok: true,
@@ -329,7 +307,7 @@ describe("Dashboard", () => {
     expect(screen.getByText("dashboard.totalInvested")).toBeInTheDocument()
 
     // Section titles
-    expect(screen.getByText("dashboard.collectionSummaries")).toBeInTheDocument()
+    expect(screen.getByText("dashboard.yourCollections")).toBeInTheDocument()
     expect(screen.getByText("dashboard.recentAcquisitions")).toBeInTheDocument()
   })
 
