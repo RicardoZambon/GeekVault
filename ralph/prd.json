@@ -210,7 +210,7 @@
         "Document appended to tasks/design-pages.md under 'Catalog Item Detail' section"
       ],
       "priority": 10,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {

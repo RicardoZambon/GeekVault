@@ -1317,3 +1317,415 @@ Two rows:
 9. **Custom fields in add-item form** are dynamically rendered from `collectionType.customFields` — the form must handle text inputs, select dropdowns (for fields with options), and required field validation.
 10. **Image hover zoom** on grid item cards uses CSS `transition: transform 400ms`, NOT Framer Motion — matches the pattern established in collections list page.
 11. **Search filters persist in URL params** — current implementation already does this correctly; preserve the pattern for shareable/bookmarkable filtered views.
+
+---
+
+## Catalog Item Detail
+
+### Design Philosophy
+
+The catalog item detail page is the **collector's inspection table** — where a single item receives full attention. It draws from the experience of holding a treasured object up to the light: the image dominates, metadata is organized like a museum label, and owned copies are presented like a provenance record. The Warm Obsidian palette wraps this in amber warmth, stone surfaces, and refined typography.
+
+**Key aesthetic decisions:**
+- **Side-by-side hero layout** on desktop — large image on the left, item identity and metadata on the right, mimicking a product detail page or auction house listing
+- **Image is the anchor** — square aspect ratio, generous sizing (2/5 of the grid), with a subtle warm fallback state for items without images
+- **Metadata reads like a curated label** — overline labels, clean hierarchy, custom fields in a grouped card
+- **Owned copies are premium cards** — condition badge with color semantics, icon-paired details, hover-reveal actions, thumbnail gallery
+- **Back navigation via breadcrumb trail** — Collections > [Collection Name] > [Item Name], providing full location awareness
+- **Set membership as a contextual callout** — subtle link card showing which sets this item belongs to, with completion hints
+
+---
+
+### Overall Page Layout
+
+```
+┌──────────────────────────────────────────────────────────────┐
+│  Breadcrumb: Collections > Collection Name > Item Name       │
+│  gap: --space-6 (24px)                                       │
+├──────────────────────────────────────────────────────────────┤
+│  Hero Section (5-column grid)                                │
+│  ┌──────────────┐ ┌──────────────────────────────┐          │
+│  │              │ │  Item Name (display-lg)       │          │
+│  │   Item       │ │  Identifier (body, muted)     │          │
+│  │   Image      │ │                               │          │
+│  │  (2/5 cols)  │ │  [Edit] [Delete] [Add Copy]   │          │
+│  │              │ │                               │          │
+│  │  aspect-     │ │  Description (if present)     │          │
+│  │  square      │ │                               │          │
+│  │              │ │  Metadata fields grid          │          │
+│  └──────────────┘ │  (manufacturer, date, etc.)   │          │
+│                    └──────────────────────────────┘          │
+│  gap: --space-6 (24px)                                       │
+├──────────────────────────────────────────────────────────────┤
+│  Custom Fields Card (if any)                                 │
+│  ┌──────────────────────────────────────────────────────┐   │
+│  │  Custom Fields (heading)                              │   │
+│  │  ┌─────────┐ ┌─────────┐ ┌─────────┐                │   │
+│  │  │ Field 1 │ │ Field 2 │ │ Field 3 │                │   │
+│  │  └─────────┘ └─────────┘ └─────────┘                │   │
+│  └──────────────────────────────────────────────────────┘   │
+│  gap: --space-6 (24px)                                       │
+├──────────────────────────────────────────────────────────────┤
+│  Set Membership (if item belongs to any sets)                │
+│  ┌──────────────────────────────────────────────────────┐   │
+│  │  Part of: "Complete Saga Set" (12/20) [→]            │   │
+│  └──────────────────────────────────────────────────────┘   │
+│  gap: --space-6 (24px)                                       │
+├──────────────────────────────────────────────────────────────┤
+│  Owned Copies Section                                        │
+│  PageHeader: "Owned Copies" + [Add Copy] button             │
+│  ┌─────────────────┐ ┌─────────────────┐                    │
+│  │  Copy Card 1     │ │  Copy Card 2     │                    │
+│  │  [Mint] badge    │ │  [Good] badge    │                    │
+│  │  Price, Date,    │ │  Price, Date,    │                    │
+│  │  Source, Notes   │ │  Source, Notes   │                    │
+│  │  [thumbnails]    │ │  [thumbnails]    │                    │
+│  └─────────────────┘ └─────────────────┘                    │
+│  OR                                                          │
+│  EmptyState: "No copies yet" + [Add Copy]                   │
+└──────────────────────────────────────────────────────────────┘
+```
+
+**Section spacing:** `--space-6` (24px) between all sections, matching the page-section spacing for detail pages (slightly tighter than dashboard's `--space-8` because detail pages are denser).
+
+---
+
+### Back Navigation — Breadcrumb Trail
+
+The catalog item detail page uses a **full breadcrumb trail** rather than a simple back button. This is the one page where breadcrumbs are essential — the user is 3 levels deep (Collections > Collection > Item) and needs clear location awareness.
+
+**Structure:**
+```
+Collections  ›  [Collection Name]  ›  [Item Name]
+```
+
+**Visual specification:**
+- **Container:** `nav` element, `flex items-center gap-1.5`, top of page
+- **Text style:** `text-sm text-muted-foreground`
+- **Link segments** ("Collections", collection name): `hover:text-foreground transition-colors` — color shifts on hover, no underline
+- **Separator:** `ChevronRight` icon, `h-3.5 w-3.5`, same muted color
+- **Current item:** `text-foreground font-medium truncate max-w-[200px]` — highlighted as current location, truncated if long
+- **Keyboard accessible:** Links are native `<Link>` elements (already focusable)
+
+---
+
+### Item Hero Layout
+
+The hero section is the visual centerpiece — a **5-column grid** with the image occupying 2 columns and item identity occupying 3 columns on desktop.
+
+#### Image Panel (Left — `lg:col-span-2`)
+
+**Container:**
+- Card with `variant="flat"`, `overflow-hidden`
+- `aspect-square` aspect ratio — consistent square format for all items
+- Background: `bg-muted` (warm stone surface when loading or as fallback)
+- Border radius: inherits Card's `--radius-lg` (12px)
+
+**With image:**
+- `<img>` with `h-full w-full object-cover` — fills the square, crops to fit
+- `loading="lazy"` for performance
+- **Hover effect:** Subtle `scale(1.03)` zoom using CSS `transition: transform 400ms ease` — NOT Framer Motion (continuous hover state pattern from codebase patterns)
+- Container has `overflow-hidden` to clip the zoomed image
+
+**Without image (fallback):**
+- Centered `Image` icon from lucide-react: `h-16 w-16 text-muted-foreground/30`
+- `flex h-full items-center justify-center`
+- The muted background creates a warm placeholder — no gradient needed (unlike collection cards, items are individual objects, not galleries)
+
+#### Identity Panel (Right — `lg:col-span-3`)
+
+**Item name:**
+- `font-display text-3xl font-bold tracking-tight text-foreground`
+- Plus Jakarta Sans display font — the item name is the hero text
+
+**Identifier (below name):**
+- `mt-1 text-base text-muted-foreground`
+- Acts as a subtitle — e.g., catalog number, ISBN, SKU
+
+**Action buttons (below identifier):**
+- Container: `flex flex-wrap gap-2`, `mt-4` spacing from identifier
+- **Edit button:** `variant="outline" size="sm"` — `Pencil` icon + label
+- **Delete button:** `variant="outline" size="sm"` with `text-destructive hover:text-destructive` — `Trash2` icon + label
+- **Add Copy button:** `size="sm"` with `bg-accent text-accent-foreground hover:bg-accent/90` — `Plus` icon + label. This is the **primary action** on this page, so it uses the accent color (amber)
+
+**Description (conditional):**
+- Only shown if `item.description` exists
+- Overline label: `text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1.5`
+- Body text: `text-sm leading-relaxed text-foreground`
+- Top padding: `pt-2` to separate from actions
+
+---
+
+### Metadata Display
+
+Core metadata fields are displayed as a **structured grid** of label-value pairs in the identity panel, below the description.
+
+**Grid layout:**
+- `grid gap-x-6 gap-y-3 sm:grid-cols-2`
+- Fields shown conditionally — only display if the value exists (no empty slots)
+
+**Field rendering pattern:**
+- **Label:** `text-xs font-semibold uppercase tracking-wider text-muted-foreground` (overline style)
+- **Value:** `text-sm text-foreground mt-0.5`
+
+**Core fields:**
+
+| Field | Icon | Value Treatment |
+|---|---|---|
+| Manufacturer | None | Plain text |
+| Release Date | `Calendar` h-3.5 w-3.5, muted | `formatDate()` — e.g., "Mar 15, 2024" |
+| Reference Code | None | Plain text |
+| Rarity | None | `Badge variant="accent" size="sm"` — amber badge for rarity as it's a special attribute |
+
+**Date display:** Uses locale-aware `toLocaleDateString` with `{ year: "numeric", month: "short", day: "numeric" }` format. Calendar icon inline at `flex items-center gap-1.5`.
+
+---
+
+### Custom Fields Card
+
+When a catalog item has custom field values (defined by its collection type), they are displayed in a separate **Card** below the hero section.
+
+**Card design:**
+- `Card variant="flat"` — flat card with warm stone surface
+- Padding: `p-6` on `CardContent`
+- Heading: `font-display text-base font-semibold mb-4` — "Custom Fields" (or collection-type-specific label)
+
+**Fields grid:**
+- `grid gap-x-6 gap-y-4 sm:grid-cols-2 lg:grid-cols-3`
+- Each field uses the same overline-label + value pattern as core metadata
+
+**Type-specific rendering:**
+- **Text/Number/Date:** Plain text `text-sm text-foreground`
+- **Boolean:** `Check` icon (h-4 w-4, text-success) for true, `X` icon (h-4 w-4, text-muted-foreground) for false
+- **Enum:** `Badge variant="outline" size="sm"` — outlined badge for enum values
+- **Date:** Formatted via `formatDate()` helper
+
+---
+
+### Set Membership Indicator
+
+When the item belongs to one or more sets, a **contextual callout card** appears between custom fields and owned copies.
+
+**Design:**
+- Card-like row: `rounded-lg border border-border bg-muted/50 px-4 py-3`
+- Layout: `flex items-center justify-between`
+- Left side: `flex items-center gap-3`
+  - Icon: `Box` (lucide), `h-5 w-5 text-accent` — amber icon draws attention
+  - Text: "Part of: **[Set Name]**" — set name in `font-medium`
+  - Completion badge: `text-sm text-muted-foreground` — e.g., "(12/20 items)"
+  - Completion color: follows established thresholds — `text-muted-foreground` (<50%), `text-accent` (50-99%), `text-success` (100%)
+- Right side: `ChevronRight` icon, `h-4 w-4 text-muted-foreground` — indicates navigable
+- **Entire row is clickable** — navigates to the set detail page within the collection
+- Hover state: `hover:bg-muted hover:border-accent/30 transition-colors` — subtle amber border glow
+- **Keyboard accessible:** `tabIndex={0}`, `role="link"`, `onKeyDown` for Enter/Space
+
+**Multiple sets:** If an item belongs to multiple sets, stack multiple rows with `space-y-2` gap between them. Each row links to its respective set.
+
+**No sets:** Section is simply not rendered — no empty state needed since set membership is informational, not actionable from this page.
+
+---
+
+### Owned Copies Section
+
+The owned copies section is the **provenance record** — each copy is a card showing its condition, financial details, acquisition history, and images.
+
+**Section header:**
+- Uses `PageHeader` component with:
+  - Title: "Owned Copies" (translated)
+  - Action: `[Add Copy]` button — `size="sm"`, accent color, `Plus` icon
+  - `className="mb-4"`
+
+#### Empty State
+
+When no copies exist:
+- Uses `EmptyState` component
+- Icon: `Box` (lucide) — represents an empty display case
+- Title: "No copies yet"
+- Description: "Add your first owned copy of this item"
+- Action: "Add Copy" button → triggers add copy dialog
+- Tone: encouraging, not empty/sad
+
+#### Copy Card Design
+
+Cards are rendered in a **staggered grid**: `StaggerChildren className="grid gap-4 sm:grid-cols-2"` — 2-column on sm+, 1-column on mobile.
+
+Each card uses `motion.div` with `staggerItemVariants` for entrance animation.
+
+**Card container:**
+- `Card variant="flat"` with `group h-full`
+- `CardContent` with `p-5` padding
+
+**Card header (condition badge + actions):**
+- `flex items-start justify-between mb-4`
+- **Condition badge:** `Badge` with size `md` and semantic variant:
+  - **Mint, Near Mint:** `variant="success"` — green, best conditions
+  - **Excellent, Good:** `variant="primary"` — neutral, mid-range conditions
+  - **Fair, Poor:** `variant="warning"` — amber/orange, lower conditions
+- **Action buttons:** `flex gap-1` with `opacity-0 group-hover:opacity-100 transition-opacity`
+  - Edit: `Button variant="ghost" size="sm"` with `Pencil` icon (h-3.5 w-3.5)
+  - Delete: `Button variant="ghost" size="sm"` with `Trash2` icon, `text-destructive hover:text-destructive`
+  - **Mobile:** Actions should always be visible on touch devices — use `sm:opacity-0 sm:group-hover:opacity-100` so they show by default on mobile
+
+**Copy details grid:**
+- `grid gap-3 sm:grid-cols-2` — 2-column layout for detail pairs
+- Each detail pair: `flex items-start gap-2`
+  - Icon: `h-4 w-4 text-muted-foreground mt-0.5 shrink-0`
+  - Label: `text-xs font-medium text-muted-foreground`
+  - Value: `text-sm` (or `text-sm font-semibold` for financial values)
+
+| Detail | Icon | Value Format |
+|---|---|---|
+| Purchase Price | `DollarSign` | `$XX.XX` with `font-semibold`, `font-variant-numeric: tabular-nums` |
+| Estimated Value | `Tag` | `$XX.XX` with `font-semibold`, `font-variant-numeric: tabular-nums` |
+| Acquisition Date | `Calendar` | Formatted date via `formatDate()` |
+| Acquisition Source | `ShoppingBag` | Plain text |
+
+**Notes section (conditional):**
+- `mt-3 pt-3 border-t border-border` — separated by a divider
+- `flex items-start gap-2` with `FileText` icon
+- Label + value pattern matching other fields
+- Text can wrap naturally — no truncation
+
+**Thumbnail gallery (conditional):**
+- Appears below notes (or below details grid if no notes)
+- `mt-3 pt-3 border-t border-border` — separated by a divider
+- `flex gap-2 flex-wrap` — wrapping row of thumbnails
+- Each thumbnail:
+  - `h-16 w-16 rounded-md border object-cover`
+  - `hover:ring-2 hover:ring-accent transition-shadow` — amber ring on hover
+  - `loading="lazy"` for performance
+  - `cursor-pointer` — clickable (future: opens lightbox)
+  - Alt text: "Copy image N" (accessibility)
+
+---
+
+### Add/Edit Owned Copy Flow
+
+The add/edit owned copy uses a **dialog** pattern — consistent with other CRUD operations throughout the app.
+
+**Dialog design:**
+- `DialogContent className="sm:max-w-lg"`
+- Header: `DialogTitle` + `DialogDescription` — different text for add vs edit mode
+- Form layout: `space-y-4`
+
+**Error banner:**
+- `rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive-foreground`
+- Appears at top of form when validation or submission fails
+
+**Form fields:**
+
+1. **Condition select** (full width)
+   - Native `<select>` styled to match input theme
+   - Options: Mint, Near Mint, Excellent, Good, Fair, Poor
+   - `h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm`
+
+2. **Purchase Price + Estimated Value** (2-column grid: `grid gap-4 sm:grid-cols-2`)
+   - `type="number" step="0.01" min="0"`
+   - Placeholder: "0.00"
+
+3. **Acquisition Date + Source** (2-column grid)
+   - Date: `type="date"`
+   - Source: text input with placeholder (e.g., "eBay, Local store, Gift...")
+
+4. **Notes** (full width)
+   - Text input with placeholder
+   - Single-line currently — consider textarea in future if notes are frequently long
+
+5. **Images** (full width)
+   - `type="file" accept="image/*" multiple`
+   - When editing an existing copy with images: show existing image thumbnails below the upload input
+   - Existing thumbnails: `h-16 w-16 rounded border object-cover` in a flex wrap row
+
+**Dialog actions:**
+- `flex justify-end gap-2 pt-2`
+- Cancel: `variant="outline"`, closes dialog
+- Save: Primary button with loading spinner (`Loader2 animate-spin`) when submitting
+
+---
+
+### Back Navigation
+
+The breadcrumb trail (described above) serves as the primary back navigation. Additionally:
+
+- **Browser back button** works naturally via React Router
+- **After deleting an item:** Navigates back to collection detail page (`/collections/{collectionId}`)
+- **After successful edit:** Stays on the same page, data refreshes
+- **Not Found state:** If the item doesn't exist, shows centered message with "Back to Collection" button
+
+---
+
+### Loading State (Skeleton)
+
+The loading skeleton mirrors the final layout structure for a smooth transition:
+
+**Breadcrumb skeleton:**
+- `SkeletonRect width="240px" height="16px"`
+
+**Hero section skeleton:**
+- 5-column grid matching hero layout
+- Left (2/5): `SkeletonRect className="aspect-square w-full rounded-lg"` — square image placeholder
+- Right (3/5): `space-y-4`
+  - Title: `SkeletonRect width="60%" height="32px"`
+  - Identifier: `SkeletonRect width="40%" height="20px"`
+  - Action buttons: `flex gap-2` with 3 small skeleton rects (`80px×36px`, `80px×36px`, `100px×36px`)
+  - Description: `SkeletonText lines={3}` (multiple line placeholders)
+
+**Custom fields skeleton:**
+- Card with `p-6` padding
+- Section heading: `SkeletonRect width="120px" height="20px" className="mb-4"`
+- 3-column grid of 4 field placeholders: `SkeletonRect width="80px" height="12px"` (label) + `SkeletonRect width="120px" height="16px"` (value)
+
+**Copies skeleton:**
+- Section heading: `SkeletonRect width="160px" height="24px" className="mb-4"`
+- 2-column grid of 2 copy card placeholders: `SkeletonRect className="h-40 rounded-lg"`
+
+---
+
+### Error / Not Found State
+
+If the item fails to load or doesn't exist:
+
+- **Container:** `text-center py-12`
+- **Message:** `text-muted-foreground` — "Item not found" (translated)
+- **Action:** `Button variant="outline" className="mt-4"` — "Back to Collection"
+- Navigates to `/collections/{collectionId}`
+
+---
+
+### Responsive Summary
+
+| Element | Desktop (≥1024px) | Tablet (≥640px) | Mobile (<640px) |
+|---|---|---|---|
+| **Breadcrumb** | Full trail, all segments | Full trail | Truncate item name at 200px |
+| **Hero grid** | 5-col (2+3) | 5-col (2+3) | Stack vertically (image full width, then info) |
+| **Image size** | 2/5 of grid, aspect-square | 2/5 of grid | Full width, aspect-square |
+| **Action buttons** | Inline row | Inline row | Wrap naturally (`flex-wrap`) |
+| **Core metadata** | 2-col grid | 2-col grid | 1-col stack |
+| **Custom fields** | 3-col grid | 2-col grid | 1-col stack |
+| **Set membership** | Full row | Full row | Full row (compact) |
+| **Copies grid** | 2-col | 2-col | 1-col |
+| **Copy actions** | Hover-reveal | Hover-reveal | Always visible |
+| **Thumbnails** | 16×16 wrap row | 16×16 wrap row | 16×16 wrap row |
+| **Dialog width** | `sm:max-w-2xl` (edit item) / `sm:max-w-lg` (copy) | Full width with padding | Full width |
+| **Section gap** | `--space-6` (24px) | `--space-6` (24px) | `--space-6` (24px) |
+
+**Key mobile adaptations:**
+- Hero grid stacks: image takes full width, then identity panel below. Grid switches from `lg:grid-cols-5` to 1-column default.
+- Custom fields grid collapses: 3-col → 2-col → 1-col
+- Copy card actions are always visible on mobile (no hover on touch)
+- Dialogs go full-width on mobile, with `max-h-[90vh] overflow-y-auto` for scrolling
+
+---
+
+### Implementation Notes
+
+1. **Hero grid uses `lg:grid-cols-5`** — the 2/5 + 3/5 split gives the image generous but not dominant space. On mobile, it naturally collapses to a single column.
+2. **Image hover zoom** uses CSS `transition: transform 400ms ease` on the `<img>`, NOT Framer Motion — matches the continuous hover state pattern from collections list page. Container needs `overflow-hidden` to clip the zoomed image.
+3. **Condition badge color mapping** uses a simple conditional: Mint/NearMint → `success`, Excellent/Good → `primary`, Fair/Poor → `warning`. This creates a visual quality gradient across the conditions.
+4. **Copy card action visibility** currently uses `opacity-0 group-hover:opacity-100`. For mobile/touch support, update to `sm:opacity-0 sm:group-hover:opacity-100` so actions are always visible on small screens.
+5. **Financial values** should use `font-variant-numeric: tabular-nums` (Inter supports this natively) for aligned decimal columns in copy detail grids.
+6. **Set membership section** is a future enhancement — current API doesn't return set membership for individual items. Design is ready; implementation depends on API support. Show the section only when the data is available.
+7. **Thumbnail click behavior** — currently thumbnails are display-only. The design supports a future lightbox (US-011 will design the image gallery interaction in detail). For now, thumbnails show `hover:ring-2 hover:ring-accent` as a visual affordance.
+8. **Breadcrumb vs back links** — this page uses breadcrumbs unlike most other pages (which use sidebar highlight + back links). Breadcrumbs are warranted here because the user is 3 levels deep and needs to navigate to either the collection or the collections list.
+9. **Edit item dialog** uses `sm:max-w-2xl` (wider than copy dialog) because it has more fields including custom fields, which need space for the 2-column grid layout.
+10. **Delete flows** are consistent: item deletion navigates back to collection; copy deletion stays on the page and refreshes the copies list.

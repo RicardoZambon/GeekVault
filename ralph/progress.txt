@@ -38,6 +38,9 @@
 - Gradient fallback rotation: `index % 4` for visual variety when cover images are missing
 - Continuous hover effects (image zoom) should use CSS transitions, NOT Framer Motion — smoother for mouse-tracking states
 - List view tables with image-heavy data should include small thumbnails (40×40px) in the primary column
+- Copy card hover-reveal actions need `sm:opacity-0 sm:group-hover:opacity-100` for mobile touch support (not plain `opacity-0`)
+- Breadcrumbs only used on catalog item detail page (3 levels deep) — all other pages use sidebar highlight + back links
+- Financial values: use `font-variant-numeric: tabular-nums` on price/value displays (Inter supports natively)
 
 ---
 
@@ -206,4 +209,18 @@
   - Completion color thresholds (<50% muted, 50-99% accent, 100% success) — deliberate gamification for set tracking
   - Stats tab reuses `StatCard` from dashboard — keep consistent card design across pages
   - Tab content animation should be lightweight (fade + small y) to avoid feeling slow on frequent tab switches
+---
+
+## 2026-03-21 - US-010
+- Designed catalog item detail page with full visual specification
+- Appended "Catalog Item Detail" section to `tasks/design-pages.md`
+- Sections: Design Philosophy, Overall Page Layout, Back Navigation (breadcrumb trail), Item Hero Layout (image panel + identity panel), Metadata Display, Custom Fields Card, Set Membership Indicator, Owned Copies Section (empty state, copy card design), Add/Edit Owned Copy Flow, Loading State (skeleton), Error/Not Found State, Responsive Summary, Implementation Notes
+- Key decisions: side-by-side hero (2/5 image + 3/5 info) like a product detail page, breadcrumb navigation (only page with full breadcrumbs — 3 levels deep justifies it), condition badge color semantics (Mint/NearMint→success, Excellent/Good→primary, Fair/Poor→warning), set membership as contextual callout cards with completion color thresholds
+- **Learnings for future iterations:**
+  - This page uses breadcrumbs unlike other pages (which use sidebar + back links) — warranted because user is 3 levels deep
+  - Copy card action buttons need `sm:opacity-0 sm:group-hover:opacity-100` (not just `opacity-0`) for mobile touch support
+  - Image fallback on item detail is simpler than collection cards — just `bg-muted` with centered icon, no gradient rotation needed (single item, not a gallery)
+  - Edit item dialog uses `sm:max-w-2xl` (wider than copy dialog's `sm:max-w-lg`) — more fields including custom field grid
+  - Set membership section is designed but depends on API returning set data for individual items — design is ready, implementation gated on API
+  - Financial values in copy cards should use `font-variant-numeric: tabular-nums` for decimal alignment
 ---
