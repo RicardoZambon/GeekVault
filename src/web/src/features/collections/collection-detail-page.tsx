@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, type FormEvent } from "react"
 import { useParams, useNavigate, useSearchParams } from "react-router-dom"
 import { useTranslation } from "react-i18next"
 import { motion, AnimatePresence } from "framer-motion"
-import { Plus, ArrowLeft, Image, Package, Check, Trash2, Pencil, Search, CheckCircle2, Circle, ArrowUp, ArrowDown, Download, Upload, LayoutGrid, List, ChevronDown, GripVertical, MoreVertical, DollarSign, Target } from "lucide-react"
+import { Plus, ArrowLeft, Image, Package, Check, Trash2, Pencil, Search, SearchX, CheckCircle2, Circle, ArrowUp, ArrowDown, Download, Upload, LayoutGrid, List, ChevronDown, GripVertical, MoreVertical, DollarSign, Target } from "lucide-react"
 import { ImportWizard } from "./components/import-wizard"
 import {
   EmptyState,
@@ -654,6 +654,12 @@ export default function CollectionDetail() {
   }
   /* v8 ignore stop */
 
+  // Whether custom sort (drag-to-reorder) is active
+  const isCustomSort = sortBy === "custom"
+
+  // Determine if filters are active (for no-results vs empty distinction)
+  const hasActiveFilters = !!(searchQuery || conditionFilter || (ownedFilter && ownedFilter !== "all"))
+
   // Filter catalog items for the search in add-items dialog
   const filteredCatalogItems = items.filter((item) => {
     if (!itemSearchQuery.trim()) return true
@@ -694,6 +700,7 @@ export default function CollectionDetail() {
     {
       header: t("collectionDetail.identifierLabel"),
       accessor: "identifier" as keyof CatalogItem,
+      className: "hidden md:table-cell",
     },
     {
       header: t("collectionDetail.conditionAll").replace("All ", ""),
@@ -709,6 +716,7 @@ export default function CollectionDetail() {
     {
       header: t("collectionDetail.rarityLabel"),
       accessor: (row) => row.rarity ?? "—",
+      className: "hidden lg:table-cell",
     },
     {
       header: "",
@@ -1083,9 +1091,17 @@ export default function CollectionDetail() {
             {/* v8 ignore stop */}
           </div>
 
-          {/* Content: empty state, grid view, or table view */}
+          {/* Content: empty state, no-results state, grid view, or table view */}
           {/* v8 ignore start -- empty/grid/table view mode branches */}
-          {items.length === 0 ? (
+          {items.length === 0 && hasActiveFilters && collection.itemCount > 0 ? (
+            <EmptyState
+              icon={<SearchX />}
+              title={t("collectionDetail.noMatchingItems")}
+              description={t("collectionDetail.noMatchingItemsHint")}
+              actionLabel={t("collectionDetail.clearFilters")}
+              onAction={() => setSearchParams(new URLSearchParams())}
+            />
+          ) : items.length === 0 ? (
             <EmptyState
               icon={<Package />}
               title={t("emptyStates.collectionDetail.title")}
@@ -1104,24 +1120,34 @@ export default function CollectionDetail() {
                 const isOwned = ownedItemIds.has(item.id)
                 return (
                   <Card
-                    className={`relative group cursor-pointer overflow-hidden transition-all hover:shadow-lg hover:-translate-y-0.5 ${
+                    className={`relative group cursor-pointer overflow-hidden rounded-lg transition-all hover:shadow-lg hover:-translate-y-0.5 ${
                       isOwned ? "ring-2 ring-success/50" : ""
-                    } ${isDragging ? "ring-2 ring-accent shadow-lg" : ""}`}
+                    } ${isDragging ? "ring-2 ring-accent shadow-xl scale-[1.02]" : ""}`}
+                    tabIndex={0}
+                    role="link"
                     onClick={() => navigate(`/collections/${id}/items/${item.id}`)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault()
+                        navigate(`/collections/${id}/items/${item.id}`)
+                      }
+                    }}
                   >
-                    {/* Drag handle */}
-                    <button
-                      type="button"
-                      className="absolute top-2 left-2 z-10 cursor-grab touch-none rounded bg-black/40 p-1 text-white opacity-0 transition-opacity group-hover:opacity-100"
-                      onClick={(e) => e.stopPropagation()}
-                      {...dragHandleProps}
-                    >
-                      <GripVertical className="h-3.5 w-3.5" />
-                    </button>
+                    {/* Drag handle — only when custom sort active */}
+                    {isCustomSort && (
+                      <button
+                        type="button"
+                        className="absolute top-2 left-2 z-10 cursor-grab touch-none rounded bg-black/40 p-1 text-white opacity-0 transition-opacity group-hover:opacity-100"
+                        onClick={(e) => e.stopPropagation()}
+                        {...dragHandleProps}
+                      >
+                        <GripVertical className="h-3.5 w-3.5" />
+                      </button>
+                    )}
 
                     {/* Context menu */}
                     {item.image && (
-                      <div className="absolute top-2 right-2 z-10 opacity-0 transition-opacity group-hover:opacity-100" onClick={(e) => e.stopPropagation()}>
+                      <div className={`absolute top-2 z-10 opacity-0 transition-opacity group-hover:opacity-100 ${isOwned ? "right-10" : "right-2"}`} onClick={(e) => e.stopPropagation()}>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
                             <button type="button" className="rounded bg-black/40 p-1 text-white backdrop-blur-sm hover:bg-black/60" aria-label={t("collections.itemActions")}>
@@ -1139,13 +1165,13 @@ export default function CollectionDetail() {
                     )}
 
                     {/* Item image */}
-                    <div className="relative aspect-square bg-muted">
+                    <div className="relative aspect-square bg-muted overflow-hidden">
                       {item.image ? (
                         <img
                           src={item.image}
                           alt={item.name}
                           loading="lazy"
-                          className="h-full w-full object-cover"
+                          className="h-full w-full object-cover transition-transform duration-[400ms] group-hover:scale-105"
                         />
                       ) : (
                         <div className="flex h-full items-center justify-center bg-gradient-to-br from-primary/5 to-accent/5">
@@ -1166,13 +1192,13 @@ export default function CollectionDetail() {
                       </div>
                     </div>
 
-                    <CardContent className="p-3">
-                      <h3 className="truncate text-sm font-semibold">{item.name}</h3>
-                      <p className="mt-0.5 truncate text-xs text-muted-foreground">
+                    <CardContent className="p-3 space-y-1">
+                      <h3 className="truncate text-sm font-medium text-foreground line-clamp-1">{item.name}</h3>
+                      <p className="truncate text-xs text-muted-foreground">
                         {item.identifier}
                       </p>
-                      {isOwned && (
-                        <Badge variant="success" size="sm" className="mt-1.5">{t("collectionDetail.ownedOwned")}</Badge>
+                      {item.rarity && (
+                        <Badge variant="outline" size="sm" className="mt-1">{item.rarity}</Badge>
                       )}
                     </CardContent>
                   </Card>
@@ -1192,13 +1218,23 @@ export default function CollectionDetail() {
                 }}
                 onRowClick={(row) => navigate(`/collections/${id}/items/${row.id}`)}
                 emptyState={
-                  <EmptyState
-                    icon={<Package />}
-                    title={t("emptyStates.collectionDetail.title")}
-                    description={t("emptyStates.collectionDetail.description")}
-                    actionLabel={t("emptyStates.collectionDetail.action")}
-                    onAction={() => setDialogOpen(true)}
-                  />
+                  hasActiveFilters && collection.itemCount > 0 ? (
+                    <EmptyState
+                      icon={<SearchX />}
+                      title={t("collectionDetail.noMatchingItems")}
+                      description={t("collectionDetail.noMatchingItemsHint")}
+                      actionLabel={t("collectionDetail.clearFilters")}
+                      onAction={() => setSearchParams(new URLSearchParams())}
+                    />
+                  ) : (
+                    <EmptyState
+                      icon={<Package />}
+                      title={t("emptyStates.collectionDetail.title")}
+                      description={t("emptyStates.collectionDetail.description")}
+                      actionLabel={t("emptyStates.collectionDetail.action")}
+                      onAction={() => setDialogOpen(true)}
+                    />
+                  )
                 }
               />
             </div>

@@ -314,7 +314,10 @@
     "tabStats": "Stats",
     "statsItems": "Total Items",
     "statsOwned": "Owned Copies",
-    "statsCompletion": "Completion"
+    "statsCompletion": "Completion",
+    "noMatchingItems": "No matching items",
+    "noMatchingItemsHint": "Try adjusting your search or filters",
+    "clearFilters": "Clear filters"
   },
   "itemDetail": {
     "fetchError": "Failed to load item",

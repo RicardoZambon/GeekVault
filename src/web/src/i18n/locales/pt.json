@@ -314,7 +314,10 @@
     "tabStats": "Estatísticas",
     "statsItems": "Total de Itens",
     "statsOwned": "Cópias Possuídas",
-    "statsCompletion": "Conclusão"
+    "statsCompletion": "Conclusão",
+    "noMatchingItems": "Nenhum item correspondente",
+    "noMatchingItemsHint": "Tente ajustar sua busca ou filtros",
+    "clearFilters": "Limpar filtros"
   },
   "itemDetail": {
     "fetchError": "Falha ao carregar item",
