@@ -67,6 +67,7 @@
     "totalInvested": "Total Invested",
     "itemsByCondition": "Items by Condition",
     "conditionBreakdown": "Condition Breakdown",
+    "noConditionData": "No condition data yet",
     "collectionSummaries": "Collection Summaries",
     "items": "Items",
     "owned": "Owned",
