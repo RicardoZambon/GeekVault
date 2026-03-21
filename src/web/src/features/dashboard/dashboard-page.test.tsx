@@ -42,9 +42,13 @@ vi.mock("@/components/ds", async () => {
   const actual = await vi.importActual("@/components/ds")
   return {
     ...actual,
-    StaggerChildren: ({ children, ...props }: any) => <div {...props}>{children}</div>,
+    StaggerChildren: ({ children, ...props }: any) => {
+      const { staggerDelay, ...rest } = props
+      return <div {...rest}>{children}</div>
+    },
     staggerItemVariants: {},
     FadeIn: ({ children }: any) => <div>{children}</div>,
+    ScaleIn: ({ children }: any) => <div>{children}</div>,
     PageTransition: ({ children }: any) => <div>{children}</div>,
     AnimatedNumber: ({ value, format }: { value: number; format?: (n: number) => string }) => (
       <span>{format ? format(value) : value}</span>
@@ -152,12 +156,14 @@ describe("Dashboard", () => {
     vi.clearAllMocks()
   })
 
-  it("shows loading state with skeleton elements", () => {
+  it("shows loading state with skeleton elements including greeting skeleton", () => {
     vi.spyOn(global, "fetch").mockReturnValue(new Promise(() => {}))
     const { container } = render(<MemoryRouter><Dashboard /></MemoryRouter>)
     // Loading state renders SkeletonRect components which have skeleton-pulse class
     const skeletons = container.querySelectorAll(".skeleton-pulse")
     expect(skeletons.length).toBeGreaterThan(0)
+    // Greeting skeleton: 280px wide title + 200px wide subtitle
+    expect(skeletons.length).toBeGreaterThanOrEqual(2)
   })
 
   it("shows error via toast on fetch failure", async () => {
@@ -269,6 +275,7 @@ describe("Dashboard", () => {
       expect(screen.getByText("emptyStates.dashboard.title")).toBeInTheDocument()
     })
     expect(screen.getByText("emptyStates.dashboard.description")).toBeInTheDocument()
+    expect(screen.getByText("emptyStates.dashboard.hint")).toBeInTheDocument()
   })
 
   it("navigates to collections with create param from empty state action", async () => {

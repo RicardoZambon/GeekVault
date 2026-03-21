@@ -58,7 +58,14 @@ export function CollectionSummaries({ collections, totalCount, loading }: Collec
     )
   }
 
-  if (collections.length === 0) return null
+  if (collections.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center py-8 text-center">
+        <Library className="mb-3 h-10 w-10 text-muted-foreground/40" />
+        <p className="text-sm text-muted-foreground">{t("dashboard.noCollections")}</p>
+      </div>
+    )
+  }
 
   const displayed = collections.slice(0, MAX_CARDS)
   const total = totalCount ?? collections.length

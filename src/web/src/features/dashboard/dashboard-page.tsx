@@ -1,9 +1,10 @@
 import { useEffect, useState, useMemo } from "react"
 import { useNavigate } from "react-router-dom"
 import { useTranslation } from "react-i18next"
-import { Lock } from "lucide-react"
+import { Sparkles } from "lucide-react"
 import { useAuth } from "@/components/auth-provider"
-import { EmptyState, FadeIn, toast } from "@/components/ds"
+import { FadeIn, ScaleIn, StaggerChildren, staggerItemVariants, SkeletonRect, toast } from "@/components/ds"
+import { motion } from "framer-motion"
 import { StatsRow } from "./components/stats-row"
 import { ChartsSection } from "./components/charts-section"
 import { CollectionSummaries } from "./components/collection-summaries"
@@ -88,25 +89,57 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-8">
-      <div className="space-y-1.5">
-        <FadeIn>
-          <h1 className="font-display text-4xl font-bold tracking-tight text-foreground" style={{ letterSpacing: "-0.02em" }}>
-            {greeting}
-          </h1>
-        </FadeIn>
-        <FadeIn delay={0.06}>
-          <p className="text-lg text-muted-foreground">{subtitle}</p>
-        </FadeIn>
-      </div>
+      {loading ? (
+        <div className="space-y-1.5">
+          <SkeletonRect width={280} height={36} />
+          <SkeletonRect width={200} height={18} />
+        </div>
+      ) : (
+        <div className="space-y-1.5">
+          <FadeIn>
+            <h1 className="font-display text-4xl font-bold tracking-tight text-foreground" style={{ letterSpacing: "-0.02em" }}>
+              {greeting}
+            </h1>
+          </FadeIn>
+          <FadeIn delay={0.06}>
+            <p className="text-lg text-muted-foreground">{subtitle}</p>
+          </FadeIn>
+        </div>
+      )}
 
       {isEmpty ? (
-        <EmptyState
-          icon={<Lock />}
-          title={t("emptyStates.dashboard.title")}
-          description={t("emptyStates.dashboard.description")}
-          actionLabel={t("emptyStates.dashboard.action")}
-          onAction={() => navigate("/collections?create=true")}
-        />
+        <StaggerChildren className="flex flex-col items-center justify-center py-16 px-4 text-center" staggerDelay={0.06}>
+          <motion.div variants={staggerItemVariants}>
+            <ScaleIn>
+              <div className="mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-accent/10">
+                <Sparkles className="h-12 w-12 text-accent" />
+              </div>
+            </ScaleIn>
+          </motion.div>
+          <motion.div variants={staggerItemVariants}>
+            <h1 className="font-display text-3xl font-bold text-foreground" style={{ letterSpacing: "-0.02em" }}>
+              {t("emptyStates.dashboard.title")}
+            </h1>
+          </motion.div>
+          <motion.div variants={staggerItemVariants}>
+            <p className="mt-2 max-w-[360px] text-lg text-muted-foreground">
+              {t("emptyStates.dashboard.description")}
+            </p>
+          </motion.div>
+          <motion.div variants={staggerItemVariants}>
+            <button
+              onClick={() => navigate("/collections?create=true")}
+              className="mt-6 inline-flex items-center rounded-[var(--radius-md)] bg-primary px-6 py-2 text-lg font-semibold text-primary-foreground transition-colors hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+            >
+              {t("emptyStates.dashboard.action")}
+            </button>
+          </motion.div>
+          <motion.div variants={staggerItemVariants}>
+            <p className="mt-3 text-xs text-muted-foreground">
+              {t("emptyStates.dashboard.hint")}
+            </p>
+          </motion.div>
+        </StaggerChildren>
       ) : (
         <>
           <StatsRow

@@ -68,6 +68,8 @@
     "itemsByCondition": "Itens por Condição",
     "conditionBreakdown": "Distribuição por Condição",
     "noConditionData": "Sem dados de condição ainda",
+    "noCollections": "Nenhuma coleção para exibir",
+    "noRecentAcquisitions": "Sem aquisições recentes",
     "collectionSummaries": "Resumo das Coleções",
     "yourCollections": "Suas Coleções",
     "viewAll": "Ver tudo",
@@ -501,9 +503,10 @@
   },
   "emptyStates": {
     "dashboard": {
-      "title": "Seu cofre está vazio",
-      "description": "Comece criando sua primeira coleção para rastrear seus colecionáveis.",
-      "action": "Criar Coleção"
+      "title": "Comece sua coleção",
+      "description": "Crie sua primeira coleção para catalogar, acompanhar e valorizar as coisas que você ama.",
+      "action": "Criar Coleção",
+      "hint": "ou pressione ⌘K para buscar"
     },
     "collections": {
       "title": "Nenhuma coleção ainda",

@@ -43,11 +43,11 @@ describe("CollectionSummaries", () => {
     expect(container.querySelectorAll(".skeleton-pulse").length).toBeGreaterThanOrEqual(3)
   })
 
-  it("returns null when no collections and not loading", () => {
-    const { container } = render(
+  it("shows empty state when no collections and not loading", () => {
+    render(
       <CollectionSummaries collections={[]} />
     )
-    expect(container.firstChild).toBeNull()
+    expect(screen.getByText("dashboard.noCollections")).toBeInTheDocument()
   })
 
   it("renders section title 'Your Collections'", () => {

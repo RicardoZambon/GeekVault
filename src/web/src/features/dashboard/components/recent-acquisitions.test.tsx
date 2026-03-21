@@ -55,11 +55,11 @@ describe("RecentAcquisitions", () => {
     expect(container.querySelectorAll(".skeleton-pulse").length).toBeGreaterThanOrEqual(3)
   })
 
-  it("returns null when no acquisitions and not loading", () => {
-    const { container } = render(
+  it("shows empty state when no acquisitions and not loading", () => {
+    render(
       <RecentAcquisitions acquisitions={[]} />
     )
-    expect(container.firstChild).toBeNull()
+    expect(screen.getByText("dashboard.noRecentAcquisitions")).toBeInTheDocument()
   })
 
   it("renders section title", () => {

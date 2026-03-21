@@ -68,6 +68,8 @@
     "itemsByCondition": "Items by Condition",
     "conditionBreakdown": "Condition Breakdown",
     "noConditionData": "No condition data yet",
+    "noCollections": "No collections to display",
+    "noRecentAcquisitions": "No recent acquisitions",
     "collectionSummaries": "Collection Summaries",
     "yourCollections": "Your Collections",
     "viewAll": "View all",
@@ -501,9 +503,10 @@
   },
   "emptyStates": {
     "dashboard": {
-      "title": "Your vault is empty",
-      "description": "Start by creating your first collection to track your collectibles.",
-      "action": "Create Collection"
+      "title": "Start your collection",
+      "description": "Create your first collection to begin cataloging, tracking, and valuing the things you love.",
+      "action": "Create Collection",
+      "hint": "or press ⌘K to search"
     },
     "collections": {
       "title": "No collections yet",

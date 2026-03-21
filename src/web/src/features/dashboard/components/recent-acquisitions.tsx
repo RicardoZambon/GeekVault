@@ -1,5 +1,6 @@
 import { useTranslation } from "react-i18next"
 import { motion } from "framer-motion"
+import { Clock } from "lucide-react"
 import { DataTable, Badge, FadeIn, SkeletonRect, easings } from "@/components/ds"
 import type { DataTableColumn } from "@/components/ds"
 
@@ -68,7 +69,19 @@ const slideUpVariants = {
 export function RecentAcquisitions({ acquisitions, loading }: RecentAcquisitionsProps) {
   const { t } = useTranslation()
 
-  if (!loading && acquisitions.length === 0) return null
+  if (!loading && acquisitions.length === 0) {
+    return (
+      <div>
+        <FadeIn>
+          <h2 className="mb-4 font-display text-2xl font-semibold">{t("dashboard.recentAcquisitions")}</h2>
+        </FadeIn>
+        <div className="flex flex-col items-center justify-center py-8 text-center">
+          <Clock className="mb-3 h-10 w-10 text-muted-foreground/40" />
+          <p className="text-sm text-muted-foreground">{t("dashboard.noRecentAcquisitions")}</p>
+        </div>
+      </div>
+    )
+  }
 
   const displayed = acquisitions.slice(0, MAX_ROWS)
 
