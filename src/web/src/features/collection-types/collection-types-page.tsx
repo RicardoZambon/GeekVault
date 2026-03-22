@@ -1,6 +1,12 @@
-import { useState, useEffect, type FormEvent, type KeyboardEvent } from "react"
+import { useState, useEffect, useRef, type FormEvent, type KeyboardEvent } from "react"
 import { useTranslation } from "react-i18next"
-import { Plus, Pencil, Trash2, X, GripVertical, Layers, Loader2 } from "lucide-react"
+import {
+  Plus, Pencil, Trash2, X, GripVertical, Layers, Loader2, MoreVertical, AlertTriangle,
+  Library, Disc, Film, Gamepad2, BookOpen, Camera, Stamp, Coins, Gem, Palette,
+  Music, Trophy, Car, Watch, Shirt, Puzzle, Sword, MapPin, Globe, Star,
+  Heart, Sparkles, Zap, Flame, Crown,
+  type LucideIcon,
+} from "lucide-react"
 import { motion } from "framer-motion"
 import {
   EmptyState,
@@ -26,6 +32,11 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   SortableList,
+  Textarea,
+  Tooltip,
+  TooltipTrigger,
+  TooltipContent,
+  TooltipProvider,
   toast,
 } from "@/components/ds"
 import { useAuth } from "@/components/auth-provider"
@@ -43,6 +54,34 @@ import {
 
 const FIELD_TYPES = ["text", "number", "date", "enum", "boolean", "image_url"] as const
 type FieldType = (typeof FIELD_TYPES)[number]
+
+const FIELD_TYPE_COLORS: Record<FieldType, string> = {
+  text: "bg-info/10 text-info",
+  number: "bg-accent/10 text-accent",
+  date: "bg-success/10 text-success",
+  enum: "bg-chart-5/10 text-chart-5",
+  boolean: "bg-muted text-muted-foreground",
+  image_url: "bg-chart-6/10 text-chart-6",
+}
+
+const FIELD_TYPE_DOTS: Record<FieldType, string> = {
+  text: "bg-info",
+  number: "bg-accent",
+  date: "bg-success",
+  enum: "bg-chart-5",
+  boolean: "bg-muted-foreground",
+  image_url: "bg-chart-6",
+}
+
+const ICON_MAP: Record<string, LucideIcon> = {
+  Library, Disc, Film, Gamepad2, BookOpen, Camera, Stamp, Coins, Gem, Palette,
+  Music, Trophy, Car, Watch, Shirt, Puzzle, Sword, MapPin, Globe, Star,
+  Heart, Sparkles, Zap, Flame, Crown,
+}
+
+const ICON_NAMES = Object.keys(ICON_MAP)
+
+const MAX_VISIBLE_BADGES = 5
 
 interface CustomFieldDefinition {
   name: string
@@ -63,11 +102,19 @@ function emptyField(): CustomFieldDefinition {
   return { name: "", type: "text", required: false, options: [] }
 }
 
+function TypeIcon({ icon, className }: { icon: string; className?: string }) {
+  const Icon = ICON_MAP[icon]
+  if (Icon) return <Icon className={className} />
+  if (icon) return <span className={className}>{icon}</span>
+  return <Layers className={className} />
+}
+
 export default function CollectionTypes() {
   const { t } = useTranslation()
   const { token } = useAuth()
 
   const [collectionTypes, setCollectionTypes] = useState<CollectionType[]>([])
+  const [collectionCounts, setCollectionCounts] = useState<Record<number, number>>({})
   const [loading, setLoading] = useState(true)
 
   // Dialog state
@@ -79,6 +126,10 @@ export default function CollectionTypes() {
   const [formFields, setFormFields] = useState<CustomFieldDefinition[]>([])
   const [formError, setFormError] = useState("")
   const [submitting, setSubmitting] = useState(false)
+
+  // Icon picker state
+  const [iconPickerOpen, setIconPickerOpen] = useState(false)
+  const iconPickerRef = useRef<HTMLDivElement>(null)
 
   // Delete confirmation
   const [deleteId, setDeleteId] = useState<number | null>(null)
@@ -94,13 +145,27 @@ export default function CollectionTypes() {
 
   async function fetchCollectionTypes() {
     try {
-      const res = await fetch("/api/collection-types", { headers })
-      if (!res.ok) throw new Error("Failed to fetch")
-      const data = await res.json()
-      setCollectionTypes(data.map((ct: CollectionType) => ({
+      const [typesRes, collectionsRes] = await Promise.all([
+        fetch("/api/collection-types", { headers }),
+        fetch("/api/collections", { headers }),
+      ])
+      if (!typesRes.ok) throw new Error("Failed to fetch")
+      const typesData = await typesRes.json()
+      setCollectionTypes(typesData.map((ct: CollectionType) => ({
         ...ct,
         customFieldSchema: ct.customFieldSchema ?? [],
       })))
+
+      if (collectionsRes.ok) {
+        const collectionsData = await collectionsRes.json()
+        const counts: Record<number, number> = {}
+        for (const col of collectionsData) {
+          if (col.collectionTypeId) {
+            counts[col.collectionTypeId] = (counts[col.collectionTypeId] ?? 0) + 1
+          }
+        }
+        setCollectionCounts(counts)
+      }
     } catch {
       toast.error(t("collectionTypes.fetchError"))
     } finally {
@@ -112,6 +177,18 @@ export default function CollectionTypes() {
     fetchCollectionTypes()
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Close icon picker on outside click
+  useEffect(() => {
+    if (!iconPickerOpen) return
+    function handleClickOutside(e: MouseEvent) {
+      if (iconPickerRef.current && !iconPickerRef.current.contains(e.target as Node)) {
+        setIconPickerOpen(false)
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside)
+    return () => document.removeEventListener("mousedown", handleClickOutside)
+  }, [iconPickerOpen])
+
   function openCreate() {
     setEditingId(null)
     setFormName("")
@@ -120,6 +197,7 @@ export default function CollectionTypes() {
     setFormFields([])
     setFormError("")
     setEnumInputs({})
+    setIconPickerOpen(false)
     setDialogOpen(true)
   }
 
@@ -131,6 +209,7 @@ export default function CollectionTypes() {
     setFormFields((ct.customFieldSchema ?? []).map((f) => ({ ...f, options: [...(f.options ?? [])] })))
     setFormError("")
     setEnumInputs({})
+    setIconPickerOpen(false)
     setDialogOpen(true)
   }
 
@@ -222,7 +301,6 @@ export default function CollectionTypes() {
 
   function removeField(index: number) {
     setFormFields(formFields.filter((_, i) => i !== index))
-    // Clean up enum input for removed field
     setEnumInputs((prev) => {
       const next = { ...prev }
       delete next[index]
@@ -259,9 +337,14 @@ export default function CollectionTypes() {
     }
   }
 
+  const deleteType = deleteId !== null
+    ? collectionTypes.find((ct) => ct.id === deleteId)
+    : null
+  const deleteCollectionCount = deleteId !== null ? (collectionCounts[deleteId] ?? 0) : 0
+
   if (loading) {
     return (
-      <div className="space-y-6">
+      <div className="space-y-8">
         <div className="flex items-center justify-between">
           <div className="space-y-2">
             <SkeletonRect width="200px" height="32px" />
@@ -269,17 +352,21 @@ export default function CollectionTypes() {
           </div>
           <SkeletonRect width="120px" height="36px" />
         </div>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <Card key={i} className="p-6">
+        <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <Card key={i} className="p-5">
               <div className="flex items-center gap-3 mb-3">
-                <SkeletonRect width="48px" height="48px" className="rounded-lg" />
+                <SkeletonRect width="40px" height="40px" className="rounded-lg" />
                 <SkeletonRect width="120px" height="20px" />
               </div>
               <SkeletonText lines={2} />
-              <div className="mt-3 flex gap-1">
+              <div className="mt-3 flex gap-1.5">
                 <SkeletonRect width="60px" height="22px" className="rounded-full" />
                 <SkeletonRect width="80px" height="22px" className="rounded-full" />
+                <SkeletonRect width="50px" height="22px" className="rounded-full" />
+              </div>
+              <div className="mt-3">
+                <SkeletonRect width="160px" height="14px" />
               </div>
             </Card>
           ))}
@@ -289,7 +376,7 @@ export default function CollectionTypes() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8" data-testid="collection-types-page">
       <PageHeader
         title={t("collectionTypes.title")}
         description={t("collectionTypes.description")}
@@ -311,71 +398,110 @@ export default function CollectionTypes() {
           onAction={() => setDialogOpen(true)}
         />
       ) : (
-        <StaggerChildren className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {collectionTypes.map((ct) => (
-            <motion.div key={ct.id} variants={staggerItemVariants}>
-              <Card className="group h-full transition-shadow hover:shadow-lg">
-                <CardContent className="p-5">
-                  <div className="flex items-start justify-between">
+        <StaggerChildren className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          {collectionTypes.map((ct) => {
+            const fields = ct.customFieldSchema ?? []
+            const visibleFields = fields.slice(0, MAX_VISIBLE_BADGES)
+            const overflowCount = fields.length - MAX_VISIBLE_BADGES
+            const usageCount = collectionCounts[ct.id] ?? 0
+
+            return (
+              <motion.div key={ct.id} variants={staggerItemVariants} data-testid="type-card" data-type-id={ct.id}>
+                <Card className="group h-full border border-border transition-all duration-150 hover:shadow-md hover:border-accent/30">
+                  <CardContent className="p-5 max-sm:p-4 flex flex-col h-full">
+                    {/* Icon + Title */}
                     <div className="flex items-center gap-3">
-                      {ct.icon && (
-                        <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10 text-2xl">
-                          {ct.icon}
-                        </div>
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-accent/10">
+                        <TypeIcon icon={ct.icon} className="h-5 w-5 text-accent" />
+                      </div>
+                      <h4 className="text-base font-semibold text-card-foreground">{ct.name}</h4>
+                    </div>
+
+                    {/* Description */}
+                    {ct.description && (
+                      <p className="mt-2 text-sm text-muted-foreground line-clamp-2">
+                        {ct.description}
+                      </p>
+                    )}
+
+                    {/* Field type badges */}
+                    <div className="mt-3 flex flex-wrap gap-1.5" data-testid="field-badges">
+                      {fields.length === 0 ? (
+                        <span className="text-xs text-muted-foreground italic">
+                          {t("collectionTypes.noFieldsBadge")}
+                        </span>
+                      ) : (
+                        <>
+                          {visibleFields.map((f) => (
+                            <span
+                              key={f.name}
+                              data-testid="field-badge"
+                              data-field-type={f.type}
+                              className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${FIELD_TYPE_COLORS[f.type]}`}
+                            >
+                              {f.name}
+                            </span>
+                          ))}
+                          {overflowCount > 0 && (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-muted text-muted-foreground">
+                              +{overflowCount} {t("collectionTypes.moreFields")}
+                            </span>
+                          )}
+                        </>
                       )}
-                      <h3 className="font-display text-lg font-bold">{ct.name}</h3>
                     </div>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
-                          aria-label={t("collections.actions")}
-                        >
-                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/></svg>
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => openEdit(ct)}>
-                          <Pencil className="mr-2 h-4 w-4" />
-                          {t("collectionTypes.edit")}
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          className="text-destructive focus:text-destructive"
-                          onClick={() => setDeleteId(ct.id)}
-                        >
-                          <Trash2 className="mr-2 h-4 w-4" />
-                          {t("collectionTypes.delete")}
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
-                  {ct.description && (
-                    <p className="mt-2 text-sm text-muted-foreground line-clamp-2">
-                      {ct.description}
+
+                    {/* Metadata row */}
+                    <p className="mt-3 text-xs text-muted-foreground">
+                      {t("collectionTypes.fieldCount", { count: fields.length })}
+                      <span className="mx-1.5">&middot;</span>
+                      {t("collectionTypes.collectionCount", { count: usageCount })}
                     </p>
-                  )}
-                  {(ct.customFieldSchema ?? []).length > 0 && (
-                    <div className="mt-3 flex flex-wrap gap-1.5">
-                      {ct.customFieldSchema.map((f) => (
-                        <Badge key={f.name} variant="outline" size="sm">
-                          {f.name}
-                          <span className="ml-1 opacity-60">({t(`collectionTypes.fieldTypes.${f.type}`)})</span>
-                        </Badge>
-                      ))}
+
+                    {/* Action row */}
+                    <div className="border-t border-border mt-4 pt-3 flex items-center justify-between">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => openEdit(ct)}
+                        aria-label={t("collectionTypes.edit")}
+                      >
+                        <Pencil className="mr-1.5 h-3.5 w-3.5" />
+                        {t("collectionTypes.edit")}
+                      </Button>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                            aria-label={t("collectionTypes.moreActions")}
+                          >
+                            <MoreVertical className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem
+                            className="text-destructive focus:text-destructive"
+                            onClick={() => setDeleteId(ct.id)}
+                          >
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            {t("collectionTypes.delete")}
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </div>
-                  )}
-                </CardContent>
-              </Card>
-            </motion.div>
-          ))}
+                  </CardContent>
+                </Card>
+              </motion.div>
+            )
+          })}
         </StaggerChildren>
       )}
 
       {/* Create/Edit Dialog with Tabs */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
+        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-xl">
           <DialogHeader>
             <DialogTitle>
               {editingId
@@ -410,39 +536,85 @@ export default function CollectionTypes() {
               </TabsList>
 
               <TabsContent value="general" className="space-y-4">
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label htmlFor="ct-name">{t("collectionTypes.nameLabel")}</Label>
-                    <Input
-                      id="ct-name"
-                      value={formName}
-                      onChange={(e) => setFormName(e.target.value)}
-                      placeholder={t("collectionTypes.namePlaceholder")}
+                {/* Icon picker */}
+                <div className="space-y-2">
+                  <Label>{t("collectionTypes.iconLabel")}</Label>
+                  <div className="relative" ref={iconPickerRef}>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="w-full justify-start gap-2"
+                      onClick={() => setIconPickerOpen(!iconPickerOpen)}
                       disabled={submitting}
-                    />
+                      data-testid="icon-picker-trigger"
+                    >
+                      {formIcon ? (
+                        <>
+                          <TypeIcon icon={formIcon} className="h-4 w-4" />
+                          <span>{formIcon}</span>
+                        </>
+                      ) : (
+                        <span className="text-muted-foreground">{t("collectionTypes.selectIcon")}</span>
+                      )}
+                    </Button>
+                    {iconPickerOpen && (
+                      <div
+                        className="absolute z-50 mt-1 w-full rounded-lg border border-border bg-popover p-2 shadow-lg"
+                        data-testid="icon-picker-grid"
+                      >
+                        <div className="grid grid-cols-5 gap-1">
+                          {ICON_NAMES.map((name) => {
+                            const Icon = ICON_MAP[name]
+                            return (
+                              <TooltipProvider key={name} delayDuration={300}>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <button
+                                      type="button"
+                                      className={`flex items-center justify-center rounded-md p-2 transition-colors hover:bg-accent/10 ${formIcon === name ? "bg-accent/15 ring-1 ring-accent" : ""}`}
+                                      onClick={() => {
+                                        setFormIcon(name)
+                                        setIconPickerOpen(false)
+                                      }}
+                                      aria-label={name}
+                                    >
+                                      <Icon className="h-5 w-5 text-foreground" />
+                                    </button>
+                                  </TooltipTrigger>
+                                  <TooltipContent side="top">{name}</TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                            )
+                          })}
+                        </div>
+                      </div>
+                    )}
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="ct-icon">{t("collectionTypes.iconLabel")}</Label>
-                    <Input
-                      id="ct-icon"
-                      value={formIcon}
-                      onChange={(e) => setFormIcon(e.target.value)}
-                      placeholder={t("collectionTypes.iconPlaceholder")}
-                      disabled={submitting}
-                    />
-                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="ct-name">{t("collectionTypes.nameLabel")} *</Label>
+                  <Input
+                    id="ct-name"
+                    value={formName}
+                    onChange={(e) => setFormName(e.target.value)}
+                    placeholder={t("collectionTypes.namePlaceholder")}
+                    disabled={submitting}
+                  />
                 </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="ct-description">
                     {t("collectionTypes.descriptionLabel")}
                   </Label>
-                  <Input
+                  <Textarea
                     id="ct-description"
                     value={formDescription}
                     onChange={(e) => setFormDescription(e.target.value)}
                     placeholder={t("collectionTypes.descriptionPlaceholder")}
                     disabled={submitting}
+                    rows={3}
+                    className="resize-y"
                   />
                 </div>
               </TabsContent>
@@ -457,7 +629,7 @@ export default function CollectionTypes() {
                   </p>
                   <Button
                     type="button"
-                    variant="outline"
+                    variant="ghost"
                     size="sm"
                     onClick={addField}
                     disabled={formFields.length >= 10 || submitting}
@@ -481,7 +653,7 @@ export default function CollectionTypes() {
                     }}
                     renderItem={(item, { dragHandleProps, isDragging }) => (
                       <div
-                        className={`rounded-lg border bg-muted/30 p-3 space-y-3 ${isDragging ? "ring-2 ring-accent" : ""}`}
+                        className={`rounded-md border border-border bg-card p-3 space-y-3 ${isDragging ? "ring-2 ring-accent shadow-xl scale-[1.02]" : ""}`}
                       >
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
@@ -500,11 +672,11 @@ export default function CollectionTypes() {
                             type="button"
                             variant="ghost"
                             size="icon"
-                            className="h-7 w-7"
+                            className="h-7 w-7 text-destructive/60 hover:text-destructive"
                             onClick={() => removeField(item._index)}
                             disabled={submitting}
                           >
-                            <X className="h-3 w-3" />
+                            <Trash2 className="h-3.5 w-3.5" />
                           </Button>
                         </div>
 
@@ -543,7 +715,10 @@ export default function CollectionTypes() {
                               <SelectContent>
                                 {FIELD_TYPES.map((ft) => (
                                   <SelectItem key={ft} value={ft}>
-                                    {t(`collectionTypes.fieldTypes.${ft}`)}
+                                    <div className="flex items-center gap-2">
+                                      <span className={`w-2 h-2 rounded-full ${FIELD_TYPE_DOTS[ft]}`} />
+                                      <span>{t(`collectionTypes.fieldTypes.${ft}`)}</span>
+                                    </div>
                                   </SelectItem>
                                 ))}
                               </SelectContent>
@@ -647,14 +822,27 @@ export default function CollectionTypes() {
         open={deleteId !== null}
         onOpenChange={(open) => !open && setDeleteId(null)}
         title={t("collectionTypes.deleteTitle")}
-        description={t("collectionTypes.deleteConfirm")}
+        description={
+          deleteType
+            ? t("collectionTypes.deleteConfirmNamed", { name: deleteType.name })
+            : t("collectionTypes.deleteConfirm")
+        }
         confirmLabel={t("collectionTypes.delete")}
         cancelLabel={t("collectionTypes.cancel")}
         loadingLabel={t("collectionTypes.deleting")}
         loading={deleting}
         variant="destructive"
         onConfirm={handleDelete}
-      />
+      >
+        {deleteCollectionCount > 0 && (
+          <div className="rounded-md bg-destructive/10 border border-destructive/20 p-3 flex items-start gap-2" data-testid="delete-usage-warning">
+            <AlertTriangle className="h-4 w-4 text-destructive shrink-0 mt-0.5" />
+            <p className="text-sm text-destructive">
+              {t("collectionTypes.deleteWarning", { count: deleteCollectionCount })}
+            </p>
+          </div>
+        )}
+      </ConfirmDialog>
     </div>
   )
 }

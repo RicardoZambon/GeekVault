@@ -208,7 +208,15 @@
     "enumTagPlaceholder": "Type and press Enter to add",
     "saveSuccess": "Collection type saved successfully.",
     "createSuccess": "Collection type created successfully.",
-    "deleteSuccess": "Collection type deleted successfully."
+    "deleteSuccess": "Collection type deleted successfully.",
+    "selectIcon": "Select an icon",
+    "noFieldsBadge": "No custom fields",
+    "moreFields": "more",
+    "fieldCount": "{{count}} custom fields",
+    "collectionCount": "{{count}} collections",
+    "moreActions": "More actions",
+    "deleteConfirmNamed": "Are you sure you want to delete {{name}}?",
+    "deleteWarning": "This type is used by {{count}} collection(s). Deleting it will remove the type assignment from those collections."
   },
   "collectionDetail": {
     "fetchError": "Failed to load collection",

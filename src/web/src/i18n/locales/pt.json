@@ -208,7 +208,15 @@
     "enumTagPlaceholder": "Digite e pressione Enter para adicionar",
     "saveSuccess": "Tipo de coleção salvo com sucesso.",
     "createSuccess": "Tipo de coleção criado com sucesso.",
-    "deleteSuccess": "Tipo de coleção excluído com sucesso."
+    "deleteSuccess": "Tipo de coleção excluído com sucesso.",
+    "selectIcon": "Selecione um ícone",
+    "noFieldsBadge": "Sem campos personalizados",
+    "moreFields": "mais",
+    "fieldCount": "{{count}} campos personalizados",
+    "collectionCount": "{{count}} coleções",
+    "moreActions": "Mais ações",
+    "deleteConfirmNamed": "Tem certeza de que deseja excluir {{name}}?",
+    "deleteWarning": "Este tipo é usado por {{count}} coleção(ões). Excluí-lo removerá a atribuição de tipo dessas coleções."
   },
   "collectionDetail": {
     "fetchError": "Falha ao carregar coleção",
