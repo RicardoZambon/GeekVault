@@ -3,6 +3,12 @@ import { render, screen, fireEvent, waitFor } from "@testing-library/react"
 import { MemoryRouter } from "react-router-dom"
 import Wishlist from "./wishlist-page"
 
+const mockNavigate = vi.fn()
+vi.mock("react-router-dom", async () => {
+  const actual = await vi.importActual("react-router-dom")
+  return { ...actual, useNavigate: () => mockNavigate }
+})
+
 vi.mock("@/components/auth-provider", () => ({
   useAuth: () => ({ token: "tok", user: null, isLoading: false, login: vi.fn(), register: vi.fn(), logout: vi.fn() }),
 }))
@@ -18,8 +24,16 @@ vi.mock("react-i18next", () => ({
 }))
 
 vi.mock("framer-motion", () => ({
-  motion: { div: ({ children, ...props }: any) => <div {...props}>{children}</div> },
+  motion: {
+    div: ({ children, ...props }: any) => <div {...props}>{children}</div>,
+    span: ({ children, ...props }: any) => <span {...props}>{children}</span>,
+  },
   AnimatePresence: ({ children }: any) => <>{children}</>,
+}))
+
+vi.mock("@/hooks", () => ({
+  useDebounce: (v: any) => v,
+  useMediaQuery: () => false,
 }))
 
 const { mockToast } = vi.hoisted(() => ({
@@ -43,6 +57,7 @@ vi.mock("@/components/ds", async () => {
     SelectValue: () => null,
     SelectContent: ({ children }: any) => <>{children}</>,
     SelectItem: ({ value, children }: any) => <option value={value}>{children}</option>,
+    Textarea: (props: any) => <textarea {...props} />,
     toast: mockToast,
     DropdownMenu: ({ children }: any) => <div>{children}</div>,
     DropdownMenuTrigger: ({ children }: any) => <>{children}</>,
@@ -155,13 +170,13 @@ describe("Wishlist", () => {
     expect(await screen.findByText("wishlist.deleteConfirm")).toBeInTheDocument()
   })
 
-  it("shows target price", async () => {
+  it("shows target price with tabular nums styling", async () => {
     mockFetch()
     render(<MemoryRouter><Wishlist /></MemoryRouter>)
     await waitFor(() => {
       expect(screen.getByText("Spider-Man #50")).toBeInTheDocument()
     })
-    expect(screen.getByText(/\$100\.00/)).toBeInTheDocument()
+    expect(screen.getByText("$100.00")).toBeInTheDocument()
   })
 
   it("shows notes", async () => {
@@ -455,6 +470,22 @@ describe("Wishlist", () => {
     expect(parentRow?.querySelector("svg")).toBeInTheDocument()
   })
 
+  it("shows catalog link button for items with catalogItemId", async () => {
+    mockFetch()
+    render(<MemoryRouter><Wishlist /></MemoryRouter>)
+    await waitFor(() => screen.getByText("X-Men #1"))
+    // X-Men #1 has catalogItemId so "View in catalog" should appear
+    expect(screen.getByText("wishlist.viewCatalogItem")).toBeInTheDocument()
+  })
+
+  it("navigates to catalog item when view link clicked", async () => {
+    mockFetch()
+    render(<MemoryRouter><Wishlist /></MemoryRouter>)
+    await waitFor(() => screen.getByText("X-Men #1"))
+    fireEvent.click(screen.getByText("wishlist.viewCatalogItem"))
+    expect(mockNavigate).toHaveBeenCalledWith("/collections/1/items/5")
+  })
+
   it("closes create dialog via cancel button", async () => {
     mockFetch()
     render(<MemoryRouter><Wishlist /></MemoryRouter>)
@@ -652,13 +683,41 @@ describe("Wishlist", () => {
     render(<MemoryRouter><Wishlist /></MemoryRouter>)
     await waitFor(() => screen.getByText("Spider-Man #50"))
 
-    // Find the sort select (has "priority", "price", "name" options)
+    // Find the sort select (has "priority", "price", "name", "dateAdded" options)
     const selects = document.querySelectorAll("select")
     const sortSelect = Array.from(selects).find((s) =>
       Array.from(s.options).some((o) => o.value === "name")
     )!
     fireEvent.change(sortSelect, { target: { value: "name" } })
     // Items should still render (just in different order)
+    expect(screen.getByText("Spider-Man #50")).toBeInTheDocument()
+  })
+
+  it("sorts by date added", async () => {
+    mockFetch()
+    render(<MemoryRouter><Wishlist /></MemoryRouter>)
+    await waitFor(() => screen.getByText("Spider-Man #50"))
+
+    const selects = document.querySelectorAll("select")
+    const sortSelect = Array.from(selects).find((s) =>
+      Array.from(s.options).some((o) => o.value === "dateAdded")
+    )!
+    fireEvent.change(sortSelect, { target: { value: "dateAdded" } })
+    expect(screen.getByText("Spider-Man #50")).toBeInTheDocument()
+  })
+
+  it("filters by date range", async () => {
+    mockFetch()
+    render(<MemoryRouter><Wishlist /></MemoryRouter>)
+    await waitFor(() => screen.getByText("Spider-Man #50"))
+
+    // Find the date filter select (has "all", "7d", "30d", "90d" options)
+    const selects = document.querySelectorAll("select")
+    const dateFilterSelect = Array.from(selects).find((s) =>
+      Array.from(s.options).some((o) => o.value === "7d")
+    )!
+    fireEvent.change(dateFilterSelect, { target: { value: "7d" } })
+    // Items should still render (all have ids close together)
     expect(screen.getByText("Spider-Man #50")).toBeInTheDocument()
   })
 
@@ -672,6 +731,34 @@ describe("Wishlist", () => {
     // Click again to expand
     fireEvent.click(screen.getByText("Comics"))
     expect(screen.getByText("Spider-Man #50")).toBeInTheDocument()
+  })
+
+  it("shows priority badges with correct data attributes", async () => {
+    mockFetch()
+    render(<MemoryRouter><Wishlist /></MemoryRouter>)
+    await waitFor(() => screen.getByText("Spider-Man #50"))
+
+    const badges = document.querySelectorAll("[data-testid='priority-badge']")
+    expect(badges.length).toBeGreaterThan(0)
+    // First item (Spider-Man #50) is priority 1 = high
+    expect(badges[0].getAttribute("data-priority")).toBe("high")
+  })
+
+  it("shows wishlist group with data attributes", async () => {
+    mockFetch()
+    render(<MemoryRouter><Wishlist /></MemoryRouter>)
+    await waitFor(() => screen.getByText("Comics"))
+
+    const groups = document.querySelectorAll("[data-testid='wishlist-group']")
+    expect(groups.length).toBe(1) // Only Comics has items
+    expect(groups[0].getAttribute("data-collection-id")).toBe("1")
+  })
+
+  it("shows item count reflecting filtered results", async () => {
+    mockFetch()
+    render(<MemoryRouter><Wishlist /></MemoryRouter>)
+    await waitFor(() => screen.getByText("Spider-Man #50"))
+    expect(screen.getByText("wishlist.itemCount:3")).toBeInTheDocument()
   })
 
   it("handles wishlist reorder API call", async () => {

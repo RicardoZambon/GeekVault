@@ -436,7 +436,7 @@
     "targetPrice": "Preço Alvo",
     "targetPriceLabel": "Preço Alvo",
     "notesLabel": "Notas",
-    "notesPlaceholder": "Notas sobre este item",
+    "notesPlaceholder": "ex.: Procurando em condição quase nova...",
     "linkCatalogItem": "Vincular Item do Catálogo (opcional)",
     "searchCatalogPlaceholder": "Buscar itens do catálogo...",
     "linked": "Vinculado a item do catálogo",
@@ -463,8 +463,15 @@
     "sortPriority": "Prioridade",
     "sortPrice": "Preço",
     "sortName": "Nome",
+    "sortDateAdded": "Data de Adição",
+    "filterDateAll": "Qualquer período",
+    "filterDate7d": "Últimos 7 dias",
+    "filterDate30d": "Últimos 30 dias",
+    "filterDate90d": "Últimos 90 dias",
+    "viewCatalogItem": "Ver no catálogo \u2192",
     "itemCount": "{{count}} itens",
-    "noResults": "Nenhum item corresponde aos filtros selecionados.",
+    "noResults": "Nenhum item corresponde aos filtros atuais",
+    "noResultsHint": "Tente ajustar os filtros de prioridade ou ordenação",
     "updateSuccess": "Item da lista de desejos atualizado com sucesso.",
     "addSuccess": "Item adicionado à lista de desejos com sucesso.",
     "deleteSuccess": "Item da lista de desejos excluído com sucesso.",
@@ -552,8 +559,8 @@
       "action": "Adicionar Item"
     },
     "wishlist": {
-      "title": "Sua lista de desejos está vazia",
-      "description": "Salve itens que você está procurando e acompanhe preços-alvo.",
+      "title": "Nada na sua lista de desejos ainda",
+      "description": "Comece adicionando itens que você adoraria ter. Navegue pelas suas coleções para descobrir o que está faltando.",
       "action": "Adicionar à Lista de Desejos"
     },
     "collectionTypes": {

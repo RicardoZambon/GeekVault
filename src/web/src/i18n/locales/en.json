@@ -436,7 +436,7 @@
     "targetPrice": "Target Price",
     "targetPriceLabel": "Target Price",
     "notesLabel": "Notes",
-    "notesPlaceholder": "Any notes about this item",
+    "notesPlaceholder": "e.g., Looking for near-mint condition...",
     "linkCatalogItem": "Link Catalog Item (optional)",
     "searchCatalogPlaceholder": "Search catalog items...",
     "linked": "Linked to catalog item",
@@ -463,8 +463,15 @@
     "sortPriority": "Priority",
     "sortPrice": "Price",
     "sortName": "Name",
+    "sortDateAdded": "Date Added",
+    "filterDateAll": "Any time",
+    "filterDate7d": "Last 7 days",
+    "filterDate30d": "Last 30 days",
+    "filterDate90d": "Last 90 days",
+    "viewCatalogItem": "View in catalog \u2192",
     "itemCount": "{{count}} items",
-    "noResults": "No items match the selected filters.",
+    "noResults": "No items match your current filters",
+    "noResultsHint": "Try adjusting your priority or sort filters",
     "updateSuccess": "Wishlist item updated successfully.",
     "addSuccess": "Wishlist item added successfully.",
     "deleteSuccess": "Wishlist item deleted successfully.",
@@ -552,8 +559,8 @@
       "action": "Add Item"
     },
     "wishlist": {
-      "title": "Your wishlist is empty",
-      "description": "Save items you are looking for and track target prices.",
+      "title": "Nothing on your wishlist yet",
+      "description": "Start adding items you'd love to own. Browse your collections to discover what's missing.",
       "action": "Add to Wishlist"
     },
     "collectionTypes": {
