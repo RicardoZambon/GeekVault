@@ -22,7 +22,7 @@ vi.mock("react-i18next", () => ({
 }))
 
 vi.mock("framer-motion", () => ({
-  motion: { div: ({ children, ...props }: any) => <div {...props}>{children}</div> },
+  motion: { div: ({ children, ...props }: any) => { const { whileHover, whileTap, ...rest } = props; return <div {...rest}>{children}</div> } },
   AnimatePresence: ({ children }: any) => <>{children}</>,
 }))
 
@@ -31,6 +31,7 @@ vi.mock("@/components/ds", async () => {
   return {
     ...actual,
     FadeIn: ({ children }: any) => <div>{children}</div>,
+    StaggerChildren: ({ children }: any) => <div>{children}</div>,
     Select: ({ value, onValueChange, disabled, children }: any) => (
       <select value={value} onChange={(e: any) => onValueChange(e.target.value)} disabled={disabled}>{children}</select>
     ),
@@ -62,10 +63,11 @@ describe("Profile", () => {
   it("shows loading state with skeletons", () => {
     vi.spyOn(global, "fetch").mockReturnValue(new Promise(() => {}))
     render(<MemoryRouter><Profile /></MemoryRouter>)
+    expect(screen.getByTestId("profile-skeleton")).toBeInTheDocument()
     expect(document.querySelector(".skeleton-pulse")).toBeInTheDocument()
   })
 
-  it("renders profile form after loading", async () => {
+  it("renders two-column layout after loading", async () => {
     vi.spyOn(global, "fetch").mockResolvedValueOnce({
       ok: true,
       json: () => Promise.resolve(profileData),
@@ -75,7 +77,27 @@ describe("Profile", () => {
     await waitFor(() => {
       expect(screen.getByText("profile.title")).toBeInTheDocument()
     })
+    // Two-column grid
+    const grid = document.querySelector(".lg\\:grid-cols-3")
+    expect(grid).toBeInTheDocument()
+    // Avatar card in left column
+    expect(screen.getByTestId("profile-avatar")).toBeInTheDocument()
+    // Form fields in right column
     expect(screen.getByDisplayValue("Test User")).toBeInTheDocument()
+  })
+
+  it("shows avatar card with user name and email", async () => {
+    vi.spyOn(global, "fetch").mockResolvedValueOnce({
+      ok: true,
+      json: () => Promise.resolve(profileData),
+    } as Response)
+
+    render(<MemoryRouter><Profile /></MemoryRouter>)
+    await waitFor(() => screen.getByText("profile.title"))
+
+    // Avatar card shows name and email
+    expect(screen.getByText("Test User")).toBeInTheDocument()
+    expect(screen.getByText("test@example.com")).toBeInTheDocument()
   })
 
   it("shows toast error on fetch failure", async () => {
@@ -97,7 +119,11 @@ describe("Profile", () => {
     render(<MemoryRouter><Profile /></MemoryRouter>)
     await waitFor(() => screen.getByText("profile.title"))
 
-    fireEvent.click(screen.getByText("profile.save"))
+    // Make a change to enable save button (dirty state)
+    const nameInput = screen.getByLabelText("profile.displayNameLabel")
+    fireEvent.change(nameInput, { target: { value: "Changed" } })
+
+    fireEvent.click(screen.getByTestId("profile-save"))
     await waitFor(() => {
       expect(toast.success).toHaveBeenCalledWith("profile.saveSuccess")
     })
@@ -111,7 +137,12 @@ describe("Profile", () => {
 
     render(<MemoryRouter><Profile /></MemoryRouter>)
     await waitFor(() => screen.getByText("profile.title"))
-    fireEvent.click(screen.getByText("profile.save"))
+
+    // Make a change to enable save button
+    const nameInput = screen.getByLabelText("profile.displayNameLabel")
+    fireEvent.change(nameInput, { target: { value: "Changed" } })
+
+    fireEvent.click(screen.getByTestId("profile-save"))
     await waitFor(() => {
       expect(toast.error).toHaveBeenCalledWith("profile.saveFailed")
     })
@@ -127,6 +158,19 @@ describe("Profile", () => {
     await waitFor(() => {
       expect(screen.getByAltText("profile.avatarLabel")).toBeInTheDocument()
     })
+  })
+
+  it("shows fallback avatar with accent styling when no avatar", async () => {
+    vi.spyOn(global, "fetch").mockResolvedValueOnce({
+      ok: true,
+      json: () => Promise.resolve(profileData),
+    } as Response)
+
+    render(<MemoryRouter><Profile /></MemoryRouter>)
+    await waitFor(() => screen.getByText("profile.title"))
+
+    const fallback = screen.getByTestId("profile-avatar").querySelector(".bg-accent\\/10")
+    expect(fallback).toBeInTheDocument()
   })
 
   it("handles avatar upload successfully", async () => {
@@ -190,11 +234,11 @@ describe("Profile", () => {
     render(<MemoryRouter><Profile /></MemoryRouter>)
     await waitFor(() => screen.getByText("profile.title"))
 
-    // Verify form fields are rendered
-    expect(screen.getByDisplayValue("Test User")).toBeInTheDocument()
-    expect(screen.getByDisplayValue("A bio")).toBeInTheDocument()
+    // Make a change to enable save
+    const bioInput = screen.getByLabelText("profile.bioLabel")
+    fireEvent.change(bioInput, { target: { value: "New bio" } })
 
-    fireEvent.click(screen.getByText("profile.save"))
+    fireEvent.click(screen.getByTestId("profile-save"))
     await waitFor(() => {
       expect(toast.success).toHaveBeenCalledWith("profile.saveSuccess")
     })
@@ -295,13 +339,12 @@ describe("Profile", () => {
     const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement
     const clickSpy = vi.spyOn(fileInput, "click")
 
-    // Click the avatar area (the div with cursor-pointer)
-    const avatarArea = document.querySelector(".cursor-pointer")!
-    fireEvent.click(avatarArea)
+    // Click the avatar area
+    fireEvent.click(screen.getByTestId("profile-avatar"))
     expect(clickSpy).toHaveBeenCalled()
   })
 
-  it("shows email as disabled field", async () => {
+  it("shows email as disabled field with lock icon", async () => {
     vi.spyOn(global, "fetch").mockResolvedValueOnce({
       ok: true,
       json: () => Promise.resolve(profileData),
@@ -311,9 +354,11 @@ describe("Profile", () => {
     await waitFor(() => screen.getByText("profile.title"))
 
     expect(screen.getByDisplayValue("test@example.com")).toBeDisabled()
+    // Email read-only helper text
+    expect(screen.getByText("profile.emailReadOnly")).toBeInTheDocument()
   })
 
-  it("renders theme section with appearance options", async () => {
+  it("renders theme section with visual toggle options", async () => {
     vi.spyOn(global, "fetch").mockResolvedValueOnce({
       ok: true,
       json: () => Promise.resolve(profileData),
@@ -323,9 +368,9 @@ describe("Profile", () => {
     await waitFor(() => screen.getByText("profile.title"))
 
     expect(screen.getByText("profile.sections.appearance")).toBeInTheDocument()
-    expect(screen.getByText("profile.sections.themeLight")).toBeInTheDocument()
-    expect(screen.getByText("profile.sections.themeDark")).toBeInTheDocument()
-    expect(screen.getByText("profile.sections.themeSystem")).toBeInTheDocument()
+    expect(screen.getByTestId("theme-light")).toBeInTheDocument()
+    expect(screen.getByTestId("theme-dark")).toBeInTheDocument()
+    expect(screen.getByTestId("theme-system")).toBeInTheDocument()
   })
 
   it("changes theme when theme button is clicked", async () => {
@@ -337,7 +382,49 @@ describe("Profile", () => {
     render(<MemoryRouter><Profile /></MemoryRouter>)
     await waitFor(() => screen.getByText("profile.title"))
 
-    fireEvent.click(screen.getByText("profile.sections.themeDark"))
+    fireEvent.click(screen.getByTestId("theme-dark"))
     expect(mockSetTheme).toHaveBeenCalledWith("dark")
+  })
+
+  it("disables save button when no changes made (not dirty)", async () => {
+    vi.spyOn(global, "fetch").mockResolvedValueOnce({
+      ok: true,
+      json: () => Promise.resolve(profileData),
+    } as Response)
+
+    render(<MemoryRouter><Profile /></MemoryRouter>)
+    await waitFor(() => screen.getByText("profile.title"))
+
+    const saveButton = screen.getByTestId("profile-save")
+    expect(saveButton).toBeDisabled()
+  })
+
+  it("enables save button when form values change (dirty)", async () => {
+    vi.spyOn(global, "fetch").mockResolvedValueOnce({
+      ok: true,
+      json: () => Promise.resolve(profileData),
+    } as Response)
+
+    render(<MemoryRouter><Profile /></MemoryRouter>)
+    await waitFor(() => screen.getByText("profile.title"))
+
+    const nameInput = screen.getByLabelText("profile.displayNameLabel")
+    fireEvent.change(nameInput, { target: { value: "Changed Name" } })
+
+    const saveButton = screen.getByTestId("profile-save")
+    expect(saveButton).not.toBeDisabled()
+  })
+
+  it("renders preferences in two-column grid", async () => {
+    vi.spyOn(global, "fetch").mockResolvedValueOnce({
+      ok: true,
+      json: () => Promise.resolve(profileData),
+    } as Response)
+
+    render(<MemoryRouter><Profile /></MemoryRouter>)
+    await waitFor(() => screen.getByText("profile.title"))
+
+    const prefsGrid = document.querySelector(".sm\\:grid-cols-2")
+    expect(prefsGrid).toBeInTheDocument()
   })
 })

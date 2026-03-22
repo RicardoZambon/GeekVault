@@ -507,7 +507,9 @@
       "AUD": "AUD - Dólar Australiano"
     },
     "avatarLabel": "Avatar",
+    "avatarChange": "Alterar",
     "uploadAvatar": "Enviar Avatar",
+    "emailReadOnly": "Seu email não pode ser alterado.",
     "avatarFailed": "Falha ao enviar avatar",
     "avatarSuccess": "Avatar atualizado com sucesso.",
     "save": "Salvar Alterações",
