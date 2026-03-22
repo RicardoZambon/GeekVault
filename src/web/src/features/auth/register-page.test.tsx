@@ -29,7 +29,19 @@ vi.mock("react-i18next", () => ({
   }),
 }))
 
-vi.mock("@/assets/logo-full.png", () => ({ default: "logo.png" }))
+vi.mock("framer-motion", () => ({
+  motion: { div: ({ children, ...props }: any) => { const { whileHover, whileTap, ...rest } = props; return <div {...rest}>{children}</div> } },
+  AnimatePresence: ({ children }: any) => <>{children}</>,
+}))
+
+vi.mock("@/components/ds", async () => {
+  const actual = await vi.importActual("@/components/ds")
+  return {
+    ...actual,
+    FadeIn: ({ children }: any) => <div>{children}</div>,
+    ScaleIn: ({ children }: any) => <div>{children}</div>,
+  }
+})
 
 describe("Register", () => {
   beforeEach(() => {
@@ -51,9 +63,20 @@ describe("Register", () => {
     expect(screen.getByLabelText("auth.password")).toBeInTheDocument()
   })
 
+  it("renders create your vault title", () => {
+    renderRegister()
+    expect(screen.getByText("auth.createYourVault")).toBeInTheDocument()
+    expect(screen.getByText("auth.registerDescription")).toBeInTheDocument()
+  })
+
+  it("shows password hint text", () => {
+    renderRegister()
+    expect(screen.getByText("auth.passwordHint")).toBeInTheDocument()
+  })
+
   it("shows error when display name is empty", () => {
     renderRegister()
-    fireEvent.click(screen.getByRole("button", { name: /auth\.register/ }))
+    fireEvent.click(screen.getByTestId("auth-submit"))
     expect(screen.getByText("auth.displayNameRequired")).toBeInTheDocument()
   })
 
@@ -62,7 +85,7 @@ describe("Register", () => {
     fireEvent.change(screen.getByLabelText("auth.displayName"), {
       target: { value: "Test" },
     })
-    fireEvent.click(screen.getByRole("button", { name: /auth\.register/ }))
+    fireEvent.click(screen.getByTestId("auth-submit"))
     expect(screen.getByText("auth.emailRequired")).toBeInTheDocument()
   })
 
@@ -74,7 +97,7 @@ describe("Register", () => {
     fireEvent.change(screen.getByLabelText("auth.email"), {
       target: { value: "a@b.com" },
     })
-    fireEvent.click(screen.getByRole("button", { name: /auth\.register/ }))
+    fireEvent.click(screen.getByTestId("auth-submit"))
     expect(screen.getByText("auth.passwordRequired")).toBeInTheDocument()
   })
 
@@ -89,8 +112,14 @@ describe("Register", () => {
     fireEvent.change(screen.getByLabelText("auth.password"), {
       target: { value: "12345" },
     })
-    fireEvent.click(screen.getByRole("button", { name: /auth\.register/ }))
+    fireEvent.click(screen.getByTestId("auth-submit"))
     expect(screen.getByText("auth.passwordTooShort")).toBeInTheDocument()
+  })
+
+  it("shows error in styled error banner", () => {
+    renderRegister()
+    fireEvent.click(screen.getByTestId("auth-submit"))
+    expect(screen.getByTestId("auth-error")).toBeInTheDocument()
   })
 
   it("calls register and navigates on success", async () => {
@@ -105,7 +134,7 @@ describe("Register", () => {
     fireEvent.change(screen.getByLabelText("auth.password"), {
       target: { value: "password123" },
     })
-    fireEvent.click(screen.getByRole("button", { name: /auth\.register/ }))
+    fireEvent.click(screen.getByTestId("auth-submit"))
 
     await waitFor(() => {
       expect(mockRegister).toHaveBeenCalledWith("a@b.com", "password123", "Test User")
@@ -125,7 +154,7 @@ describe("Register", () => {
     fireEvent.change(screen.getByLabelText("auth.password"), {
       target: { value: "password123" },
     })
-    fireEvent.click(screen.getByRole("button", { name: /auth\.register/ }))
+    fireEvent.click(screen.getByTestId("auth-submit"))
 
     expect(await screen.findByText("Email taken")).toBeInTheDocument()
   })
@@ -142,13 +171,21 @@ describe("Register", () => {
     fireEvent.change(screen.getByLabelText("auth.password"), {
       target: { value: "password123" },
     })
-    fireEvent.click(screen.getByRole("button", { name: /auth\.register/ }))
+    fireEvent.click(screen.getByTestId("auth-submit"))
 
     expect(await screen.findByText("auth.registerFailed")).toBeInTheDocument()
   })
 
   it("has link to login page", () => {
     renderRegister()
-    expect(screen.getByText("auth.loginLink")).toHaveAttribute("href", "/login")
+    const link = screen.getByTestId("auth-login-link")
+    expect(link).toHaveAttribute("href", "/login")
+    expect(link).toHaveTextContent("auth.loginLink")
+  })
+
+  it("uses accent color for login link", () => {
+    renderRegister()
+    const link = screen.getByTestId("auth-login-link")
+    expect(link.className).toContain("text-accent")
   })
 })
