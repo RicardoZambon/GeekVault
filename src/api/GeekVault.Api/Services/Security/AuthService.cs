@@ -4,6 +4,7 @@ using System.Text;
 using GeekVault.Api.DTOs.Security;
 using GeekVault.Api.Entities.Security;
 using GeekVault.Api.Repositories.Security;
+using GeekVault.Api.Services.Admin;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.IdentityModel.Tokens;
 
@@ -14,12 +15,14 @@ public class AuthService : IAuthService
     private readonly IUsersRepository _usersRepository;
     private readonly UserManager<User> _userManager;
     private readonly IConfiguration _configuration;
+    private readonly IAuditLogService _auditLogService;
 
-    public AuthService(IUsersRepository usersRepository, UserManager<User> userManager, IConfiguration configuration)
+    public AuthService(IUsersRepository usersRepository, UserManager<User> userManager, IConfiguration configuration, IAuditLogService auditLogService)
     {
         _usersRepository = usersRepository;
         _userManager = userManager;
         _configuration = configuration;
+        _auditLogService = auditLogService;
     }
 
     public async Task<(AuthResponse? Response, IEnumerable<string>? Errors)> RegisterAsync(RegisterRequest request)
@@ -40,6 +43,9 @@ public class AuthService : IAuthService
         await _userManager.AddToRoleAsync(user, "User");
 
         var token = await GenerateJwtTokenAsync(user);
+
+        await _auditLogService.LogActionAsync(user.Id, "Register", "User", user.Id, $"New user registered: {user.Email}");
+
         return (new AuthResponse(token, user.Id, user.Email!, user.DisplayName), null);
     }
 
@@ -48,10 +54,14 @@ public class AuthService : IAuthService
         var user = await _usersRepository.FindByEmailAsync(request.Email);
         if (user == null || !await _usersRepository.CheckPasswordAsync(user, request.Password))
         {
+            await _auditLogService.LogActionAsync("anonymous", "LoginFailed", "User", details: $"Failed login attempt for email: {request.Email}");
             return null;
         }
 
         var token = await GenerateJwtTokenAsync(user);
+
+        await _auditLogService.LogActionAsync(user.Id, "Login", "User", user.Id, $"User logged in: {user.Email}");
+
         return new AuthResponse(token, user.Id, user.Email!, user.DisplayName);
     }
 

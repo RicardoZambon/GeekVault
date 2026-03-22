@@ -1,6 +1,7 @@
 using GeekVault.Api.DTOs.Vault;
 using GeekVault.Api.Entities.Vault;
 using GeekVault.Api.Repositories.Vault;
+using GeekVault.Api.Services.Admin;
 
 namespace GeekVault.Api.Services.Vault;
 
@@ -9,12 +10,14 @@ public class SetsService : ISetsService
     private readonly ISetsRepository _setsRepository;
     private readonly ICollectionsRepository _collectionsRepository;
     private readonly IOwnedCopiesRepository _ownedCopiesRepository;
+    private readonly IAuditLogService _auditLogService;
 
-    public SetsService(ISetsRepository setsRepository, ICollectionsRepository collectionsRepository, IOwnedCopiesRepository ownedCopiesRepository)
+    public SetsService(ISetsRepository setsRepository, ICollectionsRepository collectionsRepository, IOwnedCopiesRepository ownedCopiesRepository, IAuditLogService auditLogService)
     {
         _setsRepository = setsRepository;
         _collectionsRepository = collectionsRepository;
         _ownedCopiesRepository = ownedCopiesRepository;
+        _auditLogService = auditLogService;
     }
 
     public async Task<List<SetResponse>?> GetAllAsync(int collectionId, string userId)
@@ -93,6 +96,8 @@ public class SetsService : ISetsService
         await _setsRepository.AddAsync(set);
         await _setsRepository.SaveChangesAsync();
 
+        await _auditLogService.LogActionAsync(userId, "Create", "Set", set.Id.ToString(), $"Created set '{set.Name}' in collection {collectionId}");
+
         return new SetResponse(set.Id, set.CollectionId, set.Name, 0, null, 0, 0);
     }
 
@@ -107,6 +112,8 @@ public class SetsService : ISetsService
         set.Name = request.Name ?? set.Name;
 
         await _setsRepository.SaveChangesAsync();
+
+        await _auditLogService.LogActionAsync(userId, "Update", "Set", set.Id.ToString(), $"Updated set '{set.Name}' in collection {collectionId}");
 
         var items = await _setsRepository.GetSetItemsAsync(id);
         var updateCatalogItemIds = items
@@ -132,8 +139,12 @@ public class SetsService : ISetsService
         var set = await _setsRepository.GetByIdAndCollectionIdAsync(id, collectionId);
         if (set == null) return false;
 
+        var setName = set.Name;
         _setsRepository.Remove(set);
         await _setsRepository.SaveChangesAsync();
+
+        await _auditLogService.LogActionAsync(userId, "Delete", "Set", id.ToString(), $"Deleted set '{setName}' from collection {collectionId}");
+
         return true;
     }
 

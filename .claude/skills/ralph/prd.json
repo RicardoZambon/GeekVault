@@ -580,7 +580,7 @@
         "dotnet build and dotnet test pass"
       ],
       "priority": 30,
-      "passes": false,
+      "passes": true,
       "notes": "Depends on US-029. Inject IAuditLogService into each existing service."
     },
     {

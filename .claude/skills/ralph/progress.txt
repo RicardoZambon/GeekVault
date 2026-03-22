@@ -562,3 +562,18 @@
   - AuditLog intentionally has no FK to Users table — UserId is just a string for flexibility (logs survive user deletion)
   - AuditLogFilter helper class is co-located in the repository interface file (same pattern as CollectionWithCounts)
 ---
+
+## 2026-03-22 - US-030
+- Wired IAuditLogService into all 6 existing services: CollectionsService, CatalogItemsService, OwnedCopiesService, SetsService, WishlistService, AuthService
+- Added audit logging for Create, Update, Delete operations in vault services
+- Added audit logging for Register, Login (success), and LoginFailed in AuthService
+- LoginFailed uses "anonymous" as userId since no authenticated user exists
+- Register logs after user creation using the newly created user.Id
+- Created 14 integration tests in AuditLogWiringTests.cs verifying audit entries via HTTP endpoints
+- Files changed: `Services/Vault/CollectionsService.cs`, `Services/Vault/CatalogItemsService.cs`, `Services/Vault/OwnedCopiesService.cs`, `Services/Vault/SetsService.cs`, `Services/Vault/WishlistService.cs`, `Services/Security/AuthService.cs`, `AuditLogWiringTests.cs`
+- **Learnings for future iterations:**
+  - All vault services already have userId as a parameter — easy to pass to audit logging
+  - For delete operations, capture entity name before removing to include in audit details
+  - IAuditLogService is already registered as scoped in AddAdminServices() — no DI changes needed, just inject into constructors
+  - Auth audit logging for failed logins uses "anonymous" userId convention
+---

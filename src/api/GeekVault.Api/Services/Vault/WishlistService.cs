@@ -1,6 +1,7 @@
 using GeekVault.Api.DTOs.Vault;
 using GeekVault.Api.Entities.Vault;
 using GeekVault.Api.Repositories.Vault;
+using GeekVault.Api.Services.Admin;
 
 namespace GeekVault.Api.Services.Vault;
 
@@ -8,11 +9,13 @@ public class WishlistService : IWishlistService
 {
     private readonly IWishlistRepository _wishlistRepository;
     private readonly ICollectionsRepository _collectionsRepository;
+    private readonly IAuditLogService _auditLogService;
 
-    public WishlistService(IWishlistRepository wishlistRepository, ICollectionsRepository collectionsRepository)
+    public WishlistService(IWishlistRepository wishlistRepository, ICollectionsRepository collectionsRepository, IAuditLogService auditLogService)
     {
         _wishlistRepository = wishlistRepository;
         _collectionsRepository = collectionsRepository;
+        _auditLogService = auditLogService;
     }
 
     public async Task<List<WishlistItemResponse>?> GetAllAsync(int collectionId, string userId)
@@ -45,6 +48,8 @@ public class WishlistService : IWishlistService
         await _wishlistRepository.AddAsync(item);
         await _wishlistRepository.SaveChangesAsync();
 
+        await _auditLogService.LogActionAsync(userId, "Create", "WishlistItem", item.Id.ToString(), $"Created wishlist item '{item.Name}' in collection {collectionId}");
+
         return MapToResponse(item);
     }
 
@@ -66,6 +71,8 @@ public class WishlistService : IWishlistService
 
         await _wishlistRepository.SaveChangesAsync();
 
+        await _auditLogService.LogActionAsync(userId, "Update", "WishlistItem", item.Id.ToString(), $"Updated wishlist item '{item.Name}' in collection {collectionId}");
+
         return (MapToResponse(item), false, false);
     }
 
@@ -77,8 +84,12 @@ public class WishlistService : IWishlistService
         var item = await _wishlistRepository.GetByIdAndCollectionIdAsync(id, collectionId);
         if (item == null) return false;
 
+        var itemName = item.Name;
         _wishlistRepository.Remove(item);
         await _wishlistRepository.SaveChangesAsync();
+
+        await _auditLogService.LogActionAsync(userId, "Delete", "WishlistItem", id.ToString(), $"Deleted wishlist item '{itemName}' from collection {collectionId}");
+
         return true;
     }
 

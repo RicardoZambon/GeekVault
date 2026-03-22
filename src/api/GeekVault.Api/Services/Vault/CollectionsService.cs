@@ -2,6 +2,7 @@ using GeekVault.Api.DTOs.Vault;
 using GeekVault.Api.Entities.Vault;
 using GeekVault.Api.Extensions;
 using GeekVault.Api.Repositories.Vault;
+using GeekVault.Api.Services.Admin;
 
 namespace GeekVault.Api.Services.Vault;
 
@@ -9,11 +10,13 @@ public class CollectionsService : ICollectionsService
 {
     private readonly ICollectionsRepository _repository;
     private readonly ICatalogItemsRepository _catalogItemsRepository;
+    private readonly IAuditLogService _auditLogService;
 
-    public CollectionsService(ICollectionsRepository repository, ICatalogItemsRepository catalogItemsRepository)
+    public CollectionsService(ICollectionsRepository repository, ICatalogItemsRepository catalogItemsRepository, IAuditLogService auditLogService)
     {
         _repository = repository;
         _catalogItemsRepository = catalogItemsRepository;
+        _auditLogService = auditLogService;
     }
 
     public async Task<List<CollectionResponse>> GetAllAsync(string userId, string? sortBy = null, string? sortDir = null)
@@ -58,6 +61,9 @@ public class CollectionsService : ICollectionsService
         await _repository.SaveChangesAsync();
 
         var created = await _repository.GetByIdAndUserIdWithTypeAsync(collection.Id, userId);
+
+        await _auditLogService.LogActionAsync(userId, "Create", "Collection", collection.Id.ToString(), $"Created collection '{collection.Name}'");
+
         return new CollectionResponse(created!.Id, created.Name, created.Description, created.CoverImage,
             created.Visibility.ToString(), created.CollectionTypeId, created.CollectionType.Name, 0, 0, 0, created.CreatedAt, created.UpdatedAt);
     }
@@ -78,6 +84,9 @@ public class CollectionsService : ICollectionsService
         var itemCount = await _repository.GetItemCountAsync(collection.Id);
         var ownedCount = await _repository.GetOwnedCountAsync(collection.Id);
         var completionPct = itemCount > 0 ? Math.Round((double)ownedCount / itemCount * 100, 1) : 0;
+
+        await _auditLogService.LogActionAsync(userId, "Update", "Collection", collection.Id.ToString(), $"Updated collection '{collection.Name}'");
+
         return new CollectionResponse(collection.Id, collection.Name, collection.Description,
             collection.CoverImage, collection.Visibility.ToString(), collection.CollectionTypeId,
             collection.CollectionType.Name, itemCount, ownedCount, completionPct,
@@ -89,8 +98,12 @@ public class CollectionsService : ICollectionsService
         var collection = await _repository.GetByIdAndUserIdAsync(id, userId);
         if (collection == null) return false;
 
+        var collectionName = collection.Name;
         _repository.Remove(collection);
         await _repository.SaveChangesAsync();
+
+        await _auditLogService.LogActionAsync(userId, "Delete", "Collection", id.ToString(), $"Deleted collection '{collectionName}'");
+
         return true;
     }
 

@@ -2,16 +2,19 @@ using GeekVault.Api.DTOs.Vault;
 using GeekVault.Api.Entities.Vault;
 using GeekVault.Api.Extensions;
 using GeekVault.Api.Repositories.Vault;
+using GeekVault.Api.Services.Admin;
 
 namespace GeekVault.Api.Services.Vault;
 
 public class OwnedCopiesService : IOwnedCopiesService
 {
     private readonly IOwnedCopiesRepository _ownedCopiesRepository;
+    private readonly IAuditLogService _auditLogService;
 
-    public OwnedCopiesService(IOwnedCopiesRepository ownedCopiesRepository)
+    public OwnedCopiesService(IOwnedCopiesRepository ownedCopiesRepository, IAuditLogService auditLogService)
     {
         _ownedCopiesRepository = ownedCopiesRepository;
+        _auditLogService = auditLogService;
     }
 
     public async Task<List<OwnedCopyResponse>?> GetAllAsync(int catalogItemId, string userId)
@@ -47,6 +50,8 @@ public class OwnedCopiesService : IOwnedCopiesService
 
         await _ownedCopiesRepository.AddAsync(copy);
         await _ownedCopiesRepository.SaveChangesAsync();
+
+        await _auditLogService.LogActionAsync(userId, "Create", "OwnedCopy", copy.Id.ToString(), $"Created owned copy for catalog item {catalogItemId}");
 
         return (MapToResponse(copy), false, null);
     }
@@ -90,6 +95,9 @@ public class OwnedCopiesService : IOwnedCopiesService
 
         _ownedCopiesRepository.Remove(copy);
         await _ownedCopiesRepository.SaveChangesAsync();
+
+        await _auditLogService.LogActionAsync(userId, "Delete", "OwnedCopy", id.ToString(), $"Deleted owned copy for catalog item {catalogItemId}");
+
         return true;
     }
 

@@ -3,6 +3,7 @@ using GeekVault.Api.DTOs.Vault;
 using GeekVault.Api.Entities.Vault;
 using GeekVault.Api.Extensions;
 using GeekVault.Api.Repositories.Vault;
+using GeekVault.Api.Services.Admin;
 using Microsoft.EntityFrameworkCore;
 
 namespace GeekVault.Api.Services.Vault;
@@ -12,15 +13,18 @@ public class CatalogItemsService : ICatalogItemsService
     private readonly ICatalogItemsRepository _catalogItemsRepository;
     private readonly ICollectionsRepository _collectionsRepository;
     private readonly IOwnedCopiesRepository _ownedCopiesRepository;
+    private readonly IAuditLogService _auditLogService;
 
     public CatalogItemsService(
         ICatalogItemsRepository catalogItemsRepository,
         ICollectionsRepository collectionsRepository,
-        IOwnedCopiesRepository ownedCopiesRepository)
+        IOwnedCopiesRepository ownedCopiesRepository,
+        IAuditLogService auditLogService)
     {
         _catalogItemsRepository = catalogItemsRepository;
         _collectionsRepository = collectionsRepository;
         _ownedCopiesRepository = ownedCopiesRepository;
+        _auditLogService = auditLogService;
     }
 
     public async Task<PaginatedResponse<CatalogItemResponse>?> GetAllAsync(
@@ -151,6 +155,8 @@ public class CatalogItemsService : ICatalogItemsService
         await _catalogItemsRepository.AddAsync(item);
         await _catalogItemsRepository.SaveChangesAsync();
 
+        await _auditLogService.LogActionAsync(userId, "Create", "CatalogItem", item.Id.ToString(), $"Created catalog item '{item.Name}' in collection {collectionId}");
+
         return (new CatalogItemResponse(item.Id, item.CollectionId, item.Identifier, item.Name, item.Description,
             item.ReleaseDate, item.Manufacturer, item.ReferenceCode, item.Image, item.Rarity,
             item.CustomFieldValues.Select(f => new CustomFieldValueDto(f.Name, f.Value)).ToList(),
@@ -189,6 +195,8 @@ public class CatalogItemsService : ICatalogItemsService
 
         await _catalogItemsRepository.SaveChangesAsync();
 
+        await _auditLogService.LogActionAsync(userId, "Update", "CatalogItem", item.Id.ToString(), $"Updated catalog item '{item.Name}' in collection {collectionId}");
+
         return (new CatalogItemResponse(item.Id, item.CollectionId, item.Identifier, item.Name,
             item.Description, item.ReleaseDate, item.Manufacturer, item.ReferenceCode, item.Image, item.Rarity,
             item.CustomFieldValues.Select(f => new CustomFieldValueDto(f.Name, f.Value)).ToList(),
@@ -205,8 +213,12 @@ public class CatalogItemsService : ICatalogItemsService
 
         collection.UpdatedAt = DateTime.UtcNow;
 
+        var itemName = item.Name;
         _catalogItemsRepository.Remove(item);
         await _catalogItemsRepository.SaveChangesAsync();
+
+        await _auditLogService.LogActionAsync(userId, "Delete", "CatalogItem", id.ToString(), $"Deleted catalog item '{itemName}' from collection {collectionId}");
+
         return true;
     }
 
