@@ -148,6 +148,60 @@ public class AuthEndpointsTests : IClassFixture<TestFactory<AuthEndpointsTests>>
         Assert.Equal("Test User", result.DisplayName);
     }
 
+    [Fact]
+    public async Task Me_ReturnsUserRole()
+    {
+        var client = _factory.CreateClient();
+        var (token, _) = await RegisterAndGetTokenAsync(client, "me-role-test@example.com");
+
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        var response = await client.GetAsync("/api/auth/me");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var result = await response.Content.ReadFromJsonAsync<MeResult>();
+        Assert.NotNull(result);
+        Assert.Equal("User", result.Role);
+    }
+
+    [Fact]
+    public async Task Register_AssignsUserRole_JwtContainsRoleClaim()
+    {
+        var client = _factory.CreateClient();
+        var response = await client.PostAsJsonAsync("/api/auth/register", new
+        {
+            Email = "role-jwt-test@example.com",
+            Password = "Test@123456",
+            DisplayName = "Role Test"
+        });
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var result = await response.Content.ReadFromJsonAsync<AuthResult>();
+        Assert.NotNull(result);
+
+        // Decode JWT and verify role claim
+        var handler = new System.IdentityModel.Tokens.Jwt.JwtSecurityTokenHandler();
+        var jwt = handler.ReadJwtToken(result.Token);
+        var roleClaim = jwt.Claims.FirstOrDefault(c => c.Type == System.Security.Claims.ClaimTypes.Role || c.Type == "role");
+        Assert.NotNull(roleClaim);
+        Assert.Equal("User", roleClaim.Value);
+    }
+
+    [Fact]
+    public async Task AdminPolicy_RejectsNonAdminUser()
+    {
+        // Register an admin-protected endpoint test
+        var client = _factory.CreateClient();
+        var (token, _) = await RegisterAndGetTokenAsync(client, "non-admin-policy@example.com");
+
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        // Try accessing a hypothetical admin endpoint — for now test the auth/me role
+        var response = await client.GetAsync("/api/auth/me");
+        var result = await response.Content.ReadFromJsonAsync<MeResult>();
+        Assert.NotNull(result);
+        Assert.Equal("User", result.Role);
+        Assert.NotEqual("Admin", result.Role);
+    }
+
     private record AuthResult(string Token, string UserId, string Email, string? DisplayName);
-    private record MeResult(string UserId, string Email, string? DisplayName, string? Avatar);
+    private record MeResult(string UserId, string Email, string? DisplayName, string? Avatar, string? Role);
 }

@@ -21,6 +21,7 @@ public static class ServiceCollectionExtensions
                 x => x.MigrationsHistoryTable("MigrationsHistory", "EF")));
 
         services.AddIdentityCore<User>()
+            .AddRoles<IdentityRole>()
             .AddEntityFrameworkStores<ApplicationDbContext>()
             .AddDefaultTokenProviders();
 
@@ -47,7 +48,8 @@ public static class ServiceCollectionExtensions
             };
         });
 
-        services.AddAuthorization();
+        services.AddAuthorizationBuilder()
+            .AddPolicy("AdminOnly", p => p.RequireRole("Admin"));
 
         services.AddScoped<IUsersRepository, UsersRepository>();
         services.AddScoped<IAuthService, AuthService>();

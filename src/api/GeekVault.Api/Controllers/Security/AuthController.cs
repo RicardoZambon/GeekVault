@@ -1,7 +1,9 @@
 using System.Security.Claims;
 using GeekVault.Api.DTOs.Security;
+using GeekVault.Api.Entities.Security;
 using GeekVault.Api.Repositories.Security;
 using GeekVault.Api.Services.Security;
+using Microsoft.AspNetCore.Identity;
 
 namespace GeekVault.Api.Controllers.Security;
 
@@ -50,7 +52,8 @@ public static class AuthController
 
         app.MapGet("/api/auth/me", async (
             ClaimsPrincipal user,
-            IUsersRepository usersRepository) =>
+            IUsersRepository usersRepository,
+            UserManager<User> userManager) =>
         {
             var userId = user.FindFirstValue(ClaimTypes.NameIdentifier);
             if (userId == null) return Results.Unauthorized();
@@ -58,12 +61,16 @@ public static class AuthController
             var dbUser = await usersRepository.FindByIdAsync(userId);
             if (dbUser == null) return Results.Unauthorized();
 
+            var roles = await userManager.GetRolesAsync(dbUser);
+            var role = roles.FirstOrDefault();
+
             return Results.Ok(new
             {
                 userId,
                 email = dbUser.Email,
                 displayName = dbUser.DisplayName,
-                avatar = dbUser.Avatar
+                avatar = dbUser.Avatar,
+                role
             });
         })
         .RequireAuthorization()

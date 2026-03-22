@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace GeekVault.Api.Data;
 
-public class ApplicationDbContext : IdentityUserContext<User>
+public class ApplicationDbContext : IdentityDbContext<User, IdentityRole, string>
 {
     public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
         : base(options)
@@ -29,6 +29,22 @@ public class ApplicationDbContext : IdentityUserContext<User>
         modelBuilder.Entity<IdentityUserClaim<string>>().ToTable(t => t.ExcludeFromMigrations());
         modelBuilder.Entity<IdentityUserLogin<string>>().ToTable(t => t.ExcludeFromMigrations());
         modelBuilder.Entity<IdentityUserToken<string>>().ToTable(t => t.ExcludeFromMigrations());
+
+        // Configure role tables under Security schema
+        modelBuilder.Entity<IdentityRole>(entity =>
+        {
+            entity.ToTable("Roles", "Security");
+        });
+
+        modelBuilder.Entity<IdentityUserRole<string>>(entity =>
+        {
+            entity.ToTable("UserRoles", "Security");
+        });
+
+        modelBuilder.Entity<IdentityRoleClaim<string>>(entity =>
+        {
+            entity.ToTable(t => t.ExcludeFromMigrations());
+        });
 
         // Configure Users table under Security schema
         modelBuilder.Entity<User>(entity =>

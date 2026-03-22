@@ -4,6 +4,7 @@ using System.Text;
 using GeekVault.Api.DTOs.Security;
 using GeekVault.Api.Entities.Security;
 using GeekVault.Api.Repositories.Security;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.IdentityModel.Tokens;
 
 namespace GeekVault.Api.Services.Security;
@@ -11,11 +12,13 @@ namespace GeekVault.Api.Services.Security;
 public class AuthService : IAuthService
 {
     private readonly IUsersRepository _usersRepository;
+    private readonly UserManager<User> _userManager;
     private readonly IConfiguration _configuration;
 
-    public AuthService(IUsersRepository usersRepository, IConfiguration configuration)
+    public AuthService(IUsersRepository usersRepository, UserManager<User> userManager, IConfiguration configuration)
     {
         _usersRepository = usersRepository;
+        _userManager = userManager;
         _configuration = configuration;
     }
 
@@ -34,7 +37,9 @@ public class AuthService : IAuthService
             return (null, result.Errors.Select(e => e.Description));
         }
 
-        var token = GenerateJwtToken(user);
+        await _userManager.AddToRoleAsync(user, "User");
+
+        var token = await GenerateJwtTokenAsync(user);
         return (new AuthResponse(token, user.Id, user.Email!, user.DisplayName), null);
     }
 
@@ -46,22 +51,28 @@ public class AuthService : IAuthService
             return null;
         }
 
-        var token = GenerateJwtToken(user);
+        var token = await GenerateJwtTokenAsync(user);
         return new AuthResponse(token, user.Id, user.Email!, user.DisplayName);
     }
 
-    private string GenerateJwtToken(User user)
+    private async Task<string> GenerateJwtTokenAsync(User user)
     {
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Jwt:Key"]!));
         var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
         var expires = DateTime.UtcNow.AddMinutes(double.Parse(_configuration["Jwt:ExpiresInMinutes"]!));
 
-        var claims = new[]
+        var claims = new List<Claim>
         {
-            new Claim(ClaimTypes.NameIdentifier, user.Id),
-            new Claim(ClaimTypes.Email, user.Email!),
-            new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
+            new(ClaimTypes.NameIdentifier, user.Id),
+            new(ClaimTypes.Email, user.Email!),
+            new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
         };
+
+        var roles = await _userManager.GetRolesAsync(user);
+        foreach (var role in roles)
+        {
+            claims.Add(new Claim(ClaimTypes.Role, role));
+        }
 
         var token = new JwtSecurityToken(
             issuer: _configuration["Jwt:Issuer"],
