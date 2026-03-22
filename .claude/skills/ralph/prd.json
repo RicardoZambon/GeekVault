@@ -463,7 +463,7 @@
         "Verify in browser using dev-browser skill"
       ],
       "priority": 24,
-      "passes": false,
+      "passes": true,
       "notes": "Spec: tasks/design-pages.md \u2192 Wishlist section. Group collapse state NOT persisted (all expanded on load)."
     },
     {
@@ -483,7 +483,7 @@
         "Verify in browser using dev-browser skill"
       ],
       "priority": 25,
-      "passes": false,
+      "passes": true,
       "notes": "Spec: tasks/design-pages.md \u2192 Collection Types section"
     },
     {
@@ -506,7 +506,7 @@
         "Verify in browser using dev-browser skill"
       ],
       "priority": 26,
-      "passes": false,
+      "passes": true,
       "notes": "Spec: tasks/design-pages.md \u2192 Profile section"
     },
     {
@@ -526,7 +526,7 @@
         "Verify in browser using dev-browser skill"
       ],
       "priority": 27,
-      "passes": false,
+      "passes": true,
       "notes": "Spec: tasks/design-pages.md \u2192 Auth Pages section"
     },
     {
@@ -545,7 +545,7 @@
         "dotnet build and dotnet test pass"
       ],
       "priority": 28,
-      "passes": false,
+      "passes": true,
       "notes": "Current state: No role field on User entity, no role tables in DB. JWT tokens contain only NameIdentifier, Email, Jti. IdentityUserContext must become IdentityDbContext to restore role support."
     },
     {
@@ -562,7 +562,7 @@
         "dotnet build and dotnet test pass"
       ],
       "priority": 29,
-      "passes": false,
+      "passes": true,
       "notes": "This story creates the infrastructure only. Wiring into existing services happens in US-030."
     },
     {

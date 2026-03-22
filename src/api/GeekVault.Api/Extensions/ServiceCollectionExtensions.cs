@@ -1,8 +1,10 @@
 using System.Text;
 using GeekVault.Api.Data;
 using GeekVault.Api.Entities.Security;
+using GeekVault.Api.Repositories.Admin;
 using GeekVault.Api.Repositories.Security;
 using GeekVault.Api.Repositories.Vault;
+using GeekVault.Api.Services.Admin;
 using GeekVault.Api.Services.Security;
 using GeekVault.Api.Services.Vault;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -74,6 +76,14 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ISetsService, SetsService>();
         services.AddScoped<IWishlistService, WishlistService>();
         services.AddScoped<IDashboardService, DashboardService>();
+
+        return services;
+    }
+
+    public static IServiceCollection AddAdminServices(this IServiceCollection services)
+    {
+        services.AddScoped<IAuditLogRepository, AuditLogRepository>();
+        services.AddScoped<IAuditLogService, AuditLogService>();
 
         return services;
     }

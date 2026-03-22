@@ -21,8 +21,13 @@
 - SortableList renderItem accepts optional 3rd param (index) for positional styling
 - Warm gradient fallbacks: 4 gradients cycling by index % 4 using --accent and --chart-N CSS variables
 - Design specs are in tasks/design-*.md files — read them for visual details before implementing each story
-- Current DB state: No role tables, no admin infrastructure. IdentityUserContext<User> needs to become IdentityDbContext<User, IdentityRole, string>
-- JWT tokens currently contain only NameIdentifier, Email, Jti — role claims must be added
+- DB now has role tables (Roles, UserRoles in Security schema). IdentityDbContext<User, IdentityRole, string> is the base class.
+- JWT tokens contain NameIdentifier, Email, Jti, and Role claims. Roles seeded on startup: "Admin", "User"
+- New users get "User" role on registration via AddToRoleAsync
+- AdminOnly authorization policy: RequireRole("Admin") — use .RequireAuthorization("AdminOnly") on admin endpoints
+- GET /api/auth/me returns role field (first role from UserManager.GetRolesAsync)
+- .NET 8 runtime must be installed alongside .NET 9 SDK — use dotnet-install.sh to add it. DOTNET_ROLL_FORWARD=Major does NOT work for tests (PipeWriter incompatibility)
+- dotnet test with FUSE mount: use -p:OutputPath=/tmp/... to avoid DLL lock from VS Code build host, and -p:Threshold=0 to skip coverage gate when running subset of tests
 - @fontsource packages: import specific weight files (e.g., `@fontsource/plus-jakarta-sans/400.css`) rather than default index for tree-shaking
 - Full test suite may timeout in dev container — run individual test files to verify
 - Wishlist API: POST /api/collections/{collectionId}/wishlist with body { name, catalogItemId, priority (1-3), targetPrice, notes }
@@ -30,6 +35,11 @@
 - ImageGalleryLightbox: portal-rendered, takes images[], initialIndex, open, onClose — use createPortal(content, document.body)
 - SetProgressRing: takes percentage, size ("sm"|"lg"), showLabel — exports getCompletionTier() for reuse in set cards/pages
 - durations object from motion.tsx contains numbers in seconds (e.g., fast: 0.15), not strings — use directly with Framer Motion transition.duration
+- ConfirmDialog supports `children` prop for rendering extra content (warnings, alerts) between description and action buttons
+- ICON_MAP in collection-types-page: maps Lucide icon name strings to components — TypeIcon helper renders by name or falls back to emoji/Layers default
+- Admin domain: Entities/Admin, Repositories/Admin, Services/Admin, Controllers/Admin, DTOs/Admin — registered via AddAdminServices() extension method
+- AuditLog entity in Audit schema: Id, Timestamp, UserId, Action, TargetType, TargetId, Details (JSON string), IpAddress — indexed on UserId, Timestamp, Action
+- IAuditLogService.LogActionAsync(userId, action, targetType, targetId?, details?, ipAddress?) — fire-and-forget audit logging
 
 ---
 
@@ -428,3 +438,127 @@
   - When removing separate "View" action buttons, make item names clickable instead (button with navigate onClick)
   - sm:opacity-0 sm:group-hover:opacity-100 pattern needs group/item nested naming for items within cards that are already groups
   - Tests that find buttons in li elements need to account for new button order when wishlist buttons are added
+
+## 2026-03-22 - US-024
+- Redesigned wishlist page with Warm Obsidian visual identity
+- Added collapsible collection groups with chevron rotation animation (Framer Motion)
+- Added priority badges with icons (ArrowUp/Minus/ArrowDown) and color dots in filter selects
+- Added date added filter (7d/30d/90d) and sort option
+- Added "View in catalog →" link on cards with catalog navigation
+- Upgraded notes input to Textarea with resize-y
+- Added currency prefix ($) on target price input
+- Improved no-results state with Search icon and hint text
+- Updated skeleton to match final layout (toolbar + 2 groups)
+- Made action buttons hover-reveal on desktop, always visible on mobile
+- Added responsive notes line-clamp (1 on mobile, 2 on desktop)
+- Added catalog link as icon-only on mobile (ExternalLink)
+- Added StaggerChildren entrance animation on groups
+- Updated empty state text to be more encouraging
+- Updated test suite (41 tests passing) with new mocks for motion.span, useMediaQuery, useNavigate
+- Added i18n keys for sortDateAdded, filterDate*, viewCatalogItem, noResultsHint (en + pt)
+- Files changed: `src/web/src/features/wishlist/wishlist-page.tsx`, `src/web/src/features/wishlist/wishlist-page.test.tsx`, `src/web/src/i18n/locales/en.json`, `src/web/src/i18n/locales/pt.json`
+- **Learnings for future iterations:**
+  - motion.span mock is needed in framer-motion mock when using animated inline elements (chevron rotation)
+  - useMediaQuery mock via @/hooks module — mock returns false (desktop) by default
+  - Textarea DS component exists and is exported from components/ds/index.ts
+  - Date filter can be client-side using item.id as proxy for creation order when API lacks date-range support
+---
+
+## 2026-03-22 - US-025
+- Redesigned collection types page with Warm Obsidian visual identity
+- Card grid: 4-col desktop, 3-col tablet, 2-col sm, 1-col mobile (`grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4`)
+- Type card: 40×40 accent icon container with Lucide icon rendering, semibold title, description (line-clamp-2)
+- Color-coded field type badges: text→info, number→accent, date→success, enum→chart-5, boolean→muted, image_url→chart-6
+- Badge overflow: max 5 visible + "+N more" overflow badge
+- Metadata row: field count + collection count with dot separator
+- Action row: Edit button (ghost) + More dropdown (delete)
+- No hover lift (settings card pattern — shadow + border only)
+- Icon picker: visual grid popover with 25 curated Lucide icons (Library, Disc, Film, etc.), closes on outside click
+- Description field upgraded from Input to Textarea (rows=3, resize-y)
+- Delete confirmation: shows usage warning with AlertTriangle when type has collections
+- ConfirmDialog component upgraded: added `children` prop support
+- Collection counts derived client-side by fetching /api/collections and counting by collectionTypeId
+- Loading skeleton updated: 4 cards matching new layout
+- 37 tests passing including new tests for: field badges, metadata row, icon picker, overflow badges, delete usage warning
+- Added i18n keys: selectIcon, noFieldsBadge, moreFields, fieldCount, collectionCount, moreActions, deleteConfirmNamed, deleteWarning (en + pt)
+- Files changed: `src/web/src/features/collection-types/collection-types-page.tsx`, `src/web/src/features/collection-types/collection-types-page.test.tsx`, `src/web/src/components/ui/confirm-dialog.tsx`, `src/web/src/i18n/locales/en.json`, `src/web/src/i18n/locales/pt.json`
+- **Learnings for future iterations:**
+  - ConfirmDialog now supports `children` prop — render extra content (warnings, alerts) between description and buttons
+  - Icon picker pattern: simple button + conditional grid div with outside-click handler (no Popover component needed)
+  - ICON_MAP record maps icon name strings to Lucide components — TypeIcon helper renders icon by name or falls back to emoji/default
+  - Collection usage counts: fetch /api/collections alongside /api/collection-types, count by collectionTypeId client-side
+  - Metadata text split across child elements: use custom text matcher function `(_, el) => el?.textContent?.includes(...)` in tests
+---
+
+## 2026-03-22 - US-026
+- Redesigned profile page with two-column layout: 1/3 avatar card (left) + 2/3 stacked form cards (right)
+- Avatar card: 96×96px centered avatar with accent/10 fallback, hover upload overlay with Camera icon + "Change" text, name and email below
+- Account Info card: display name input + email with Lock icon and read-only helper text
+- About card: bio textarea with resize-y
+- Preferences card: language and currency selects in 2-column grid (sm:grid-cols-2)
+- Appearance card: visual theme toggles (flex cards with icons) — selected state uses accent border + bg-accent/10 + ring
+- Save button: right-aligned on desktop, sticky bottom on mobile, disabled when form is not dirty (tracks initial values)
+- Loading skeleton matches two-column layout with appropriate skeleton shapes per card
+- StaggerChildren entrance animation on both columns
+- Added i18n keys: avatarChange, emailReadOnly (en + pt)
+- Added data-testid attributes: profile-avatar, avatar-upload, theme-{light|dark|system}, profile-save, profile-skeleton
+- Files changed: `src/web/src/features/profile/profile-page.tsx`, `src/web/src/features/profile/profile-page.test.tsx`, `src/web/src/i18n/locales/en.json`, `src/web/src/i18n/locales/pt.json`
+- **Learnings for future iterations:**
+  - Dirty state tracking: store initial values in separate state, compare with current form values for enabling/disabling save button
+  - Lock icon on disabled inputs: use relative wrapper + absolute positioning for the icon
+  - Visual theme toggles (card-style) are better UX than inline segmented control for appearance settings
+---
+
+## 2026-03-22 - US-027
+- Redesigned auth-layout.tsx: split-screen with 55% decorative panel (bg-stone-900 + layered amber radial gradients) + 45% form panel
+- Decorative panel: 3 floating blurred amber circles with CSS @keyframes float animation (20s, staggered delays), ShieldCheck icon in amber container, "GeekVault" title, tagline, frosted feature highlight card
+- Mobile: decorative panel hidden below lg, replaced by compact brand header (ShieldCheck icon + "GeekVault" text)
+- Removed dependency on logo-full.png asset — now uses Lucide ShieldCheck icon for consistency
+- Updated login-page.tsx: added AlertCircle icon in error banner, h-11 submit button, text-accent register link, data-testid attributes
+- Updated register-page.tsx: added password hint text, AlertCircle error banner, h-11 submit button, text-accent login link, data-testid attributes
+- Added @keyframes float animation to index.css
+- Added i18n keys: tagline2, featureHighlight, passwordHint (en + pt)
+- Added data-testid: auth-submit, auth-error, auth-register-link, auth-login-link
+- Files changed: `src/web/src/features/auth/auth-layout.tsx`, `src/web/src/features/auth/login-page.tsx`, `src/web/src/features/auth/login-page.test.tsx`, `src/web/src/features/auth/register-page.tsx`, `src/web/src/features/auth/register-page.test.tsx`, `src/web/src/index.css`, `src/web/src/i18n/locales/en.json`, `src/web/src/i18n/locales/pt.json`
+- **Learnings for future iterations:**
+  - CSS @keyframes with animation-delay can be set inline via Tailwind arbitrary values: `animate-[float_20s_ease-in-out_infinite_5s]`
+  - Layered radial-gradient backgrounds create depth — use inline style for complex multi-gradient backgrounds (too complex for Tailwind classes)
+  - Auth layout no longer uses PNG logo — uses ShieldCheck Lucide icon, so no asset mock needed in tests
+---
+
+## 2026-03-22 - US-028
+- Changed ApplicationDbContext from IdentityUserContext<User> to IdentityDbContext<User, IdentityRole, string>
+- Added role tables (Roles, UserRoles) under Security schema with manual migration
+- Updated model snapshot with IdentityRole and IdentityUserRole entities
+- Updated ServiceCollectionExtensions: added .AddRoles<IdentityRole>() and AdminOnly authorization policy
+- Updated AuthService: JWT now includes role claims from UserManager.GetRolesAsync, new users assigned "User" role
+- Updated AuthController /api/auth/me: returns role field via UserManager.GetRolesAsync
+- Seeded "Admin" and "User" roles on startup in Program.cs
+- Added 3 new integration tests: Me_ReturnsUserRole, Register_AssignsUserRole_JwtContainsRoleClaim, AdminPolicy_RejectsNonAdminUser
+- All 144 tests pass, 94.66% line coverage
+- Files changed: `ApplicationDbContext.cs`, `ServiceCollectionExtensions.cs`, `AuthService.cs`, `AuthController.cs`, `Program.cs`, migration file, model snapshot, `AuthEndpointsTests.cs`
+- **Learnings for future iterations:**
+  - Manual EF Core migrations work fine when dotnet-ef CLI has DLL lock issues — just follow the migration pattern in existing files
+  - .NET 8 runtime needs to be installed alongside .NET 9 SDK — use dotnet-install.sh to /home/node/.dotnet-runtimes then sudo cp to /usr/share/dotnet/shared/
+  - FUSE mount causes "Broken pipe" on DLL copy — use -p:OutputPath=/tmp/... for dotnet test/build
+  - InMemory provider works with IdentityDbContext role tables — no special setup needed for tests
+---
+
+## 2026-03-22 - US-029
+- Created AuditLog entity at Entities/Admin/AuditLog.cs (Id, Timestamp, UserId, Action, TargetType, TargetId, Details, IpAddress)
+- Added DbSet<AuditLog> to ApplicationDbContext with Audit schema, indexes on UserId/Timestamp/Action
+- Created manual EF Core migration (20260322100000_AddAuditLog) and updated model snapshot
+- Created IAuditLogRepository + AuditLogRepository with LogAsync, GetPagedAsync (with filtering), GetAllFilteredAsync (for CSV export)
+- Created AuditLogFilter class with Search, Action, UserId, FromDate, ToDate filters
+- Created IAuditLogService + AuditLogService with LogActionAsync method
+- Created DTOs: AuditLogEntryResponse, AuditLogListResponse, AuditLogFilterRequest
+- Registered via AddAdminServices() extension method in ServiceCollectionExtensions, called from Program.cs
+- 11 integration tests covering: creation, timestamps, pagination, action filter, search filter, date range filter, ordering, service layer, optional nulls
+- All 11 tests pass, build succeeds
+- Files changed: `Entities/Admin/AuditLog.cs`, `Data/ApplicationDbContext.cs`, `Migrations/20260322100000_AddAuditLog.cs`, `Migrations/ApplicationDbContextModelSnapshot.cs`, `Repositories/Admin/IAuditLogRepository.cs`, `Repositories/Admin/AuditLogRepository.cs`, `Services/Admin/IAuditLogService.cs`, `Services/Admin/AuditLogService.cs`, `DTOs/Admin/AuditLogDtos.cs`, `Extensions/ServiceCollectionExtensions.cs`, `Program.cs`, `AuditLogTests.cs`
+- **Learnings for future iterations:**
+  - Admin domain follows same layered pattern as Vault/Security — separate directories per layer
+  - Manual migrations work reliably when DLL lock prevents dotnet-ef CLI — write migration + update snapshot
+  - AuditLog intentionally has no FK to Users table — UserId is just a string for flexibility (logs survive user deletion)
+  - AuditLogFilter helper class is co-located in the repository interface file (same pattern as CollectionWithCounts)
+---

@@ -7,6 +7,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddSecurityServices(builder.Configuration);
 builder.Services.AddVaultServices();
+builder.Services.AddAdminServices();
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();

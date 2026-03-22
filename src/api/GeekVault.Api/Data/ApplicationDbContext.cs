@@ -1,3 +1,4 @@
+using GeekVault.Api.Entities.Admin;
 using GeekVault.Api.Entities.Security;
 using GeekVault.Api.Entities.Vault;
 using Microsoft.AspNetCore.Identity;
@@ -20,6 +21,7 @@ public class ApplicationDbContext : IdentityDbContext<User, IdentityRole, string
     public DbSet<Set> Sets => Set<Set>();
     public DbSet<SetItem> SetItems => Set<SetItem>();
     public DbSet<WishlistItem> WishlistItems => Set<WishlistItem>();
+    public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -172,6 +174,22 @@ public class ApplicationDbContext : IdentityDbContext<User, IdentityRole, string
                 .WithMany()
                 .HasForeignKey(e => e.CatalogItemId)
                 .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<AuditLog>(entity =>
+        {
+            entity.ToTable("AuditLogs", "Audit");
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Timestamp).HasDefaultValueSql("GETUTCDATE()");
+            entity.Property(e => e.UserId).IsRequired().HasMaxLength(450);
+            entity.Property(e => e.Action).IsRequired().HasMaxLength(100);
+            entity.Property(e => e.TargetType).IsRequired().HasMaxLength(200);
+            entity.Property(e => e.TargetId).HasMaxLength(200);
+            entity.Property(e => e.Details).HasMaxLength(4000);
+            entity.Property(e => e.IpAddress).HasMaxLength(45);
+            entity.HasIndex(e => e.UserId);
+            entity.HasIndex(e => e.Timestamp);
+            entity.HasIndex(e => e.Action);
         });
     }
 }
